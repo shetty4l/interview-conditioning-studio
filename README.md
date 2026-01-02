@@ -6,13 +6,17 @@
 
 Interview Conditioning Studio (ICS) helps engineers build interview-relevant behaviors through deliberate practice. Unlike LeetCode-style tools, ICS focuses on *conditioning* — time management, problem framing, articulating reasoning, and recovering from stuck points — not correctness evaluation.
 
+See [Product Principles](docs/PRINCIPLES.md) for core design invariants.
+
 ## Features
 
-- **45-minute timed sessions**: 5 min prep → 35 min coding → 5 min silent
+- **Timed sessions**: Multiple presets (Standard, High Pressure, No Assistance)
 - **Enforced invariants**: Write down your assumptions before coding
-- **Limited nudges**: Only 3 allowed — use them wisely
+- **Limited nudges**: Budget depends on preset — use them wisely
+- **Mandatory reflection**: Self-assess after each session
 - **Audio recording**: Capture your verbal reasoning for self-review
 - **Session export**: Download a bundle for LLM-assisted analysis
+- **Historical tracking**: See deltas vs your last session
 - **100% client-side**: Your data never leaves your browser
 
 ## Quick Start

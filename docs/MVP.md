@@ -9,7 +9,7 @@ A local-first, browser-based interview conditioning tool with:
 
 ---
 
-## Session Timing
+## Session Timing (Standard Preset)
 
 | Phase | Duration | Nudges | Audio |
 |-------|----------|--------|-------|
@@ -17,8 +17,21 @@ A local-first, browser-based interview conditioning tool with:
 | CODING | 35 min | Yes (3 max) | Yes |
 | SILENT | 5 min | No | Yes |
 | SUMMARY | — | — | No |
+| REFLECTION | — | — | No |
 
-**Total: 45 minutes**
+**Total: 45 minutes + reflection (~60 seconds)**
+
+---
+
+## Session Presets
+
+| Preset | Prep | Coding | Silent | Nudges | Intent |
+|--------|------|--------|--------|--------|--------|
+| **Standard** | 5 min | 35 min | 5 min | 3 | Default experience |
+| **High Pressure** | 3 min | 25 min | 2 min | 1 | Time compression + limited help |
+| **No Assistance** | 5 min | 35 min | 5 min | 0 | Full time, no nudges |
+
+Presets are predefined configurations. No custom configuration in MVP.
 
 ---
 
@@ -136,7 +149,23 @@ A local-first, browser-based interview conditioning tool with:
               ┌──────────┐                                     │
               │ SUMMARY  │                                     │
               │          │  • View stats                       │
+              │          │  • Review code & invariants         │
+              └────┬─────┘                                     │
+                   │                                           │
+                   │ user clicks "Continue"                    │
+                   ▼                                           │
+              ┌──────────┐                                     │
+              │REFLECTION│  Mandatory, ~60 seconds             │
+              │          │  • 5 recognition-based prompts      │
+              │          │  • Cannot skip                      │
+              └────┬─────┘                                     │
+                   │                                           │
+                   │ reflection submitted                      │
+                   ▼                                           │
+              ┌──────────┐                                     │
+              │   DONE   │                                     │
               │          │  • Download bundle                  │
+              │          │  • Start new session                │
               └────┬─────┘                                     │
                    │                                           │
                    │ user clicks "New Session"                 │
@@ -601,11 +630,12 @@ export function hide() {
 session-abc123.zip
 │
 ├── session.json      # Structured data for LLM analysis
+├── reflection.json   # Structured self-assessment responses
 ├── problem.md        # Problem statement
 ├── invariants.txt    # User's invariants
 ├── code.py           # Final code snapshot
 ├── audio.webm        # Voice recording
-├── summary.md        # Human-readable summary with timeline
+├── summary.md        # Human-readable summary with timeline and reflection
 └── prompt.md         # LLM analysis guidance
 ```
 
@@ -617,10 +647,18 @@ Structured data optimized for LLM analysis:
 {
   "id": "k5x2m9",
   "version": "1.0",
+  "status": "completed",
+  "preset": "standard",
   "problem": {
     "id": "two-sum",
     "title": "Two Sum",
     "description": "Given an array of integers..."
+  },
+  "config": {
+    "prepDuration": 300000,
+    "codingDuration": 2100000,
+    "silentDuration": 300000,
+    "nudgeBudget": 3
   },
   "timing": {
     "totalDuration": 2700000,
@@ -631,8 +669,10 @@ Structured data optimized for LLM analysis:
   "metrics": {
     "nudgesUsed": 1,
     "nudgesAvailable": 3,
+    "nudgeTiming": ["early"],
     "codeChanges": 47,
-    "codeChangesInSilent": 12
+    "codeChangesInSilent": 12,
+    "phaseOverruns": []
   },
   "flags": {
     "invariantsEmpty": false,
@@ -647,6 +687,23 @@ Structured data optimized for LLM analysis:
   "events": [
     { "type": "session.started", "timestamp": 1234567890, "data": {} }
   ]
+}
+```
+
+### reflection.json
+
+Structured self-assessment responses:
+
+```json
+{
+  "completedAt": 1234567890,
+  "responses": {
+    "clearApproach": "partially",
+    "prolongedStall": "yes",
+    "recoveredFromStall": "yes",
+    "timePressure": "manageable",
+    "wouldChangeApproach": "yes"
+  }
 }
 ```
 
@@ -665,18 +722,20 @@ Given an array of integers nums and an integer target...
 ## Session Timeline
 - 00:00 — Session started
 - 04:28 — Coding started (prep time used: 4:28 / 5:00)
-- 12:15 — Nudge requested (1/3)
+- 12:15 — Nudge requested (1/3) [early]
 - 39:28 — Silent phase entered
 - 44:28 — Session ended
 
 ## Statistics
 | Metric | Value |
 |--------|-------|
+| Preset | Standard |
 | Total Duration | 45:00 |
 | Prep Time Used | 4:28 / 5:00 |
 | Coding Time | 35:00 |
 | Silent Time | 5:00 |
 | Nudges Used | 1 / 3 |
+| Nudge Timing | Early |
 | Code Changes | 47 |
 
 ## Invariants
@@ -698,11 +757,21 @@ def two_sum(nums, target):
     return []
 \```
 
+## Self-Reflection
+| Question | Response |
+|----------|----------|
+| Clear approach before coding? | Partially |
+| Experienced prolonged stall? | Yes |
+| Recovered after getting stuck? | Yes |
+| Time pressure feeling | Manageable |
+| Would change approach? | Yes |
+
 ## Observations
 - Invariants were provided before coding
 - Transitioned to coding before prep timer expired
-- Used 1 of 3 available nudges at 27:15 remaining
+- Used 1 of 3 available nudges at 27:15 remaining (early in coding phase)
 - Code was modified 12 times during silent phase
+- Self-reported getting stuck but recovering
 ```
 
 ### prompt.md
@@ -719,20 +788,25 @@ Please analyze this coding interview practice session and provide feedback on:
 3. **Execution**: How was progress managed under time pressure?
 4. **Code Quality**: Is the final code correct? Are edge cases handled?
 5. **Recovery**: If stuck, how did the candidate respond? Were nudges used effectively?
-6. **Recommendations**: What should the candidate focus on improving?
+6. **Self-Awareness**: Do the reflection responses align with observable session behavior?
+7. **Recommendations**: What should the candidate focus on improving?
 
 ## Files Included
 - `problem.md` — The problem statement
 - `invariants.txt` — Candidate's pre-coding notes
 - `code.py` — Final solution
 - `session.json` — Full session data, timeline, and metrics
-- `summary.md` — Human-readable session summary
+- `reflection.json` — Candidate's self-assessment responses
+- `summary.md` — Human-readable session summary with reflection
 - `audio.webm` — Verbal reasoning (if supported by your model)
 
 ## Context
 This is an interview conditioning tool. The goal is not to judge correctness, but to
 help the candidate improve their interview-relevant behaviors: problem framing,
 time management, articulating reasoning, and recovering from stuck points.
+
+The reflection data shows the candidate's self-assessment. Compare this with
+objective session data to identify blind spots or accurate self-awareness.
 ```
 
 ---
@@ -746,9 +820,93 @@ time management, articulating reasoning, and recovering from stuck points.
 - **SILENT phase**: Visual indicator (e.g., banner, color shift), nudge button disabled
 - **Audio recording**: Starts at CODING phase, stops at SUMMARY
 - **Persistence**: Session saved to IndexedDB on every state change, restored on page load
-- **Session completion**: phase='DONE' after summary; skip resume modal on reload, show summary directly
+- **Session completion**: phase='DONE' after reflection; skip resume modal on reload, show done screen directly
 - **Problem selection**: Random from hardcoded set; repeats allowed
-- **Export**: Downloads `session-{id}.zip` containing session.json, code.py, invariants.txt, audio.webm, summary.md, problem.md, prompt.md
+- **Export**: Downloads `session-{id}.zip` containing session.json, reflection.json, code.py, invariants.txt, audio.webm, summary.md, problem.md, prompt.md
+- **Reflection**: Mandatory after summary; 5 recognition-based prompts; cannot be skipped
+
+---
+
+## Reflection Phase
+
+Reflection is mandatory and occurs after the summary screen. It captures structured self-assessment data.
+
+### Reflection Prompts
+
+| # | Prompt | Response Type |
+|---|--------|---------------|
+| 1 | Did you have a clear approach before coding? | Yes / Partially / No |
+| 2 | Did you experience a prolonged stall? | Yes / No |
+| 3 | Did you recover after getting stuck? | Yes / Partially / No / N/A |
+| 4 | How did the time pressure feel? | Comfortable / Manageable / Overwhelming |
+| 5 | Would you change how you approached the problem next time? | Yes / No |
+
+### Design Principles
+
+- **Recognition-based**: All responses are selection-based, not free text
+- **Low cognitive load**: ~60 seconds to complete
+- **Behavioral anchoring**: Questions target observable behaviors, not feelings about correctness
+- **No judgment**: Responses are recorded, not evaluated
+
+### Reflection Data Model
+
+```json
+{
+  "completedAt": 1234567890,
+  "responses": {
+    "clearApproach": "yes" | "partially" | "no",
+    "prolongedStall": "yes" | "no",
+    "recoveredFromStall": "yes" | "partially" | "no" | "n/a",
+    "timePressure": "comfortable" | "manageable" | "overwhelming",
+    "wouldChangeApproach": "yes" | "no"
+  }
+}
+```
+
+---
+
+## Session Status
+
+Sessions have one of three statuses:
+
+| Status | Description |
+|--------|-------------|
+| `completed` | Session finished normally (all phases including reflection) |
+| `abandoned_explicit` | User explicitly clicked "Abandon" in resume modal |
+| `incomplete_inferred` | Session started but not completed (detected on next app load) |
+
+### MVP Behavior
+
+- **Surfaced in UI**: `completed` and `abandoned_explicit` only
+- **Recorded silently**: `incomplete_inferred` (for future analysis)
+- **No penalty**: Incomplete sessions are not judged; crashes/refreshes don't count as abandonment
+
+---
+
+## Behavioral Signals
+
+The system captures objective behavioral signals for self-review and historical comparison.
+
+### Signals Captured
+
+| Signal | Description | Derived From |
+|--------|-------------|--------------|
+| Prep time used | Time spent in PREP phase | `coding.started` timestamp - `session.started` timestamp |
+| Nudges used | Count of nudge requests | `nudge.requested` event count |
+| Nudge timing | When nudges were used (early/mid/late) | `nudge.requested` timestamps relative to coding phase |
+| Code change count | Number of code edits | `coding.code_changed` event count |
+| Phase overrun | Whether user exceeded phase time | Computed from phase timestamps |
+| Explicit abandonment | User clicked "Abandon" | `session.abandoned` event |
+
+### Historical Comparison (Start Screen)
+
+On the start screen, show deltas vs last completed session:
+
+```
+Last session: 2 nudges • 4:12 prep time
+```
+
+This provides context without judgment.
 
 ---
 
@@ -765,6 +923,8 @@ Hash-based routing for simplicity (no server configuration required).
 | `#/coding` | Coding phase |
 | `#/silent` | Silent phase |
 | `#/summary` | Summary screen |
+| `#/reflection` | Reflection screen |
+| `#/done` | Done screen (download, new session) |
 
 ### Implementation
 
@@ -776,6 +936,8 @@ const routes = {
   '/coding': renderCodingScreen,
   '/silent': renderSilentScreen,
   '/summary': renderSummaryScreen,
+  '/reflection': renderReflectionScreen,
+  '/done': renderDoneScreen,
 };
 
 function router() {
@@ -992,14 +1154,18 @@ _deriveState() {
 
 | Event | When Dispatched | Data |
 |-------|-----------------|------|
-| `session.started` | User clicks "Start Session" | `{ problem }` |
+| `session.started` | User clicks "Start Session" | `{ problem, preset, config }` |
 | `prep.invariants_changed` | User types in invariants (debounced) | `{ invariants }` |
 | `prep.time_expired` | Prep timer reaches 0 | `{}` |
 | `coding.started` | User clicks "Start Coding" or prep time forces transition | `{}` |
 | `coding.code_changed` | User types in code editor (debounced) | `{ code }` |
 | `nudge.requested` | User clicks "Request Nudge" | `{}` |
 | `coding.silent_started` | Coding timer reaches 0, entering silent phase | `{}` |
-| `session.ended` | Silent timer reaches 0 | `{}` |
+| `silent.ended` | Silent timer reaches 0, entering summary | `{}` |
+| `summary.continued` | User clicks "Continue" on summary screen | `{}` |
+| `reflection.submitted` | User completes reflection prompts | `{ responses }` |
+| `session.completed` | Reflection submitted, session fully complete | `{}` |
+| `session.abandoned` | User explicitly abandons session | `{}` |
 | `audio.started` | Audio recording begins | `{}` |
 | `audio.stopped` | Audio recording ends | `{}` |
 | `audio.permission_denied` | User denies microphone permission | `{}` |
@@ -1096,18 +1262,20 @@ Note: Browser shows generic message (cannot customize).
 ### Flow
 
 ```
-1. Collect data (code, invariants, events, audio blob)
+1. Collect data (code, invariants, events, reflection, audio blob)
            │
            ▼
 2. JSZip creates zip in memory
-   ┌────────────────────────────────────────┐
-   │  zip.file("code.py", codeString)       │
-   │  zip.file("invariants.txt", invString) │
-   │  zip.file("session.json", jsonString)  │
-   │  zip.file("audio.webm", audioBlob)     │
-   │  zip.file("summary.md", summaryString) │
-   │  zip.file("problem.md", problemString) │
-   └────────────────────────────────────────┘
+   ┌────────────────────────────────────────────┐
+   │  zip.file("code.py", codeString)           │
+   │  zip.file("invariants.txt", invString)     │
+   │  zip.file("session.json", jsonString)      │
+   │  zip.file("reflection.json", reflString)   │
+   │  zip.file("audio.webm", audioBlob)         │
+   │  zip.file("summary.md", summaryString)     │
+   │  zip.file("problem.md", problemString)     │
+   │  zip.file("prompt.md", promptString)       │
+   └────────────────────────────────────────────┘
            │
            ▼
 3. Generate zip as Blob
@@ -1177,8 +1345,10 @@ core/src/__tests__/
 ├── prep-phase.test.ts          # Invariants, timer expiry, warnings
 ├── coding-phase.test.ts        # Code changes, nudges, timer
 ├── silent-phase.test.ts        # No nudges, continued coding
+├── reflection-phase.test.ts    # Mandatory reflection, prompts, responses
 ├── recovery.test.ts            # Resume, abandon, state restoration
-└── summary.test.ts             # Metrics derivation from events
+├── summary.test.ts             # Metrics derivation from events
+└── history.test.ts             # Historical session storage, deltas
 ```
 
 ### Test Coverage Goals
