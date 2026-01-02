@@ -1152,6 +1152,52 @@ Local vendor copy for offline use:
 
 ---
 
+## Test Strategy (TDD)
+
+We follow a Test-Driven Development approach with BDD-style tests:
+
+### Principles
+
+1. **Tests first** — Write behavioral tests before implementation
+2. **BDD style** — Tests organized by user workflows, not modules
+3. **Exhaustive coverage** — Cover happy paths, edge cases, and error states
+4. **Simple implementation** — Comprehensive tests force minimal, correct business logic
+
+### Test Framework
+
+- **Framework**: `bun:test` (built-in, no additional dependencies)
+- **Style**: Describe/it blocks with clear workflow descriptions
+- **Timer mocking**: Dependency injection via `createSession({ clock: () => mockTime })`
+
+### Test File Structure
+
+```
+core/src/__tests__/
+├── session-lifecycle.test.ts   # Full session flow, state transitions
+├── prep-phase.test.ts          # Invariants, timer expiry, warnings
+├── coding-phase.test.ts        # Code changes, nudges, timer
+├── silent-phase.test.ts        # No nudges, continued coding
+├── recovery.test.ts            # Resume, abandon, state restoration
+└── summary.test.ts             # Metrics derivation from events
+```
+
+### Test Coverage Goals
+
+Each workflow covers:
+- **Happy path** — Normal user flow
+- **Edge cases** — Boundary conditions (timer at 0, empty invariants, etc.)
+- **Error states** — Invalid transitions, budget exhaustion
+- **Recovery scenarios** — Mid-session restore, partial state
+
+### Development Workflow
+
+1. Draft test file for a workflow → Review → Approval
+2. Implement core engine to pass tests
+3. Repeat for remaining workflows
+4. Web integration tests after core engine is complete
+
+---
+
 ## Implementation Order
 
 | # | Task | Scope |
