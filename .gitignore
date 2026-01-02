@@ -1,1 +1,11 @@
 .idea
+*.iml
+
+# Toolchain
+tools/
+scripts/activate
+node_modules/
+bun.lockb
+
+# Build output
+web/js/lib/
