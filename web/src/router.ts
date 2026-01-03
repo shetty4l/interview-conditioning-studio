@@ -181,19 +181,33 @@ export function getCurrentRoute(): Route {
 // ============================================================================
 
 /**
- * Check if debug mode is enabled via ?debug=1 query param.
+ * Get a query parameter value.
+ * Checks both standard query string and params in hash fragment.
+ * Supports: ?param=value#/path and #/path?param=value
  */
-export function isDebugMode(): boolean {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("debug") === "1";
+export function getQueryParam(name: string): string | null {
+  // Check standard query string first (?param=value#/hash)
+  const searchParams = new URLSearchParams(window.location.search);
+  const searchValue = searchParams.get(name);
+  if (searchValue !== null) return searchValue;
+
+  // Check for query params in hash fragment (#/path?param=value)
+  const hash = window.location.hash;
+  const queryIndex = hash.indexOf("?");
+  if (queryIndex !== -1) {
+    const hashParams = new URLSearchParams(hash.slice(queryIndex + 1));
+    return hashParams.get(name);
+  }
+
+  return null;
 }
 
 /**
- * Get a query parameter value.
+ * Check if debug mode is enabled via ?debug=1 query param.
+ * Supports both ?debug=1#/path and #/path?debug=1 formats.
  */
-export function getQueryParam(name: string): string | null {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
+export function isDebugMode(): boolean {
+  return getQueryParam("debug") === "1";
 }
 
 // ============================================================================
