@@ -8,4 +8,9 @@ node_modules/
 bun.lockb
 
 # Build output
+dist/
 web/js/lib/
+
+# Playwright
+test-results/
+playwright-report/

@@ -3,10 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun build core/src/index.ts --outdir web/js/lib --target browser --format esm",
-    "build:watch": "bun build core/src/index.ts --outdir web/js/lib --target browser --format esm --watch",
+    "build": "bun run build:js && bun run build:assets",
+    "build:js": "bun build web/src/main.ts --outfile dist/bundle.js --target browser --format esm",
+    "build:assets": "cp web/index.html dist/ && cp -r web/css dist/",
+    "build:watch": "bun build web/src/main.ts --outfile dist/bundle.js --target browser --format esm --watch",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
+    "test": "bun test core/tests/",
+    "test:e2e": "bun x playwright test",
+    "test:e2e:ui": "bun x playwright test --ui",
     "lint": "oxlint .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
@@ -17,6 +21,7 @@
     "@types/bun": "^1.2.0",
     "oxfmt": "^0.21.0",
     "oxlint": "^1.36.0",
+    "playwright": "^1.57.0",
     "typescript": "^5.7.0"
   }
 }

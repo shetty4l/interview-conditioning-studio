@@ -1,10 +1,10 @@
-// Dev-only static file server for web/
+// Dev-only static file server for dist/
 // Usage: bun scripts/serve.ts
 
 import { resolve, join } from "path";
 
 const PORT = 8000;
-const WEB_DIR = resolve(import.meta.dir, "../web");
+const DIST_DIR = resolve(import.meta.dir, "../dist");
 
 const server = Bun.serve({
   port: PORT,
@@ -18,10 +18,10 @@ const server = Bun.serve({
       pathname = "/index.html";
     }
 
-    const filePath = join(WEB_DIR, pathname);
+    const filePath = join(DIST_DIR, pathname);
 
     // Security: prevent directory traversal
-    if (!filePath.startsWith(WEB_DIR)) {
+    if (!filePath.startsWith(DIST_DIR)) {
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -37,5 +37,5 @@ const server = Bun.serve({
   },
 });
 
-console.log(`Serving web/ at http://localhost:${server.port}`);
+console.log(`Serving dist/ at http://localhost:${server.port}`);
 console.log(`Press Ctrl+C to stop`);
