@@ -732,3 +732,16 @@ textarea {
 .session-info p {
   margin-bottom: var(--space-sm);
 }
+
+/* ============================================================================
+   Audio Recording
+   ============================================================================ */
+
+.audio-denied {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding: var(--space-xs) var(--space-sm);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-sm);
+  cursor: help;
+}

@@ -77,14 +77,14 @@ export function render(_state: AppState): string {
       <div class="done-screen__actions">
         ${Button.render({
           label: "Export Session",
-          variant: "secondary",
+          variant: "primary",
+          size: "large",
           action: ACTIONS.EXPORT_SESSION,
         })}
 
         ${Button.render({
           label: "Start New Session",
-          variant: "primary",
-          size: "large",
+          variant: "secondary",
           action: ACTIONS.NEW_SESSION,
         })}
       </div>

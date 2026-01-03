@@ -25,6 +25,10 @@ export const ACTIONS = {
   REQUEST_NUDGE: "request-nudge",
   SUBMIT_SOLUTION: "submit-solution",
 
+  // Audio recording
+  START_RECORDING: "start-recording",
+  STOP_RECORDING: "stop-recording",
+
   // Silent screen (no unique actions)
 
   // Summary screen

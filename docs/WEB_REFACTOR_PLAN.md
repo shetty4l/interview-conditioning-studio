@@ -219,21 +219,21 @@ interface ScreenContext {
 
 ---
 
-## Phase G: Audio + Export + E2E
+## Phase G: Audio + Export + E2E ✅ COMPLETE
 
 **Goal**: Complete Phase 3 features with tests
 
-| #   | Task                                     | Files                |
-| --- | ---------------------------------------- | -------------------- |
-| G1  | Audio recording wrapper                  | `web/src/audio.ts`   |
-| G2  | TAR file writer                          | `web/src/tar.ts`     |
-| G3  | Export as .tar.gz                        | `web/src/export.ts`  |
-| G4  | Wire audio into screens (Coding, Silent) | Update screens       |
-| G5  | Wire export into DoneScreen              | Update DoneScreen    |
-| G6  | E2E: Audio tests                         | `e2e/audio.spec.ts`  |
-| G7  | E2E: Export tests                        | `e2e/export.spec.ts` |
+| #   | Task                                     | Files                | Status |
+| --- | ---------------------------------------- | -------------------- | ------ |
+| G1  | Audio recording wrapper                  | `web/src/audio.ts`   | ✅     |
+| G2  | TAR file writer                          | `web/src/tar.ts`     | ✅     |
+| G3  | Export as .tar.gz                        | `web/src/export.ts`  | ✅     |
+| G4  | Wire audio into screens (Coding, Silent) | Update screens       | ✅     |
+| G5  | Wire export into DoneScreen              | Update DoneScreen    | ✅     |
+| G6  | E2E: Audio tests                         | `e2e/audio.spec.ts`  | ✅     |
+| G7  | E2E: Export tests                        | `e2e/export.spec.ts` | ✅     |
 
-**Checkpoint**: `bun run test:e2e` passes for audio + export
+**Checkpoint**: `bun run test:e2e` passes for audio + export ✅
 
 ### Audio Format Detection
 

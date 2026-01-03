@@ -38,6 +38,9 @@ export interface AppState {
   /** Whether audio permission was denied */
   audioPermissionDenied: boolean;
 
+  /** Whether audio is currently recording */
+  isRecording: boolean;
+
   /** Incomplete session info (for resume banner) */
   incompleteSession: {
     id: string;
@@ -174,6 +177,8 @@ export type AppAction =
   | { type: "RESUME_SESSION" }
 
   // Audio
+  | { type: "START_RECORDING" }
+  | { type: "STOP_RECORDING" }
   | { type: "AUDIO_STARTED" }
   | { type: "AUDIO_STOPPED" }
   | { type: "AUDIO_PERMISSION_DENIED" };

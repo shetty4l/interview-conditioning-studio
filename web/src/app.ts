@@ -31,6 +31,9 @@ import { getScreen, type Screen, type ScreenContext } from "./screens";
 import type { AppAction, ToastType, ModalConfig } from "./types";
 import * as Toast from "./components/Toast";
 import * as Modals from "./modals";
+import { createAudioRecorder, isAudioSupported, type AudioRecorder } from "./audio";
+import { exportSession } from "./export";
+import { getSession as getStoredSession } from "./storage";
 
 // ============================================================================
 // App State
@@ -45,12 +48,14 @@ let appState: AppState = {
   sessionId: null,
   audioSupported: false,
   audioPermissionDenied: false,
+  isRecording: false,
   incompleteSession: null,
 };
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 let currentScreen: Screen | null = null;
 let currentScreenName: ScreenName | null = null;
+let audioRecorder: AudioRecorder | null = null;
 
 // ============================================================================
 // State Management
@@ -190,6 +195,96 @@ function stopTimer(): void {
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
+  }
+}
+
+// ============================================================================
+// Audio Recording
+// ============================================================================
+
+/**
+ * Start audio recording for the current session.
+ */
+async function startAudioRecording(): Promise<void> {
+  if (!appState.sessionId || appState.isRecording) return;
+
+  // Create recorder if needed
+  if (!audioRecorder) {
+    audioRecorder = createAudioRecorder(appState.sessionId, (state) => {
+      updateState({
+        isRecording: state.isRecording,
+        audioPermissionDenied: state.permissionDenied,
+      });
+    });
+  }
+
+  try {
+    await audioRecorder.start();
+    showToast("Recording started", "success");
+  } catch (error) {
+    console.error("Failed to start recording:", error);
+    if (audioRecorder.getState().permissionDenied) {
+      showToast("Microphone access denied", "error");
+    } else {
+      showToast("Failed to start recording", "error");
+    }
+  }
+}
+
+/**
+ * Stop audio recording.
+ */
+async function stopAudioRecording(): Promise<void> {
+  if (!audioRecorder) return;
+
+  try {
+    await audioRecorder.stop();
+    if (appState.isRecording) {
+      showToast("Recording saved", "success");
+    }
+  } catch (error) {
+    console.error("Failed to stop recording:", error);
+  }
+
+  updateState({ isRecording: false });
+}
+
+/**
+ * Clean up audio recorder resources.
+ * Note: Prefixed with underscore as it's available for future use but not currently called.
+ */
+function _destroyAudioRecorder(): void {
+  if (audioRecorder) {
+    audioRecorder.destroy();
+    audioRecorder = null;
+  }
+}
+
+// ============================================================================
+// Export
+// ============================================================================
+
+/**
+ * Handle session export.
+ */
+async function handleExportSession(): Promise<void> {
+  if (!appState.sessionId) {
+    showToast("No session to export", "error");
+    return;
+  }
+
+  try {
+    const stored = await getStoredSession(appState.sessionId);
+    if (!stored) {
+      showToast("Session not found", "error");
+      return;
+    }
+
+    await exportSession(stored);
+    showToast("Session exported", "success");
+  } catch (error) {
+    console.error("Failed to export session:", error);
+    showToast("Export failed", "error");
   }
 }
 
@@ -407,6 +502,7 @@ export async function abandonSession(): Promise<void> {
 
 export function resetApp(): void {
   stopTimer();
+  stopAudioRecording();
   appState = {
     screen: "home",
     selectedPreset: PresetEnum.Standard,
@@ -416,6 +512,7 @@ export function resetApp(): void {
     sessionId: null,
     audioSupported: appState.audioSupported,
     audioPermissionDenied: false,
+    isRecording: false,
     incompleteSession: null,
   };
   // Check for incomplete sessions after reset
@@ -524,8 +621,7 @@ export function dispatch(action: AppAction): void {
       submitReflection(action.responses);
       break;
     case "EXPORT_SESSION":
-      // TODO: Implement in Phase G
-      showToast("Export not yet implemented", "info");
+      handleExportSession();
       break;
     case "NEW_SESSION":
       resetApp();
@@ -536,10 +632,21 @@ export function dispatch(action: AppAction): void {
     case "RESUME_SESSION":
       resumeIncompleteSession();
       break;
+    case "START_RECORDING":
+      startAudioRecording();
+      break;
+    case "STOP_RECORDING":
+      stopAudioRecording();
+      break;
     case "AUDIO_STARTED":
+      updateState({ isRecording: true });
+      break;
     case "AUDIO_STOPPED":
+      updateState({ isRecording: false });
+      break;
     case "AUDIO_PERMISSION_DENIED":
-      // TODO: Implement in Phase G
+      updateState({ audioPermissionDenied: true, isRecording: false });
+      showToast("Microphone access denied", "error");
       break;
   }
 }
@@ -843,10 +950,7 @@ export async function initApp(): Promise<void> {
   });
 
   // Check audio support
-  appState.audioSupported =
-    typeof MediaRecorder !== "undefined" &&
-    (MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ||
-      MediaRecorder.isTypeSupported("audio/mp4"));
+  appState.audioSupported = isAudioSupported();
 
   // Initial render
   render();

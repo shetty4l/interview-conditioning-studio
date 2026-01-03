@@ -11,6 +11,7 @@ import * as PhaseHeader from "../components/PhaseHeader";
 import * as CodeEditor from "../components/CodeEditor";
 import * as NudgeButton from "../components/NudgeButton";
 import * as InvariantsDisplay from "../components/InvariantsDisplay";
+import * as RecordingIndicator from "../components/RecordingIndicator";
 import * as Button from "../components/Button";
 
 // ============================================================================
@@ -25,7 +26,8 @@ let _currentCtx: ScreenContext | null = null;
 // ============================================================================
 
 export function render(state: AppState): string {
-  const { sessionState, problem, screen } = state;
+  const { sessionState, problem, screen, isRecording, audioSupported, audioPermissionDenied } =
+    state;
   if (!sessionState || !problem) {
     return `<div class="coding-screen">Loading...</div>`;
   }
@@ -35,14 +37,38 @@ export function render(state: AppState): string {
 
   // Build action buttons for header
   let headerActions = "";
+
+  // Recording button (CODING and SILENT phases)
+  if (audioSupported && !audioPermissionDenied) {
+    if (isRecording) {
+      headerActions += RecordingIndicator.render({ isRecording: true });
+      headerActions += Button.render({
+        label: "Stop",
+        variant: "danger",
+        size: "small",
+        action: ACTIONS.STOP_RECORDING,
+      });
+    } else {
+      headerActions += Button.render({
+        label: "Record",
+        variant: "secondary",
+        size: "small",
+        action: ACTIONS.START_RECORDING,
+      });
+    }
+  } else if (audioPermissionDenied) {
+    headerActions += `<span class="audio-denied" title="Microphone access denied">Mic denied</span>`;
+  }
+
+  // Nudge button (CODING only)
   if (!isSilent) {
-    headerActions = NudgeButton.render({
+    headerActions += NudgeButton.render({
       remaining: sessionState.nudgesRemaining,
       total: sessionState.nudgesRemaining + sessionState.nudgesUsed,
     });
   }
 
-  // Add submit solution button
+  // Submit solution button
   headerActions += Button.render({
     label: "Submit Solution",
     variant: "secondary",
@@ -100,6 +126,20 @@ export function mount(ctx: ScreenContext): void {
 
   const handleClick = (e: Event) => {
     const target = e.target as HTMLElement;
+
+    // Start recording
+    const startRecordBtn = target.closest(`[data-action="${ACTIONS.START_RECORDING}"]`);
+    if (startRecordBtn) {
+      ctx.dispatch({ type: "START_RECORDING" });
+      return;
+    }
+
+    // Stop recording
+    const stopRecordBtn = target.closest(`[data-action="${ACTIONS.STOP_RECORDING}"]`);
+    if (stopRecordBtn) {
+      ctx.dispatch({ type: "STOP_RECORDING" });
+      return;
+    }
 
     // Request nudge
     const nudgeBtn = target.closest(`[data-action="${ACTIONS.REQUEST_NUDGE}"]`);
@@ -160,6 +200,15 @@ export function update(state: AppState): boolean {
       remaining: sessionState.nudgesRemaining,
       total: sessionState.nudgesRemaining + sessionState.nudgesUsed,
     });
+    handled = true;
+  }
+
+  // Update recording indicator
+  const recordingEl = document.querySelector(
+    `[data-component="${COMPONENTS.RECORDING_INDICATOR}"]`,
+  );
+  if (recordingEl) {
+    RecordingIndicator.update(recordingEl as HTMLElement, { isRecording: state.isRecording });
     handled = true;
   }
 

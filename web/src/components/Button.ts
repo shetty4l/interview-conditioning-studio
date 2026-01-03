@@ -11,7 +11,7 @@ import { type Action } from "../constants";
 // ============================================================================
 
 export type ButtonVariant = "primary" | "secondary" | "danger";
-export type ButtonSize = "normal" | "large";
+export type ButtonSize = "small" | "normal" | "large";
 
 export interface ButtonProps {
   /** Button text */
@@ -89,6 +89,11 @@ export const styles = `
   padding: var(--space-md) var(--space-xl);
   font-size: 1.125rem;
 }
+
+.btn--small {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.875rem;
+}
 `;
 
 // ============================================================================
@@ -106,7 +111,12 @@ export function render(props: ButtonProps): string {
     type = "button",
   } = props;
 
-  const classes = ["btn", `btn--${variant}`, size === "large" ? "btn--large" : "", className]
+  const classes = [
+    "btn",
+    `btn--${variant}`,
+    size === "large" ? "btn--large" : size === "small" ? "btn--small" : "",
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
 
