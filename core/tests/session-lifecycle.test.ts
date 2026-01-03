@@ -18,7 +18,7 @@ import {
   type Problem,
   Phase,
   Preset,
-} from "../index";
+} from "../src/index";
 
 // Test fixtures
 const TEST_PROBLEM: Problem = {
