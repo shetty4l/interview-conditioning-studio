@@ -51,6 +51,31 @@ const STANDARD_PRESET = {
 };
 
 describe("Session Lifecycle", () => {
+  describe("Initial state (before session.started)", () => {
+    it("should have no phase before session is started", () => {
+      const clock = createMockClock(1000);
+      const session = createSession({
+        preset: Preset.Standard,
+        problem: TEST_PROBLEM,
+        clock: clock.now,
+      });
+
+      const state = session.getState();
+      expect(state.phase).toBeUndefined();
+    });
+
+    it("should have empty event log before session is started", () => {
+      const clock = createMockClock(1000);
+      const session = createSession({
+        preset: Preset.Standard,
+        problem: TEST_PROBLEM,
+        clock: clock.now,
+      });
+
+      expect(session.getEvents()).toEqual([]);
+    });
+  });
+
   describe("Starting a session", () => {
     it("should create a session in PREP phase when started", () => {
       const clock = createMockClock(1000);
@@ -65,6 +90,22 @@ describe("Session Lifecycle", () => {
 
       expect(state.phase).toBe(Phase.Prep);
       expect(state.problem).toEqual(TEST_PROBLEM);
+    });
+
+    it("should generate a unique session ID", () => {
+      const clock = createMockClock(1000);
+      const session = createSession({
+        preset: Preset.Standard,
+        problem: TEST_PROBLEM,
+        clock: clock.now,
+      });
+
+      session.dispatch("session.started");
+      const state = session.getState();
+
+      expect(state.id).toBeDefined();
+      expect(typeof state.id).toBe("string");
+      expect(state.id.length).toBeGreaterThan(0);
     });
 
     it("should assign the provided problem", () => {
@@ -228,6 +269,72 @@ describe("Session Lifecycle", () => {
       const state = session.getState();
       expect(state.phase).toBe(Phase.Coding);
       expect(state.prepTimeExpired).toBe(true);
+    });
+  });
+
+  describe("CODING phase", () => {
+    it("should allow nudges during CODING phase", () => {
+      const clock = createMockClock(1000);
+      const session = createSession({
+        preset: Preset.Standard,
+        problem: TEST_PROBLEM,
+        clock: clock.now,
+      });
+
+      session.dispatch("session.started");
+      session.dispatch("coding.started");
+
+      const state = session.getState();
+      expect(state.nudgesAllowed).toBe(true);
+    });
+
+    it("should track nudgesUsed count", () => {
+      const clock = createMockClock(1000);
+      const session = createSession({
+        preset: Preset.Standard,
+        problem: TEST_PROBLEM,
+        clock: clock.now,
+      });
+
+      session.dispatch("session.started");
+      session.dispatch("coding.started");
+
+      expect(session.getState().nudgesUsed).toBe(0);
+
+      session.dispatch("nudge.requested");
+      expect(session.getState().nudgesUsed).toBe(1);
+      expect(session.getState().nudgesRemaining).toBe(2);
+
+      session.dispatch("nudge.requested");
+      expect(session.getState().nudgesUsed).toBe(2);
+      expect(session.getState().nudgesRemaining).toBe(1);
+    });
+
+    it("should not allow more nudges than budget", () => {
+      const clock = createMockClock(1000);
+      const session = createSession({
+        preset: Preset.Standard,
+        problem: TEST_PROBLEM,
+        clock: clock.now,
+      });
+
+      session.dispatch("session.started");
+      session.dispatch("coding.started");
+
+      // Use all 3 nudges
+      session.dispatch("nudge.requested");
+      session.dispatch("nudge.requested");
+      session.dispatch("nudge.requested");
+
+      expect(session.getState().nudgesUsed).toBe(3);
+      expect(session.getState().nudgesRemaining).toBe(0);
+
+      // Try to use a 4th nudge
+      session.dispatch("nudge.requested");
+
+      // Should not exceed budget
+      expect(session.getState().nudgesUsed).toBe(3);
+      expect(session.getState().nudgesRemaining).toBe(0);
     });
   });
 
