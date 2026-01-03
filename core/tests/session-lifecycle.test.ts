@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 
 /**
  * Session Lifecycle Tests
@@ -41,14 +41,6 @@ function createMockClock(initialTime: number = 0) {
     },
   };
 }
-
-// Standard preset durations (in ms)
-const STANDARD_PRESET = {
-  prepDuration: 5 * 60 * 1000, // 5 minutes
-  codingDuration: 35 * 60 * 1000, // 35 minutes
-  silentDuration: 5 * 60 * 1000, // 5 minutes
-  nudgeBudget: 3,
-};
 
 describe("Session Lifecycle", () => {
   describe("Initial state (before session.started)", () => {
@@ -786,5 +778,488 @@ describe("Session Lifecycle", () => {
       expect(restoredState.invariants).toBe(originalState.invariants);
       expect(restoredState.nudgesRemaining).toBe(originalState.nudgesRemaining);
     });
+  });
+});
+
+describe("Session abandonment", () => {
+  it("should transition to abandoned_explicit status when session.abandoned is dispatched", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("session.abandoned");
+
+    const state = session.getState();
+    expect(state.status).toBe("abandoned_explicit");
+  });
+
+  it("should reject events after session is abandoned", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("session.abandoned");
+
+    const eventCountBefore = session.getEvents().length;
+    session.dispatch("coding.code_changed", { code: "test" });
+
+    expect(session.getEvents().length).toBe(eventCountBefore);
+  });
+});
+
+describe("Session completion events", () => {
+  it("should auto-emit session.completed event after reflection.submitted", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("coding.silent_started");
+    session.dispatch("silent.ended");
+    session.dispatch("summary.continued");
+    session.dispatch("reflection.submitted", {
+      responses: {
+        clearApproach: "yes",
+        prolongedStall: "no",
+        recoveredFromStall: "n/a",
+        timePressure: "comfortable",
+        wouldChangeApproach: "no",
+      },
+    });
+
+    const events = session.getEvents();
+    const eventTypes = events.map(e => e.type);
+    
+    expect(eventTypes).toContain("reflection.submitted");
+    expect(eventTypes).toContain("session.completed");
+    
+    // session.completed should come after reflection.submitted
+    const reflectionIndex = eventTypes.indexOf("reflection.submitted");
+    const completedIndex = eventTypes.indexOf("session.completed");
+    expect(completedIndex).toBeGreaterThan(reflectionIndex);
+  });
+});
+
+describe("Audio events", () => {
+  it("should accept audio.started event and track isRecording state", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("audio.started");
+
+    const state = session.getState();
+    expect(state.isRecording).toBe(true);
+  });
+
+  it("should accept audio.stopped event and update isRecording state", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("audio.started");
+    session.dispatch("audio.stopped");
+
+    const state = session.getState();
+    expect(state.isRecording).toBe(false);
+  });
+
+  it("should accept audio.permission_denied event", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("audio.permission_denied");
+
+    const events = session.getEvents();
+    expect(events.some(e => e.type === "audio.permission_denied")).toBe(true);
+  });
+});
+
+describe("Subscriber pattern", () => {
+  it("should notify subscribers when events are dispatched", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    const notifications: Array<{ event: any; state: any }> = [];
+    session.subscribe((event, state) => {
+      notifications.push({ event, state });
+    });
+
+    session.dispatch("session.started");
+
+    expect(notifications.length).toBe(1);
+    expect(notifications[0].event.type).toBe("session.started");
+    expect(notifications[0].state.phase).toBe(Phase.Prep);
+  });
+
+  it("should return unsubscribe function that stops notifications", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    const notifications: any[] = [];
+    const unsubscribe = session.subscribe((event) => {
+      notifications.push(event);
+    });
+
+    session.dispatch("session.started");
+    expect(notifications.length).toBe(1);
+
+    unsubscribe();
+    session.dispatch("coding.started");
+    expect(notifications.length).toBe(1); // No new notification
+  });
+});
+
+describe("Remaining time derivation", () => {
+  it("should compute remainingTime dynamically based on clock", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    
+    // At start, should have full prep time remaining
+    expect(session.getState().remainingTime).toBe(5 * 60 * 1000);
+
+    // Advance 2 minutes
+    clock.advance(2 * 60 * 1000);
+    expect(session.getState().remainingTime).toBe(3 * 60 * 1000);
+
+    // Advance another 2 minutes
+    clock.advance(2 * 60 * 1000);
+    expect(session.getState().remainingTime).toBe(1 * 60 * 1000);
+  });
+
+  it("should return negative remainingTime when phase exceeds duration", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    clock.advance(6 * 60 * 1000); // 6 minutes (1 minute over)
+
+    expect(session.getState().remainingTime).toBe(-1 * 60 * 1000);
+  });
+});
+
+describe("Dispatch return value", () => {
+  it("should return the created event on successful dispatch", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    const event = session.dispatch("session.started");
+
+    expect(event).not.toBeNull();
+    expect(event?.type).toBe("session.started");
+    expect(event?.timestamp).toBe(1000);
+  });
+
+  it("should return null when dispatch is rejected", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    // Try to dispatch coding.started before session.started
+    const event = session.dispatch("coding.started");
+
+    expect(event).toBeNull();
+  });
+});
+
+describe("Invalid event handling", () => {
+  it("should reject unknown event types", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    const eventCountBefore = session.getEvents().length;
+    
+    // @ts-expect-error - Testing invalid event type
+    session.dispatch("invalid.event.type");
+
+    expect(session.getEvents().length).toBe(eventCountBefore);
+  });
+
+  it("should reject session.started when already started", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    const eventCountBefore = session.getEvents().length;
+    
+    session.dispatch("session.started");
+
+    expect(session.getEvents().length).toBe(eventCountBefore);
+  });
+});
+
+describe("Backward transitions rejected", () => {
+  it("should reject prep.invariants_changed in CODING phase", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("prep.invariants_changed", { invariants: "initial" });
+    session.dispatch("coding.started");
+
+    const eventCountBefore = session.getEvents().length;
+    session.dispatch("prep.invariants_changed", { invariants: "modified" });
+
+    expect(session.getEvents().length).toBe(eventCountBefore);
+    expect(session.getState().invariants).toBe("initial");
+  });
+
+  it("should reject coding.started in SILENT phase", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("coding.silent_started");
+
+    const eventCountBefore = session.getEvents().length;
+    session.dispatch("coding.started");
+
+    expect(session.getEvents().length).toBe(eventCountBefore);
+    expect(session.getState().phase).toBe(Phase.Silent);
+  });
+});
+
+describe("State initialization", () => {
+  it("should initialize state.code as empty string", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+
+    expect(session.getState().code).toBe("");
+  });
+
+  it("should generate unique IDs for different sessions", () => {
+    const clock1 = createMockClock(1000);
+    const session1 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock1.now,
+    });
+    session1.dispatch("session.started");
+
+    const clock2 = createMockClock(2000);
+    const session2 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock2.now,
+    });
+    session2.dispatch("session.started");
+
+    expect(session1.getState().id).not.toBe(session2.getState().id);
+  });
+});
+
+describe("No Assistance preset configuration", () => {
+  it("should use correct durations for No Assistance preset", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.NoAssistance,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    const state = session.getState();
+
+    // No Assistance: 5 min prep, 35 min coding, 5 min silent, 0 nudges
+    expect(state.config.prepDuration).toBe(5 * 60 * 1000);
+    expect(state.config.codingDuration).toBe(35 * 60 * 1000);
+    expect(state.config.silentDuration).toBe(5 * 60 * 1000);
+    expect(state.config.nudgeBudget).toBe(0);
+  });
+});
+
+describe("Phase overruns", () => {
+  it("should track prepTimeExpired flag when prep timer forces transition", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    clock.advance(5 * 60 * 1000); // Full prep time
+    session.dispatch("prep.time_expired");
+    session.dispatch("coding.started");
+
+    expect(session.getState().prepTimeExpired).toBe(true);
+  });
+
+  it("should not set prepTimeExpired when user starts coding early", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    clock.advance(2 * 60 * 1000); // Only 2 minutes
+    session.dispatch("coding.started");
+
+    expect(session.getState().prepTimeExpired).toBe(false);
+  });
+});
+
+describe("Reflection validation", () => {
+  it("should reject reflection with invalid clearApproach value", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("coding.silent_started");
+    session.dispatch("silent.ended");
+    session.dispatch("summary.continued");
+
+    const result = session.dispatch("reflection.submitted", {
+      responses: {
+        clearApproach: "maybe", // Invalid value
+        prolongedStall: "no",
+        recoveredFromStall: "n/a",
+        timePressure: "comfortable",
+        wouldChangeApproach: "no",
+      },
+    });
+
+    expect(result).toBeNull();
+    expect(session.getState().phase).toBe(Phase.Reflection);
+  });
+
+  it("should reject reflection with missing required fields", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("coding.silent_started");
+    session.dispatch("silent.ended");
+    session.dispatch("summary.continued");
+
+    const result = session.dispatch("reflection.submitted", {
+      responses: {
+        clearApproach: "yes",
+        // Missing other required fields
+      },
+    });
+
+    expect(result).toBeNull();
+    expect(session.getState().phase).toBe(Phase.Reflection);
+  });
+
+  it("should allow recoveredFromStall='n/a' only when prolongedStall='no'", () => {
+    const clock = createMockClock(1000);
+    const session = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock.now,
+    });
+
+    session.dispatch("session.started");
+    session.dispatch("coding.started");
+    session.dispatch("coding.silent_started");
+    session.dispatch("silent.ended");
+    session.dispatch("summary.continued");
+
+    // Invalid: prolongedStall=yes but recoveredFromStall=n/a
+    const result = session.dispatch("reflection.submitted", {
+      responses: {
+        clearApproach: "yes",
+        prolongedStall: "yes",
+        recoveredFromStall: "n/a", // Should not be n/a when stall=yes
+        timePressure: "comfortable",
+        wouldChangeApproach: "no",
+      },
+    });
+
+    expect(result).toBeNull();
+    expect(session.getState().phase).toBe(Phase.Reflection);
   });
 });
