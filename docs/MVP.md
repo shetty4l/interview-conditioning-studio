@@ -650,6 +650,7 @@ export function hide() {
 ```
 
 The export uses native browser APIs:
+
 - **TAR format**: Minimal USTAR implementation (~80 lines)
 - **Gzip compression**: Native `CompressionStream('gzip')` API
 - **No external dependencies**: No JSZip or other libraries needed
@@ -1207,15 +1208,16 @@ Note: Browser shows generic message (cannot customize).
 
 ## Dependencies
 
-| Package      | Purpose              | Where |
-| ------------ | -------------------- | ----- |
-| `typescript` | Type checking        | Dev   |
-| `bun`        | Runtime and bundler  | Dev   |
-| `playwright` | E2E testing          | Dev   |
-| `oxlint`     | Linting              | Dev   |
-| `oxfmt`      | Formatting           | Dev   |
+| Package      | Purpose             | Where |
+| ------------ | ------------------- | ----- |
+| `typescript` | Type checking       | Dev   |
+| `bun`        | Runtime and bundler | Dev   |
+| `playwright` | E2E testing         | Dev   |
+| `oxlint`     | Linting             | Dev   |
+| `oxfmt`      | Formatting          | Dev   |
 
 **No runtime dependencies.** The app uses native browser APIs for:
+
 - IndexedDB (storage)
 - MediaRecorder (audio)
 - CompressionStream (gzip)

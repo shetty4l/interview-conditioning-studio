@@ -236,6 +236,7 @@ At the end of each session, the system can export a complete bundle.
 ### Export Format
 
 The bundle is exported as a `.tar.gz` file using:
+
 - Minimal TAR writer (USTAR format, ~80 lines)
 - Native `CompressionStream('gzip')` API
 - No external dependencies
