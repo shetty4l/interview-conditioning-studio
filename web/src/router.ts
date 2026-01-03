@@ -38,10 +38,17 @@ export function phaseToSlug(phase: Phase): string {
  * parseHash('')           → { type: 'home' }
  * parseHash('#/')         → { type: 'home' }
  * parseHash('#/abc123/prep') → { type: 'session', sessionId: 'abc123', phase: Phase.Prep }
+ * parseHash('#/abc123/prep?debug=1') → { type: 'session', sessionId: 'abc123', phase: Phase.Prep }
  */
 export function parseHash(hash: string): Route {
   // Remove leading # if present
-  const path = hash.startsWith("#") ? hash.slice(1) : hash;
+  let path = hash.startsWith("#") ? hash.slice(1) : hash;
+
+  // Strip query params from hash (e.g., /path?debug=1 → /path)
+  const queryIndex = path.indexOf("?");
+  if (queryIndex !== -1) {
+    path = path.slice(0, queryIndex);
+  }
 
   // Remove leading / if present
   const normalized = path.startsWith("/") ? path.slice(1) : path;
