@@ -1,4 +1,4 @@
-/* Interview Conditioning Studio - Base Styles */
+/* Interview Conditioning Studio - Styles */
 
 :root {
   /* Colors */
@@ -13,6 +13,14 @@
   --color-success: #22c55e;
   --color-warning: #eab308;
   --color-danger: #ef4444;
+
+  /* Phase colors */
+  --color-prep: #8b5cf6;
+  --color-coding: #22c55e;
+  --color-silent: #f59e0b;
+  --color-summary: #3b82f6;
+  --color-reflection: #ec4899;
+  --color-done: #22c55e;
 
   /* Typography */
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -53,15 +61,21 @@ body {
 }
 
 #app {
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
   padding: var(--space-xl);
+  min-height: 100vh;
 }
 
+/* ============================================================================
+   Typography
+   ============================================================================ */
+
 h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: var(--space-lg);
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+  letter-spacing: -0.02em;
 }
 
 h2 {
@@ -71,7 +85,7 @@ h2 {
 }
 
 h3 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 500;
   margin-bottom: var(--space-sm);
 }
@@ -80,7 +94,22 @@ p {
   margin-bottom: var(--space-md);
 }
 
-/* Buttons */
+.tagline {
+  color: var(--color-text-muted);
+  font-size: 1.125rem;
+  margin-bottom: var(--space-2xl);
+}
+
+.hint {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-sm);
+}
+
+/* ============================================================================
+   Buttons
+   ============================================================================ */
+
 button {
   font-family: inherit;
   font-size: 1rem;
@@ -89,7 +118,7 @@ button {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 button:disabled {
@@ -104,6 +133,7 @@ button:disabled {
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -116,9 +146,17 @@ button:disabled {
   background-color: var(--color-surface-hover);
 }
 
-/* Form elements */
+.btn-large {
+  padding: var(--space-md) var(--space-xl);
+  font-size: 1.125rem;
+}
+
+/* ============================================================================
+   Form Elements
+   ============================================================================ */
+
 textarea,
-input,
+input[type="text"],
 select {
   font-family: inherit;
   font-size: 1rem;
@@ -139,19 +177,403 @@ select:focus {
 
 textarea {
   font-family: var(--font-mono);
+  font-size: 0.9rem;
   resize: vertical;
   min-height: 200px;
+  line-height: 1.5;
 }
 
-/* Status indicator */
-#status {
+/* ============================================================================
+   Loading State
+   ============================================================================ */
+
+.loading {
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-2xl);
+}
+
+/* ============================================================================
+   Home Screen
+   ============================================================================ */
+
+.home-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: var(--space-2xl);
+}
+
+.preset-selector {
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: var(--space-2xl);
+}
+
+.preset-selector h2 {
+  margin-bottom: var(--space-lg);
+}
+
+.preset-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.preset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--space-lg);
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-card:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-surface-hover);
+}
+
+.preset-card.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.preset-label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.preset-desc {
+  font-size: 0.875rem;
   color: var(--color-text-muted);
 }
 
-#status.success {
-  color: var(--color-success);
+.start-button {
+  min-width: 200px;
 }
 
-#status.error {
+/* ============================================================================
+   Phase Header
+   ============================================================================ */
+
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.phase-badge {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phase-prep {
+  background-color: var(--color-prep);
+  color: white;
+}
+
+.phase-coding {
+  background-color: var(--color-coding);
+  color: white;
+}
+
+.phase-silent {
+  background-color: var(--color-silent);
+  color: black;
+}
+
+.phase-summary {
+  background-color: var(--color-summary);
+  color: white;
+}
+
+.phase-reflection {
+  background-color: var(--color-reflection);
+  color: white;
+}
+
+.phase-done {
+  background-color: var(--color-done);
+  color: white;
+}
+
+.timer {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.timer.overtime {
   color: var(--color-danger);
+}
+
+.nudge-button {
+  margin-left: auto;
+}
+
+/* ============================================================================
+   PREP Screen
+   ============================================================================ */
+
+.prep-screen {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.problem-section {
+  margin-bottom: var(--space-xl);
+}
+
+.problem-section h2 {
+  color: var(--color-primary);
+}
+
+.problem-description {
+  background-color: var(--color-surface);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.invariants-section {
+  margin-bottom: var(--space-xl);
+}
+
+.invariants-section label {
+  display: block;
+}
+
+.invariants-input {
+  min-height: 150px;
+}
+
+.start-coding-button {
+  width: 100%;
+}
+
+/* ============================================================================
+   Coding Screen
+   ============================================================================ */
+
+.coding-screen {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 4rem);
+}
+
+.coding-screen.silent-mode {
+  border: 2px solid var(--color-silent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin: calc(-1 * var(--space-lg));
+}
+
+.silent-banner {
+  background-color: var(--color-silent);
+  color: black;
+  text-align: center;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+}
+
+.problem-summary {
+  background-color: var(--color-surface);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.problem-summary strong {
+  color: var(--color-primary);
+}
+
+.invariants-preview {
+  margin-top: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+}
+
+.code-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.code-input {
+  flex: 1;
+  min-height: 400px;
+  font-size: 0.9rem;
+}
+
+/* ============================================================================
+   Summary Screen
+   ============================================================================ */
+
+.summary-screen {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.summary-stats {
+  display: flex;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.stat {
+  background-color: var(--color-surface);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  flex: 1;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.summary-section {
+  margin-bottom: var(--space-xl);
+}
+
+.summary-content {
+  background-color: var(--color-surface);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.summary-content.code {
+  font-family: var(--font-mono);
+}
+
+.continue-button {
+  width: 100%;
+}
+
+/* ============================================================================
+   Reflection Screen
+   ============================================================================ */
+
+.reflection-screen {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.reflection-intro {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xl);
+}
+
+.reflection-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.question {
+  background-color: var(--color-surface);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+}
+
+.question > label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: var(--space-md);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.options label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+.options label:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.options input[type="radio"] {
+  width: auto;
+  accent-color: var(--color-primary);
+}
+
+.submit-reflection-button {
+  margin-top: var(--space-lg);
+}
+
+/* ============================================================================
+   Done Screen
+   ============================================================================ */
+
+.done-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: var(--space-2xl);
+}
+
+.done-content {
+  max-width: 400px;
+}
+
+.done-content h2 {
+  font-size: 2rem;
+  margin-bottom: var(--space-md);
+}
+
+.done-content p {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xl);
+}
+
+.new-session-button {
+  min-width: 200px;
 }

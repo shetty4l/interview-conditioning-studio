@@ -4,23 +4,42 @@
  * This file bootstraps the web application.
  */
 
-import { VERSION } from "../../core/src/index";
+import {
+  initApp,
+  getAppState,
+  startSilentPhase,
+  endSilentPhase,
+  continuePastSummary,
+  submitReflection,
+  resetApp,
+} from "./app";
 
-// Initialize app
-function init() {
-  const status = document.getElementById("status");
-  if (status) {
-    status.textContent = `Core engine v${VERSION} loaded successfully!`;
-    status.classList.add("success");
+// Expose debug functions on window for testing
+declare global {
+  interface Window {
+    IDS: {
+      getAppState: typeof getAppState;
+      startSilentPhase: typeof startSilentPhase;
+      endSilentPhase: typeof endSilentPhase;
+      continuePastSummary: typeof continuePastSummary;
+      submitReflection: typeof submitReflection;
+      resetApp: typeof resetApp;
+    };
   }
-
-  console.log("Interview Conditioning Studio initialized");
-  console.log(`Core engine version: ${VERSION}`);
 }
 
-// Run when DOM is ready
+window.IDS = {
+  getAppState,
+  startSilentPhase,
+  endSilentPhase,
+  continuePastSummary,
+  submitReflection,
+  resetApp,
+};
+
+// Initialize app when DOM is ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
+  document.addEventListener("DOMContentLoaded", initApp);
 } else {
-  init();
+  initApp();
 }
