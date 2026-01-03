@@ -23,22 +23,20 @@ Each session follows a fixed structure:
 
 ## Export Bundle
 
-After completing a session, you can download a ZIP bundle containing:
+After completing a session, you can download a `.tar.gz` bundle containing:
 
-| File              | Purpose                                             |
-| ----------------- | --------------------------------------------------- |
-| `session.json`    | Structured session data (timing, metrics, events)   |
-| `reflection.json` | Your self-assessment responses                      |
-| `summary.md`      | Human-readable summary with timeline and reflection |
-| `problem.md`      | The problem statement                               |
-| `invariants.txt`  | Your pre-coding notes and assumptions               |
-| `code.py`         | Your final code                                     |
-| `audio.webm`      | Voice recording (if microphone was enabled)         |
-| `prompt.md`       | Suggested prompts for LLM analysis                  |
+| File             | Purpose                                           |
+| ---------------- | ------------------------------------------------- |
+| `session.json`   | Structured session data (timing, metrics, events) |
+| `code.txt`       | Your final code                                   |
+| `invariants.txt` | Your pre-coding notes and assumptions             |
+| `audio.webm`     | Voice recording (if microphone was enabled)       |
+
+The bundle filename follows the pattern: `{problem-slug}-{YYYY-MM-DD}.tar.gz`
 
 ## Using the Export with an LLM
 
-The export bundle can be fed to an LLM (Claude, GPT, etc.) for personalized feedback. The bundle includes a `prompt.md` file with suggested analysis questions:
+The export bundle can be fed to an LLM (Claude, GPT, etc.) for personalized feedback. Upload the files and ask for analysis on:
 
 1. **Problem Understanding** — Did the invariants capture key constraints?
 2. **Approach** — Was the strategy sound and articulated before coding?
@@ -50,12 +48,12 @@ The export bundle can be fed to an LLM (Claude, GPT, etc.) for personalized feed
 ### Example Workflow
 
 1. Complete a session
-2. Download the export bundle
-3. Upload all files to your preferred LLM
-4. Ask the LLM to analyze using the prompts in `prompt.md`
+2. Download the export bundle (`.tar.gz`)
+3. Extract and upload files to your preferred LLM
+4. Ask the LLM to analyze your session data and code
 5. Review feedback and identify patterns across multiple sessions
 
-The LLM has access to both objective signals (timing, nudge usage, code changes) and your self-assessment, allowing it to identify blind spots or confirm accurate self-awareness.
+The LLM has access to both objective signals (timing, nudge usage, code changes) and your self-assessment in `session.json`, allowing it to identify blind spots or confirm accurate self-awareness.
 
 ## Behavioral Signals
 

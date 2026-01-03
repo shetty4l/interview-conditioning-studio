@@ -228,12 +228,19 @@ At the end of each session, the system can export a complete bundle.
 
 ### Bundle Contents
 
-- `session.json` — metadata + event log
-- `code.py` (or language file)
-- `invariants.txt`
-- `audio.webm`
-- `summary.md`
-- `problem.md`
+- `session.json` — metadata + event log + reflection responses
+- `code.txt` — final code snapshot
+- `invariants.txt` — user's pre-coding notes
+- `audio.webm` (or `.m4a`) — voice recording (optional)
+
+### Export Format
+
+The bundle is exported as a `.tar.gz` file using:
+- Minimal TAR writer (USTAR format, ~80 lines)
+- Native `CompressionStream('gzip')` API
+- No external dependencies
+
+Filename pattern: `{problem-slug}-{YYYY-MM-DD}.tar.gz`
 
 > [!important]
 > The bundle is portable, inspectable, and future-proof.

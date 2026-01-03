@@ -42,11 +42,11 @@ Presets are predefined configurations. No custom configuration in MVP.
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              BROWSER                                        │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                         WEB APP (Pure JS/CSS)                         │  │
+│  │                         WEB APP (TypeScript)                          │  │
 │  │                                                                       │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │  │
-│  │  │   app.js    │  │   ui.js     │  │  audio.js   │  │  export.js  │  │  │
-│  │  │ Controller  │  │ DOM/Render  │  │ MediaRec.   │  │ JSZip       │  │  │
+│  │  │   app.ts    │  │  screens/   │  │  audio.ts   │  │  export.ts  │  │  │
+│  │  │ Controller  │  │ Components  │  │ MediaRec.   │  │ tar.gz      │  │  │
 │  │  └──────┬──────┘  └──────▲──────┘  └──────┬──────┘  └──────┬──────┘  │  │
 │  │         │                │                │                │         │  │
 │  │         │    renders     │                │                │         │  │
@@ -56,19 +56,19 @@ Presets are predefined configurations. No custom configuration in MVP.
 │  │         │  │                              │                │         │  │
 │  │         ▼  ▼                              ▼                ▼         │  │
 │  │  ┌─────────────┐                   ┌─────────────┐  ┌─────────────┐  │  │
-│  │  │ storage.js  │                   │ Audio Blob  │  │  .zip file  │  │  │
-│  │  │ IndexedDB   │                   │   (webm)    │  │  (bundle)   │  │  │
+│  │  │ storage.ts  │                   │ Audio Blob  │  │ .tar.gz     │  │  │
+│  │  │ IndexedDB   │                   │(webm/mp4)   │  │  (bundle)   │  │  │
 │  │  └─────────────┘                   └─────────────┘  └─────────────┘  │  │
 │  │                                                                       │  │
 │  │  ┌─────────────┐                                                     │  │
-│  │  │ problems.js │  Hardcoded problem set                              │  │
+│  │  │ problems.ts │  Hardcoded problem set                              │  │
 │  │  └─────────────┘                                                     │  │
 │  └───────────────────────────────────────────────────────────────────────┘  │
 │                            │                                                │
 │                            │ imports                                        │
 │                            ▼                                                │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                      CORE ENGINE (TypeScript → JS)                    │  │
+│  │                      CORE ENGINE (TypeScript)                         │  │
 │  │                                                                       │  │
 │  │  ┌─────────────────────────────────────────────────────────────────┐  │  │
 │  │  │                        index.ts (Public API)                    │  │  │
@@ -76,21 +76,13 @@ Presets are predefined configurations. No custom configuration in MVP.
 │  │         │              │              │              │                │  │
 │  │         ▼              ▼              ▼              ▼                │  │
 │  │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐          │  │
-│  │  │session.ts │  │ events.ts │  │  nudge.ts │  │ summary.ts│          │  │
+│  │  │session.ts │  │ presets.ts│  │  types.ts │  │           │          │  │
 │  │  │           │  │           │  │           │  │           │          │  │
-│  │  │ State     │  │ Append-   │  │ Budget:3  │  │ Derive    │          │  │
-│  │  │ Machine   │  │ only Log  │  │ Phase-    │  │ metrics   │          │  │
-│  │  │           │  │           │  │ gated     │  │ from log  │          │  │
-│  │  └─────┬─────┘  └─────┬─────┘  └───────────┘  └───────────┘          │  │
-│  │        │              │                                               │  │
-│  │        │              │        ┌───────────┐  ┌───────────┐          │  │
-│  │        └──────────────┼───────►│ timer.ts  │  │ types.ts  │          │  │
-│  │                       │        │           │  │           │          │  │
-│  │                       │        │ Phase     │  │ Shared    │          │  │
-│  │                       │        │ timing    │  │ types     │          │  │
-│  │                       │        └───────────┘  └───────────┘          │  │
-│  │                       │                                               │  │
-│  │                       ▼                                               │  │
+│  │  │ State     │  │ Standard  │  │ Shared    │  │           │          │  │
+│  │  │ Machine   │  │ HighPress │  │ types     │  │           │          │  │
+│  │  │ + Events  │  │ NoAssist  │  │           │  │           │          │  │
+│  │  └───────────┘  └───────────┘  └───────────┘  └───────────┘          │  │
+│  │                                                                       │  │
 │  │              ┌─────────────────┐                                      │  │
 │  │              │   Event Log     │                                      │  │
 │  │              │   (in memory)   │                                      │  │
@@ -179,61 +171,83 @@ Presets are predefined configurations. No custom configuration in MVP.
 ## File Structure
 
 ```
-InterviewDeck/
-├── Docs/
+InterviewCondtioningStudio/
+├── docs/
 │   ├── Architecture.md
 │   ├── PRD.md
-│   └── MVP.md
+│   ├── MVP.md
+│   ├── USAGE.md
+│   └── PRINCIPLES.md
 ├── core/
 │   ├── src/
-│   │   ├── index.ts
-│   │   ├── session.ts
-│   │   ├── events.ts
-│   │   ├── nudge.ts
-│   │   ├── timer.ts
-│   │   ├── summary.ts
-│   │   └── types.ts
-│   ├── package.json
-│   └── tsconfig.json
+│   │   ├── index.ts        # Public API exports
+│   │   ├── session.ts      # State machine, event dispatch
+│   │   ├── presets.ts      # Preset configurations
+│   │   └── types.ts        # Type definitions
+│   └── tests/
+│       ├── session.test.ts
+│       ├── phases.test.ts
+│       ├── validation.test.ts
+│       ├── recovery.test.ts
+│       └── features.test.ts
 ├── web/
 │   ├── index.html
 │   ├── css/
-│   │   └── styles.css
-│   ├── js/
-│   │   ├── app.js
-│   │   ├── router.js
-│   │   ├── audio.js
-│   │   ├── storage.js
-│   │   ├── export.js
-│   │   ├── lib/
-│   │   │   └── core.js       # Copied from core/dist/
-│   │   ├── vendor/
-│   │   │   └── jszip.min.js  # Local copy for offline use
-│   │   ├── problems/
-│   │   │   └── problems.js
-│   │   └── ui/
-│   │       ├── index.js          # Shared utilities
-│   │       ├── constants.js      # ACTIONS, COMPONENTS, selectors
-│   │       ├── components/
-│   │       │   ├── Timer.js
-│   │       │   ├── Header.js
-│   │       │   ├── ProblemCard.js
-│   │       │   ├── CodeEditor.js
-│   │       │   ├── InvariantsInput.js
-│   │       │   ├── InvariantsDisplay.js
-│   │       │   ├── NudgeButton.js
-│   │       │   ├── RecordingIndicator.js
-│   │       │   └── Button.js
-│   │       ├── screens/
-│   │       │   ├── StartScreen.js
-│   │       │   ├── PrepScreen.js
-│   │       │   ├── CodingScreen.js
-│   │       │   ├── SilentScreen.js
-│   │       │   └── SummaryScreen.js
-│   │       └── modals/
-│   │           ├── ResumeModal.js
-│   │           └── PrepWarningModal.js
+│   │   └── styles.css      # Responsive CSS
+│   └── src/
+│       ├── main.ts         # Entry point
+│       ├── app.ts          # App controller
+│       ├── router.ts       # Hash-based routing
+│       ├── storage.ts      # IndexedDB wrapper
+│       ├── audio.ts        # MediaRecorder wrapper
+│       ├── tar.ts          # TAR file writer
+│       ├── export.ts       # Export as .tar.gz
+│       ├── problems.ts     # Hardcoded problem set
+│       ├── constants.ts    # Actions, components
+│       ├── types.ts        # Web-specific types
+│       ├── components/
+│       │   ├── index.ts
+│       │   ├── Button.ts
+│       │   ├── Timer.ts
+│       │   ├── PhaseHeader.ts
+│       │   ├── PresetCard.ts
+│       │   ├── ProblemCard.ts
+│       │   ├── CodeEditor.ts
+│       │   ├── InvariantsInput.ts
+│       │   ├── InvariantsDisplay.ts
+│       │   ├── NudgeButton.ts
+│       │   ├── RecordingIndicator.ts
+│       │   ├── Modal.ts
+│       │   └── Toast.ts
+│       ├── screens/
+│       │   ├── index.ts
+│       │   ├── types.ts
+│       │   ├── HomeScreen.ts
+│       │   ├── PrepScreen.ts
+│       │   ├── CodingScreen.ts
+│       │   ├── SummaryScreen.ts
+│       │   ├── ReflectionScreen.ts
+│       │   └── DoneScreen.ts
+│       └── modals/
+│           └── index.ts
+├── e2e/
+│   ├── smoke.spec.ts
+│   ├── session-flow.spec.ts
+│   ├── routing.spec.ts
+│   ├── persistence.spec.ts
+│   ├── modals.spec.ts
+│   ├── early-submission.spec.ts
+│   ├── abandon.spec.ts
+│   ├── audio.spec.ts
+│   ├── export.spec.ts
+│   └── responsive.spec.ts
+├── scripts/
+│   ├── bootstrap.sh
+│   ├── activate
+│   └── serve.ts
 ├── package.json
+├── tsconfig.json
+├── playwright.config.ts
 └── README.md
 ```
 
@@ -244,25 +258,24 @@ InterviewDeck/
 | Module       | Responsibility                                                     |
 | ------------ | ------------------------------------------------------------------ |
 | `types.ts`   | Type definitions (Phase, Event, Session, Problem, Config, Summary) |
-| `events.ts`  | Append-only event log, timestamping, filtering                     |
-| `session.ts` | State machine, phase transitions, validation                       |
-| `timer.ts`   | Phase timing, remaining time calculation, expiry detection         |
-| `nudge.ts`   | Budget tracking (3 max), phase-gating rules                        |
-| `summary.ts` | Derive summary metrics from event log                              |
+| `session.ts` | State machine, event dispatch, phase transitions, validation       |
+| `presets.ts` | Preset configurations (Standard, HighPressure, NoAssistance)       |
 | `index.ts`   | Public API exports                                                 |
 
 ---
 
 ## Web App Modules
 
-| Module        | Responsibility                           |
-| ------------- | ---------------------------------------- |
-| `app.js`      | Main controller, wires core engine to UI |
-| `router.js`   | Hash-based client-side routing           |
-| `audio.js`    | MediaRecorder wrapper, start/stop/export |
-| `storage.js`  | IndexedDB wrapper for sessions and audio |
-| `export.js`   | Zip bundle creation using JSZip          |
-| `problems.js` | Hardcoded problem set (3-5 problems)     |
+| Module        | Responsibility                                      |
+| ------------- | --------------------------------------------------- |
+| `main.ts`     | Entry point, initializes router and storage         |
+| `app.ts`      | Main controller, wires core engine to UI            |
+| `router.ts`   | Hash-based client-side routing with session IDs     |
+| `storage.ts`  | IndexedDB wrapper for sessions and audio            |
+| `audio.ts`    | MediaRecorder wrapper, cross-browser format support |
+| `tar.ts`      | Minimal TAR file writer (USTAR format)              |
+| `export.ts`   | Export as .tar.gz using native CompressionStream    |
+| `problems.ts` | Hardcoded problem set                               |
 
 ---
 
@@ -628,17 +641,18 @@ export function hide() {
 ## Export Bundle Structure
 
 ```
-session-abc123.zip
+{problem-slug}-{YYYY-MM-DD}.tar.gz
 │
 ├── session.json      # Structured data for LLM analysis
-├── reflection.json   # Structured self-assessment responses
-├── problem.md        # Problem statement
+├── code.txt          # Final code snapshot
 ├── invariants.txt    # User's invariants
-├── code.py           # Final code snapshot
-├── audio.webm        # Voice recording
-├── summary.md        # Human-readable summary with timeline and reflection
-└── prompt.md         # LLM analysis guidance
+└── audio.webm        # Voice recording (optional, .m4a on Safari)
 ```
+
+The export uses native browser APIs:
+- **TAR format**: Minimal USTAR implementation (~80 lines)
+- **Gzip compression**: Native `CompressionStream('gzip')` API
+- **No external dependencies**: No JSZip or other libraries needed
 
 ### session.json
 
@@ -649,165 +663,31 @@ Structured data optimized for LLM analysis:
   "id": "k5x2m9",
   "version": "1.0",
   "status": "completed",
-  "preset": "standard",
+  "preset": "Standard",
   "problem": {
     "id": "two-sum",
     "title": "Two Sum",
     "description": "Given an array of integers..."
   },
   "config": {
-    "prepDuration": 300000,
-    "codingDuration": 2100000,
-    "silentDuration": 300000,
+    "prepDurationMs": 300000,
+    "codingDurationMs": 2100000,
+    "silentDurationMs": 300000,
     "nudgeBudget": 3
   },
-  "timing": {
-    "totalDuration": 2700000,
-    "prepDuration": 268000,
-    "codingDuration": 2100000,
-    "silentDuration": 300000
-  },
-  "metrics": {
-    "nudgesUsed": 1,
-    "nudgesAvailable": 3,
-    "nudgeTiming": ["early"],
-    "codeChanges": 47,
-    "codeChangesInSilent": 12,
-    "phaseOverruns": []
-  },
-  "flags": {
-    "invariantsEmpty": false,
-    "prepTimeExpired": false,
-    "allNudgesUsed": false,
-    "codeChangedInSilent": true
-  },
-  "content": {
-    "invariants": "# Assumptions:\n# - Array has at least 2 elements...",
-    "finalCode": "def two_sum(nums, target):..."
-  },
-  "events": [
-    { "type": "session.started", "timestamp": 1234567890, "data": {} }
-  ]
-}
-```
-
-### reflection.json
-
-Structured self-assessment responses:
-
-```json
-{
-  "completedAt": 1234567890,
-  "responses": {
+  "reflection": {
     "clearApproach": "partially",
     "prolongedStall": "yes",
     "recoveredFromStall": "yes",
     "timePressure": "manageable",
     "wouldChangeApproach": "yes"
-  }
+  },
+  "events": [
+    { "type": "session.started", "timestamp": 1234567890, "data": {} },
+    { "type": "prep.invariants_changed", "timestamp": 1234567900, "data": { "invariants": "..." } },
+    { "type": "coding.started", "timestamp": 1234568000, "data": {} }
+  ]
 }
-```
-
-### summary.md
-
-Human-readable summary with timeline and observations:
-
-````markdown
-# Session Summary
-
-## Problem
-**Title:** Two Sum
-**Description:**
-Given an array of integers nums and an integer target...
-
-## Session Timeline
-- 00:00 — Session started
-- 04:28 — Coding started (prep time used: 4:28 / 5:00)
-- 12:15 — Nudge requested (1/3) [early]
-- 39:28 — Silent phase entered
-- 44:28 — Session ended
-
-## Statistics
-| Metric | Value |
-|--------|-------|
-| Preset | Standard |
-| Total Duration | 45:00 |
-| Prep Time Used | 4:28 / 5:00 |
-| Coding Time | 35:00 |
-| Silent Time | 5:00 |
-| Nudges Used | 1 / 3 |
-| Nudge Timing | Early |
-| Code Changes | 47 |
-
-## Invariants
-\```
-# Assumptions:
-# - Array has at least 2 elements
-# - Exactly one valid solution exists
-\```
-
-## Final Code
-\```python
-def two_sum(nums, target):
-    seen = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in seen:
-            return [seen[complement], i]
-        seen[num] = i
-    return []
-\```
-
-## Self-Reflection
-| Question | Response |
-|----------|----------|
-| Clear approach before coding? | Partially |
-| Experienced prolonged stall? | Yes |
-| Recovered after getting stuck? | Yes |
-| Time pressure feeling | Manageable |
-| Would change approach? | Yes |
-
-## Observations
-- Invariants were provided before coding
-- Transitioned to coding before prep timer expired
-- Used 1 of 3 available nudges at 27:15 remaining (early in coding phase)
-- Code was modified 12 times during silent phase
-- Self-reported getting stuck but recovering
-````
-
-### prompt.md
-
-Guidance for LLM analysis of the session:
-
-```markdown
-# Analysis Request
-
-Please analyze this coding interview practice session and provide feedback on:
-
-1. **Problem Understanding**: Did the invariants capture key constraints and edge cases?
-2. **Approach**: Was the solution strategy sound? Was it articulated before coding?
-3. **Execution**: How was progress managed under time pressure?
-4. **Code Quality**: Is the final code correct? Are edge cases handled?
-5. **Recovery**: If stuck, how did the candidate respond? Were nudges used effectively?
-6. **Self-Awareness**: Do the reflection responses align with observable session behavior?
-7. **Recommendations**: What should the candidate focus on improving?
-
-## Files Included
-- `problem.md` — The problem statement
-- `invariants.txt` — Candidate's pre-coding notes
-- `code.py` — Final solution
-- `session.json` — Full session data, timeline, and metrics
-- `reflection.json` — Candidate's self-assessment responses
-- `summary.md` — Human-readable session summary with reflection
-- `audio.webm` — Verbal reasoning (if supported by your model)
-
-## Context
-This is an interview conditioning tool. The goal is not to judge correctness, but to
-help the candidate improve their interview-relevant behaviors: problem framing,
-time management, articulating reasoning, and recovering from stuck points.
-
-The reflection data shows the candidate's self-assessment. Compare this with
-objective session data to identify blind spots or accurate self-awareness.
 ```
 
 ---
@@ -941,47 +821,26 @@ This provides context without judgment.
 
 ## Client-Side Routing
 
-Hash-based routing for simplicity (no server configuration required).
+Hash-based routing with session IDs for bookmarkable URLs.
 
 ### Routes
 
-| Hash           | Screen                              |
-| -------------- | ----------------------------------- |
-| `#/`           | Start screen                        |
-| `#/prep`       | Prep phase                          |
-| `#/coding`     | Coding phase                        |
-| `#/silent`     | Silent phase                        |
-| `#/summary`    | Summary screen                      |
-| `#/reflection` | Reflection screen                   |
-| `#/done`       | Done screen (download, new session) |
+| Hash                       | Screen            |
+| -------------------------- | ----------------- |
+| `#/`                       | Home screen       |
+| `#/{sessionId}/prep`       | Prep phase        |
+| `#/{sessionId}/coding`     | Coding phase      |
+| `#/{sessionId}/silent`     | Silent phase      |
+| `#/{sessionId}/summary`    | Summary screen    |
+| `#/{sessionId}/reflection` | Reflection screen |
+| `#/{sessionId}/done`       | Done screen       |
 
-### Implementation
+### URL Behavior
 
-```javascript
-// router.js
-const routes = {
-  '/': renderStartScreen,
-  '/prep': renderPrepScreen,
-  '/coding': renderCodingScreen,
-  '/silent': renderSilentScreen,
-  '/summary': renderSummaryScreen,
-  '/reflection': renderReflectionScreen,
-  '/done': renderDoneScreen,
-};
-
-function router() {
-  const path = window.location.hash.slice(1) || '/';
-  const render = routes[path] || routes['/'];
-  render();
-}
-
-function navigate(path) {
-  window.location.hash = path;
-}
-
-window.addEventListener('hashchange', router);
-window.addEventListener('DOMContentLoaded', router);
-```
+- **URL derives from state**: The URL reflects the current session state, not vice versa
+- **Automatic redirects**: If URL mismatches session state, user is redirected to correct phase
+- **Session not found**: Redirects to home with toast notification
+- **Bookmarkable**: Users can bookmark and return to a session
 
 ---
 
@@ -1298,7 +1157,7 @@ Note: Browser shows generic message (cannot customize).
 
 ---
 
-## Zip Export
+## Export
 
 ### Flow
 
@@ -1306,37 +1165,31 @@ Note: Browser shows generic message (cannot customize).
 1. Collect data (code, invariants, events, reflection, audio blob)
            │
            ▼
-2. JSZip creates zip in memory
+2. Create TAR archive in memory
    ┌────────────────────────────────────────────┐
-   │  zip.file("code.py", codeString)           │
-   │  zip.file("invariants.txt", invString)     │
-   │  zip.file("session.json", jsonString)      │
-   │  zip.file("reflection.json", reflString)   │
-   │  zip.file("audio.webm", audioBlob)         │
-   │  zip.file("summary.md", summaryString)     │
-   │  zip.file("problem.md", problemString)     │
-   │  zip.file("prompt.md", promptString)       │
+   │  addFile("session.json", jsonString)       │
+   │  addFile("code.txt", codeString)           │
+   │  addFile("invariants.txt", invString)      │
+   │  addFile("audio.webm", audioBlob)          │
    └────────────────────────────────────────────┘
            │
            ▼
-3. Generate zip as Blob
-   zip.generateAsync({ type: "blob" })
+3. Compress with gzip
+   new CompressionStream('gzip')
            │
            ▼
 4. Trigger download
    URL.createObjectURL(blob) + <a download>
            │
            ▼
-5. Browser saves session-{id}.zip
+5. Browser saves {problem-slug}-{date}.tar.gz
 ```
 
-### JSZip Loading
+### Native APIs Used
 
-Local vendor copy for offline use:
-
-```html
-<script src="js/vendor/jszip.min.js"></script>
-```
+- **TAR**: Custom minimal implementation (~80 lines, USTAR format)
+- **Gzip**: Native `CompressionStream('gzip')` API
+- **Download**: Blob URL + anchor click
 
 ---
 
@@ -1354,10 +1207,19 @@ Local vendor copy for offline use:
 
 ## Dependencies
 
-| Package      | Purpose                           | Where                           |
-| ------------ | --------------------------------- | ------------------------------- |
-| `typescript` | Compile core engine               | Dev                             |
-| `jszip`      | Bundle export (local vendor copy) | Web (runtime, `web/js/vendor/`) |
+| Package      | Purpose              | Where |
+| ------------ | -------------------- | ----- |
+| `typescript` | Type checking        | Dev   |
+| `bun`        | Runtime and bundler  | Dev   |
+| `playwright` | E2E testing          | Dev   |
+| `oxlint`     | Linting              | Dev   |
+| `oxfmt`      | Formatting           | Dev   |
+
+**No runtime dependencies.** The app uses native browser APIs for:
+- IndexedDB (storage)
+- MediaRecorder (audio)
+- CompressionStream (gzip)
+- Blob/URL APIs (file download)
 
 ---
 
@@ -1440,73 +1302,22 @@ Each workflow covers:
 
 ### Prerequisites
 
-- Node.js (for TypeScript compilation)
-- Python 3 (for dev server)
-
-### Project Structure (Build Output)
-
-```
-InterviewDeck/
-├── core/
-│   ├── src/           # TypeScript source
-│   ├── dist/          # Compiled JS output
-│   └── package.json
-├── web/
-│   ├── index.html
-│   ├── css/
-│   │   └── styles.css
-│   ├── js/
-│   │   ├── app.js
-│   │   ├── router.js
-│   │   ├── audio.js
-│   │   ├── storage.js
-│   │   ├── export.js
-│   │   ├── lib/
-│   │   │   └── core.js
-│   │   ├── vendor/
-│   │   │   └── jszip.min.js
-│   │   ├── problems/
-│   │   │   └── problems.js
-│   │   └── ui/
-│   │       ├── index.js
-│   │       ├── constants.js
-│   │       ├── components/
-│   │       ├── screens/
-│   │       └── modals/
-└── package.json       # Root workspace
-```
+- Bun (JavaScript runtime and bundler)
 
 ### Commands
 
 ```bash
-npm install          # Install dependencies (once)
-npm run build        # Compile core + copy to web/js/lib/
-npm run dev          # Build + start server at localhost:8000
+./scripts/bootstrap.sh   # Install bun and dependencies
+source scripts/activate  # Activate environment
+bun run dev              # Build + start server at localhost:8000
+bun run build            # Build bundle
+bun run test             # Run unit tests
+bun run test:e2e         # Run E2E tests
+bun run ci               # Full CI pipeline
 ```
 
 ### Dev Workflow
 
-1. Edit core TypeScript in `core/src/` -> run `npm run build`
-2. Edit web JS/CSS -> just refresh browser
-3. Open http://localhost:8000
-
-### Why Not `file://`?
-
-Browsers block ES module imports over `file://` protocol due to CORS restrictions. A simple HTTP server is required. We use Python's built-in server for zero additional dependencies:
-
-```bash
-python3 -m http.server 8000 -d web
-```
-
-### Build Scripts (Root package.json)
-
-```json
-{
-  "scripts": {
-    "build:core": "cd core && npm run build",
-    "copy:core": "cp core/dist/* web/js/lib/",
-    "build": "npm run build:core && npm run copy:core",
-    "dev": "npm run build && python3 -m http.server 8000 -d web"
-  }
-}
-```
+1. Edit TypeScript in `core/src/` or `web/src/`
+2. Run `bun run build` to rebuild
+3. Refresh browser at http://localhost:8000
