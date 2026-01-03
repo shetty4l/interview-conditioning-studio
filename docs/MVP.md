@@ -877,11 +877,11 @@ Reflection is mandatory and occurs after the summary screen. It captures structu
 
 Sessions have one of three statuses:
 
-| Status                | Description                                                   |
-| --------------------- | ------------------------------------------------------------- |
-| `in_progress`         | Session is currently active (not yet completed or abandoned)  |
-| `completed`           | Session finished normally (all phases including reflection)   |
-| `abandoned_explicit`  | User explicitly clicked "Abandon" in resume modal             |
+| Status                | Description                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| `in_progress`         | Session is currently active (not yet completed or abandoned)                                    |
+| `completed`           | Session finished normally (all phases including reflection)                                     |
+| `abandoned_explicit`  | User explicitly clicked "Abandon" in resume modal                                               |
 | `incomplete_inferred` | Session started but not completed (detected and applied by web layer on restore from IndexedDB) |
 
 > **Note:** The core engine tracks `in_progress`, `completed`, and `abandoned_explicit`. The `incomplete_inferred` status is detected and applied by the web layer when restoring a session from IndexedDB that was never completed.
@@ -896,19 +896,19 @@ Sessions have one of three statuses:
 
 ## Core vs Web Responsibilities
 
-| Feature | Owner | Rationale |
-|---------|-------|-----------|
-| State machine & transitions | Core | Testable, deterministic |
-| Event log (append, replay) | Core | Source of truth |
-| Derived metrics & flags | Core | Computed from events |
-| Audio events logging | Core | Records `audio.*` events |
-| `isRecording` state | Core | Derived from audio events |
-| MediaRecorder management | Web | Browser API |
-| Timer UI & countdown | Web | Polls `remainingTime`, dispatches on expiry |
-| Phase auto-transition dispatch | Web | UI controls timing UX |
-| IndexedDB persistence | Web | Browser storage |
-| `incomplete_inferred` detection | Web | Applied on restore from storage |
-| Export bundle generation | Web | File I/O, JSZip |
+| Feature                         | Owner | Rationale                                   |
+| ------------------------------- | ----- | ------------------------------------------- |
+| State machine & transitions     | Core  | Testable, deterministic                     |
+| Event log (append, replay)      | Core  | Source of truth                             |
+| Derived metrics & flags         | Core  | Computed from events                        |
+| Audio events logging            | Core  | Records `audio.*` events                    |
+| `isRecording` state             | Core  | Derived from audio events                   |
+| MediaRecorder management        | Web   | Browser API                                 |
+| Timer UI & countdown            | Web   | Polls `remainingTime`, dispatches on expiry |
+| Phase auto-transition dispatch  | Web   | UI controls timing UX                       |
+| IndexedDB persistence           | Web   | Browser storage                             |
+| `incomplete_inferred` detection | Web   | Applied on restore from storage             |
+| Export bundle generation        | Web   | File I/O, JSZip                             |
 
 ---
 
@@ -1207,6 +1207,7 @@ _deriveState() {
 > **Note:** `session.completed` is auto-emitted by the core engine after `reflection.submitted` is processed. The caller only dispatches `reflection.submitted`; the engine handles emitting `session.completed`.
 
 > **Audio Events Responsibility Split:**
+>
 > - **Core engine:** Accepts and logs `audio.*` events, tracks `isRecording` state (derived from events)
 > - **Web layer:** Manages actual MediaRecorder API, dispatches events to core based on hardware state
 

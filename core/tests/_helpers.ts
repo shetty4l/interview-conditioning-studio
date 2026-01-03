@@ -61,7 +61,7 @@ export interface TestSessionContext {
 
 export function createTestSession(
   preset: Preset = Preset.Standard,
-  initialTime: number = 1000
+  initialTime: number = 1000,
 ): TestSessionContext {
   const clock = createMockClock(initialTime);
   const session = createSession({
@@ -83,7 +83,9 @@ export function createTestSession(
 export function expectSuccess(result: DispatchResult): Event {
   expect(result.ok).toBe(true);
   if (!result.ok) {
-    throw new Error(`Expected success but got error: ${result.error.code} - ${result.error.message}`);
+    throw new Error(
+      `Expected success but got error: ${result.error.code} - ${result.error.message}`,
+    );
   }
   return result.value;
 }

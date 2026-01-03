@@ -24,10 +24,7 @@ export enum Preset {
   NoAssistance = "no_assistance",
 }
 
-export type SessionStatus =
-  | "in_progress"
-  | "completed"
-  | "abandoned_explicit";
+export type SessionStatus = "in_progress" | "completed" | "abandoned_explicit";
 
 // ============================================================================
 // Problem
@@ -62,6 +59,7 @@ export type EventType =
   | "coding.code_changed"
   | "nudge.requested"
   | "coding.silent_started"
+  | "coding.solution_submitted"
   | "silent.ended"
   | "summary.continued"
   | "reflection.submitted"
@@ -79,6 +77,7 @@ export interface Event {
 
 // Event data payloads
 export interface SessionStartedData {
+  sessionId: string;
   problem?: Problem;
   preset?: Preset;
 }
@@ -130,9 +129,7 @@ export interface DispatchError {
   message: string;
 }
 
-export type DispatchResult =
-  | { ok: true; value: Event }
-  | { ok: false; error: DispatchError };
+export type DispatchResult = { ok: true; value: Event } | { ok: false; error: DispatchError };
 
 // ============================================================================
 // Derived State

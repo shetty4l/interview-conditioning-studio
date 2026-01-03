@@ -23,10 +23,8 @@
   --color-done: #22c55e;
 
   /* Typography */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas,
-    monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -576,4 +574,159 @@ textarea {
 
 .new-session-button {
   min-width: 200px;
+}
+
+/* ============================================================================
+   Debug View
+   ============================================================================ */
+
+.debug-view {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+}
+
+.debug-header {
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.debug-header h1 {
+  color: var(--color-warning);
+  margin-bottom: var(--space-sm);
+}
+
+.debug-section {
+  background-color: var(--color-surface);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.debug-section h3 {
+  color: var(--color-primary);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.debug-section pre {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background-color: var(--color-bg);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.debug-actions button {
+  font-size: 0.875rem;
+}
+
+.events-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.event-item {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.event-item:last-child {
+  border-bottom: none;
+}
+
+.btn-danger {
+  background-color: var(--color-danger);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+/* ============================================================================
+   Toast Container
+   ============================================================================ */
+
+#toast-container {
+  position: fixed;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   Modal Root
+   ============================================================================ */
+
+#modal-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1001;
+}
+
+#modal-root.hidden {
+  display: none;
+}
+
+/* ============================================================================
+   Error Screen
+   ============================================================================ */
+
+.error-screen {
+  max-width: 500px;
+  margin: var(--space-2xl) auto;
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.error-screen h1 {
+  color: var(--color-danger);
+}
+
+.error-screen pre {
+  background-color: var(--color-surface);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  text-align: left;
+  overflow-x: auto;
+  margin: var(--space-lg) 0;
+}
+
+/* ============================================================================
+   Session Info (minimal view)
+   ============================================================================ */
+
+.session-info {
+  background-color: var(--color-surface);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-xl);
+  text-align: left;
+}
+
+.session-info p {
+  margin-bottom: var(--space-sm);
 }

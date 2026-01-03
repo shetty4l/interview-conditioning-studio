@@ -1,11 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import {
-  createTestSession,
-  expectSuccess,
-  expectError,
-  advanceToCoding,
-  Phase,
-} from "./_helpers";
+import { createTestSession, expectSuccess, Phase } from "./_helpers";
 
 /**
  * Features Tests

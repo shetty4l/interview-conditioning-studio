@@ -55,6 +55,7 @@ const ALL_EVENT_TYPES: Set<EventType> = new Set([
   "coding.code_changed",
   "nudge.requested",
   "coding.silent_started",
+  "coding.solution_submitted",
   "silent.ended",
   "summary.continued",
   "reflection.submitted",
@@ -82,6 +83,7 @@ const VALID_TRANSITIONS: Partial<Record<Phase, EventType[]>> = {
     "coding.code_changed",
     "nudge.requested",
     "coding.silent_started",
+    "coding.solution_submitted",
     "audio.started",
     "audio.stopped",
     "audio.permission_denied",
@@ -116,23 +118,40 @@ const VALID_RECOVERED_FROM_STALL = ["yes", "partially", "no", "n/a"] as const;
 const VALID_TIME_PRESSURE = ["comfortable", "manageable", "overwhelming"] as const;
 const VALID_WOULD_CHANGE = ["yes", "no"] as const;
 
-function validateReflectionResponses(
-  responses: ReflectionResponses
-): DispatchError | null {
+function validateReflectionResponses(responses: ReflectionResponses): DispatchError | null {
   if (!responses || typeof responses !== "object") {
     return { code: "VALIDATION_FAILED", message: "Missing responses object" };
   }
 
-  if (!VALID_CLEAR_APPROACH.includes(responses.clearApproach as typeof VALID_CLEAR_APPROACH[number])) {
-    return { code: "VALIDATION_FAILED", message: `Invalid clearApproach: ${responses.clearApproach}` };
+  if (
+    !VALID_CLEAR_APPROACH.includes(responses.clearApproach as (typeof VALID_CLEAR_APPROACH)[number])
+  ) {
+    return {
+      code: "VALIDATION_FAILED",
+      message: `Invalid clearApproach: ${responses.clearApproach}`,
+    };
   }
 
-  if (!VALID_PROLONGED_STALL.includes(responses.prolongedStall as typeof VALID_PROLONGED_STALL[number])) {
-    return { code: "VALIDATION_FAILED", message: `Invalid prolongedStall: ${responses.prolongedStall}` };
+  if (
+    !VALID_PROLONGED_STALL.includes(
+      responses.prolongedStall as (typeof VALID_PROLONGED_STALL)[number],
+    )
+  ) {
+    return {
+      code: "VALIDATION_FAILED",
+      message: `Invalid prolongedStall: ${responses.prolongedStall}`,
+    };
   }
 
-  if (!VALID_RECOVERED_FROM_STALL.includes(responses.recoveredFromStall as typeof VALID_RECOVERED_FROM_STALL[number])) {
-    return { code: "VALIDATION_FAILED", message: `Invalid recoveredFromStall: ${responses.recoveredFromStall}` };
+  if (
+    !VALID_RECOVERED_FROM_STALL.includes(
+      responses.recoveredFromStall as (typeof VALID_RECOVERED_FROM_STALL)[number],
+    )
+  ) {
+    return {
+      code: "VALIDATION_FAILED",
+      message: `Invalid recoveredFromStall: ${responses.recoveredFromStall}`,
+    };
   }
 
   // Conditional validation: n/a only valid when prolongedStall is "no"
@@ -143,12 +162,24 @@ function validateReflectionResponses(
     };
   }
 
-  if (!VALID_TIME_PRESSURE.includes(responses.timePressure as typeof VALID_TIME_PRESSURE[number])) {
-    return { code: "VALIDATION_FAILED", message: `Invalid timePressure: ${responses.timePressure}` };
+  if (
+    !VALID_TIME_PRESSURE.includes(responses.timePressure as (typeof VALID_TIME_PRESSURE)[number])
+  ) {
+    return {
+      code: "VALIDATION_FAILED",
+      message: `Invalid timePressure: ${responses.timePressure}`,
+    };
   }
 
-  if (!VALID_WOULD_CHANGE.includes(responses.wouldChangeApproach as typeof VALID_WOULD_CHANGE[number])) {
-    return { code: "VALIDATION_FAILED", message: `Invalid wouldChangeApproach: ${responses.wouldChangeApproach}` };
+  if (
+    !VALID_WOULD_CHANGE.includes(
+      responses.wouldChangeApproach as (typeof VALID_WOULD_CHANGE)[number],
+    )
+  ) {
+    return {
+      code: "VALIDATION_FAILED",
+      message: `Invalid wouldChangeApproach: ${responses.wouldChangeApproach}`,
+    };
   }
 
   return null;
@@ -162,7 +193,7 @@ function deriveState(
   events: Event[],
   preset: Preset,
   problem: CreateSessionOptions["problem"],
-  clock: () => number
+  clock: () => number,
 ): SessionState {
   const config = getPresetConfig(preset);
   const now = clock();
@@ -215,7 +246,7 @@ function applyEvent(state: SessionState, event: Event): SessionState {
 
   switch (event.type) {
     case "session.started":
-      newState.id = generateSessionId();
+      newState.id = (event.data as { sessionId: string }).sessionId;
       newState.phase = Phase.Prep;
       newState.sessionStartedAt = event.timestamp;
       newState.prepStartedAt = event.timestamp;
@@ -246,6 +277,11 @@ function applyEvent(state: SessionState, event: Event): SessionState {
     case "coding.silent_started":
       newState.phase = Phase.Silent;
       newState.silentStartedAt = event.timestamp;
+      break;
+
+    case "coding.solution_submitted":
+      // Early submission skips SILENT phase, goes directly to SUMMARY
+      newState.phase = Phase.Summary;
       break;
 
     case "silent.ended":
@@ -350,7 +386,7 @@ class SessionImpl implements Session {
       // Use INVALID_PHASE for phase-related errors
       return error(
         "INVALID_PHASE",
-        `Cannot dispatch ${type} in phase ${state.phase ?? "undefined"}`
+        `Cannot dispatch ${type} in phase ${state.phase ?? "undefined"}`,
       );
     }
 
@@ -379,10 +415,20 @@ class SessionImpl implements Session {
     }
 
     // Create and append event
+    let eventData = data as EventData;
+
+    // Generate session ID for session.started events
+    if (type === "session.started") {
+      eventData = {
+        ...data,
+        sessionId: generateSessionId(),
+      } as EventData;
+    }
+
     const event: Event = {
       type,
       timestamp: this.clock(),
-      data: data as EventData,
+      data: eventData,
     };
     this.events.push(event);
     this.cacheVersion = -1; // Invalidate cache
@@ -412,12 +458,7 @@ class SessionImpl implements Session {
         remainingTime: calculateRemainingTime(this.cachedState, this.clock()),
       };
     }
-    this.cachedState = deriveState(
-      this.events,
-      this.preset,
-      this.problem,
-      this.clock
-    );
+    this.cachedState = deriveState(this.events, this.preset, this.problem, this.clock);
     this.cacheVersion = this.events.length;
     return this.cachedState;
   }

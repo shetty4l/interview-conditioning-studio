@@ -3,19 +3,21 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "clean": "rm -rf dist",
     "build": "bun run build:js && bun run build:assets",
     "build:js": "bun build web/src/main.ts --outfile dist/bundle.js --target browser --format esm",
     "build:assets": "cp web/index.html dist/ && cp -r web/css dist/",
     "build:watch": "bun build web/src/main.ts --outfile dist/bundle.js --target browser --format esm --watch",
     "typecheck": "tsc --noEmit",
-    "test": "bun test core/tests/",
+    "test": "bun test",
     "test:e2e": "bun x playwright test",
     "test:e2e:ui": "bun x playwright test --ui",
     "lint": "oxlint .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "serve": "bun scripts/serve.ts",
-    "dev": "bun run build && bun run serve"
+    "dev": "bun run build && bun run serve",
+    "ci": "bun run clean && bun run build && bun run typecheck && bun run format && bun run lint && bun run test && bun run test:e2e"
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",

@@ -67,7 +67,7 @@ web/
 ```
 /#/                           → Home screen (no session)
 /#/{sessionId}/prep           → PREP phase
-/#/{sessionId}/coding         → CODING phase  
+/#/{sessionId}/coding         → CODING phase
 /#/{sessionId}/silent         → SILENT phase
 /#/{sessionId}/summary        → SUMMARY phase
 /#/{sessionId}/reflection     → REFLECTION phase
@@ -75,6 +75,7 @@ web/
 ```
 
 **Behavior:**
+
 - URL mismatch (e.g., URL says `/coding` but session is in PREP) → Redirect to correct phase + toast
 - Session not found → Redirect to home + toast "Session not found"
 - URL is derived from state, not the other way around
@@ -110,13 +111,13 @@ interface ScreenContext {
 
 **Goal**: Add new event, set up constants/types that everything else depends on
 
-| # | Task | Files |
-|---|------|-------|
-| A1 | Add `coding.solution_submitted` event type | `core/src/types.ts` |
-| A2 | Implement transition logic (CODING → SUMMARY) | `core/src/session.ts` |
-| A3 | Add unit tests for early submission | `core/tests/phases.test.ts` |
-| A4 | Create constants.ts (ACTIONS, COMPONENTS, sel) | `web/src/constants.ts` |
-| A5 | Create web types.ts (Screen interface, ScreenContext) | `web/src/types.ts` |
+| #   | Task                                                  | Files                       |
+| --- | ----------------------------------------------------- | --------------------------- |
+| A1  | Add `coding.solution_submitted` event type            | `core/src/types.ts`         |
+| A2  | Implement transition logic (CODING → SUMMARY)         | `core/src/session.ts`       |
+| A3  | Add unit tests for early submission                   | `core/tests/phases.test.ts` |
+| A4  | Create constants.ts (ACTIONS, COMPONENTS, sel)        | `web/src/constants.ts`      |
+| A5  | Create web types.ts (Screen interface, ScreenContext) | `web/src/types.ts`          |
 
 **Checkpoint**: `bun run test` passes with new tests
 
@@ -126,15 +127,15 @@ interface ScreenContext {
 
 **Goal**: Persistence and URL routing infrastructure with tests
 
-| # | Task | Files |
-|---|------|-------|
-| B1 | Implement IndexedDB storage wrapper | `web/src/storage.ts` |
-| B2 | Implement hash router with session ID support | `web/src/router.ts` |
-| B3 | Update index.html (modal-root, viewport meta) | `web/index.html` |
-| B4 | Create minimal app.ts to wire storage + router | `web/src/app.ts` (partial) |
-| B5 | Update main.ts to init storage + router | `web/src/main.ts` (partial) |
-| B6 | E2E: Routing tests | `e2e/routing.spec.ts` |
-| B7 | E2E: Persistence tests | `e2e/persistence.spec.ts` |
+| #   | Task                                           | Files                       |
+| --- | ---------------------------------------------- | --------------------------- |
+| B1  | Implement IndexedDB storage wrapper            | `web/src/storage.ts`        |
+| B2  | Implement hash router with session ID support  | `web/src/router.ts`         |
+| B3  | Update index.html (modal-root, viewport meta)  | `web/index.html`            |
+| B4  | Create minimal app.ts to wire storage + router | `web/src/app.ts` (partial)  |
+| B5  | Update main.ts to init storage + router        | `web/src/main.ts` (partial) |
+| B6  | E2E: Routing tests                             | `e2e/routing.spec.ts`       |
+| B7  | E2E: Persistence tests                         | `e2e/persistence.spec.ts`   |
 
 **Checkpoint**: `bun run test:e2e` passes for routing + persistence
 
@@ -146,20 +147,20 @@ interface ScreenContext {
 
 **Goal**: All reusable UI components with lifecycle support
 
-| # | Task | Files |
-|---|------|-------|
-| C1 | Toast component | `web/src/components/Toast.ts` |
-| C2 | Timer component (with targeted update) | `web/src/components/Timer.ts` |
-| C3 | Button component | `web/src/components/Button.ts` |
-| C4 | PhaseHeader component | `web/src/components/PhaseHeader.ts` |
-| C5 | PresetCard component | `web/src/components/PresetCard.ts` |
-| C6 | ProblemCard component | `web/src/components/ProblemCard.ts` |
-| C7 | CodeEditor component (cursor preservation) | `web/src/components/CodeEditor.ts` |
-| C8 | InvariantsInput component | `web/src/components/InvariantsInput.ts` |
-| C9 | InvariantsDisplay component | `web/src/components/InvariantsDisplay.ts` |
-| C10 | NudgeButton component | `web/src/components/NudgeButton.ts` |
-| C11 | RecordingIndicator component | `web/src/components/RecordingIndicator.ts` |
-| C12 | Component index (re-exports) | `web/src/components/index.ts` |
+| #   | Task                                       | Files                                      |
+| --- | ------------------------------------------ | ------------------------------------------ |
+| C1  | Toast component                            | `web/src/components/Toast.ts`              |
+| C2  | Timer component (with targeted update)     | `web/src/components/Timer.ts`              |
+| C3  | Button component                           | `web/src/components/Button.ts`             |
+| C4  | PhaseHeader component                      | `web/src/components/PhaseHeader.ts`        |
+| C5  | PresetCard component                       | `web/src/components/PresetCard.ts`         |
+| C6  | ProblemCard component                      | `web/src/components/ProblemCard.ts`        |
+| C7  | CodeEditor component (cursor preservation) | `web/src/components/CodeEditor.ts`         |
+| C8  | InvariantsInput component                  | `web/src/components/InvariantsInput.ts`    |
+| C9  | InvariantsDisplay component                | `web/src/components/InvariantsDisplay.ts`  |
+| C10 | NudgeButton component                      | `web/src/components/NudgeButton.ts`        |
+| C11 | RecordingIndicator component               | `web/src/components/RecordingIndicator.ts` |
+| C12 | Component index (re-exports)               | `web/src/components/index.ts`              |
 
 **Checkpoint**: Components render correctly (manual Playwright MCP verification)
 
@@ -169,18 +170,18 @@ interface ScreenContext {
 
 **Goal**: All screen modules with tests
 
-| # | Task | Files |
-|---|------|-------|
-| D1 | Screen types and registry | `web/src/screens/types.ts`, `web/src/screens/index.ts` |
-| D2 | HomeScreen | `web/src/screens/HomeScreen.ts` |
-| D3 | PrepScreen | `web/src/screens/PrepScreen.ts` |
-| D4 | CodingScreen (with Submit Solution button) | `web/src/screens/CodingScreen.ts` |
-| D5 | SilentScreen | `web/src/screens/SilentScreen.ts` |
-| D6 | SummaryScreen | `web/src/screens/SummaryScreen.ts` |
-| D7 | ReflectionScreen | `web/src/screens/ReflectionScreen.ts` |
-| D8 | DoneScreen | `web/src/screens/DoneScreen.ts` |
-| D9 | Wire screens into app.ts | `web/src/app.ts` (update) |
-| D10 | E2E: Session flow tests | `e2e/session-flow.spec.ts` |
+| #   | Task                                       | Files                                                  |
+| --- | ------------------------------------------ | ------------------------------------------------------ |
+| D1  | Screen types and registry                  | `web/src/screens/types.ts`, `web/src/screens/index.ts` |
+| D2  | HomeScreen                                 | `web/src/screens/HomeScreen.ts`                        |
+| D3  | PrepScreen                                 | `web/src/screens/PrepScreen.ts`                        |
+| D4  | CodingScreen (with Submit Solution button) | `web/src/screens/CodingScreen.ts`                      |
+| D5  | SilentScreen                               | `web/src/screens/SilentScreen.ts`                      |
+| D6  | SummaryScreen                              | `web/src/screens/SummaryScreen.ts`                     |
+| D7  | ReflectionScreen                           | `web/src/screens/ReflectionScreen.ts`                  |
+| D8  | DoneScreen                                 | `web/src/screens/DoneScreen.ts`                        |
+| D9  | Wire screens into app.ts                   | `web/src/app.ts` (update)                              |
+| D10 | E2E: Session flow tests                    | `e2e/session-flow.spec.ts`                             |
 
 **Checkpoint**: `bun run test:e2e` passes for full session flow
 
@@ -190,13 +191,13 @@ interface ScreenContext {
 
 **Goal**: Modal system with tests
 
-| # | Task | Files |
-|---|------|-------|
-| E1 | Modal container management | `web/src/modals/index.ts` |
-| E2 | ConfirmModal (Submit Solution, Abandon) | `web/src/modals/ConfirmModal.ts` |
-| E3 | ResumeModal (session recovery) | `web/src/modals/ResumeModal.ts` |
-| E4 | Wire modals into app.ts | `web/src/app.ts` (update) |
-| E5 | E2E: Modal interaction tests | `e2e/modals.spec.ts` |
+| #   | Task                                    | Files                            |
+| --- | --------------------------------------- | -------------------------------- |
+| E1  | Modal container management              | `web/src/modals/index.ts`        |
+| E2  | ConfirmModal (Submit Solution, Abandon) | `web/src/modals/ConfirmModal.ts` |
+| E3  | ResumeModal (session recovery)          | `web/src/modals/ResumeModal.ts`  |
+| E4  | Wire modals into app.ts                 | `web/src/app.ts` (update)        |
+| E5  | E2E: Modal interaction tests            | `e2e/modals.spec.ts`             |
 
 **Checkpoint**: `bun run test:e2e` passes for modal interactions
 
@@ -206,13 +207,13 @@ interface ScreenContext {
 
 **Goal**: Final wiring, cleanup, comprehensive tests
 
-| # | Task | Files |
-|---|------|-------|
-| F1 | Finalize app.ts (all features wired) | `web/src/app.ts` |
-| F2 | Finalize main.ts (complete init sequence) | `web/src/main.ts` |
-| F3 | Delete old ui.ts | `web/src/ui.ts` (delete) |
-| F4 | E2E: Early submission flow | `e2e/early-submission.spec.ts` |
-| F5 | E2E: Abandon session flow | `e2e/abandon.spec.ts` |
+| #   | Task                                      | Files                          |
+| --- | ----------------------------------------- | ------------------------------ |
+| F1  | Finalize app.ts (all features wired)      | `web/src/app.ts`               |
+| F2  | Finalize main.ts (complete init sequence) | `web/src/main.ts`              |
+| F3  | Delete old ui.ts                          | `web/src/ui.ts` (delete)       |
+| F4  | E2E: Early submission flow                | `e2e/early-submission.spec.ts` |
+| F5  | E2E: Abandon session flow                 | `e2e/abandon.spec.ts`          |
 
 **Checkpoint**: `bun run test:e2e` all session flows pass
 
@@ -222,22 +223,22 @@ interface ScreenContext {
 
 **Goal**: Complete Phase 3 features with tests
 
-| # | Task | Files |
-|---|------|-------|
-| G1 | Audio recording wrapper | `web/src/audio.ts` |
-| G2 | TAR file writer | `web/src/tar.ts` |
-| G3 | Export as .tar.gz | `web/src/export.ts` |
-| G4 | Wire audio into screens (Coding, Silent) | Update screens |
-| G5 | Wire export into DoneScreen | Update DoneScreen |
-| G6 | E2E: Audio tests | `e2e/audio.spec.ts` |
-| G7 | E2E: Export tests | `e2e/export.spec.ts` |
+| #   | Task                                     | Files                |
+| --- | ---------------------------------------- | -------------------- |
+| G1  | Audio recording wrapper                  | `web/src/audio.ts`   |
+| G2  | TAR file writer                          | `web/src/tar.ts`     |
+| G3  | Export as .tar.gz                        | `web/src/export.ts`  |
+| G4  | Wire audio into screens (Coding, Silent) | Update screens       |
+| G5  | Wire export into DoneScreen              | Update DoneScreen    |
+| G6  | E2E: Audio tests                         | `e2e/audio.spec.ts`  |
+| G7  | E2E: Export tests                        | `e2e/export.spec.ts` |
 
 **Checkpoint**: `bun run test:e2e` passes for audio + export
 
 ### Audio Format Detection
 
 ```typescript
-const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
   ? 'audio/webm;codecs=opus'  // Chrome, Firefox
   : 'audio/mp4';               // Safari
 ```
@@ -247,6 +248,7 @@ const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
 Using native `CompressionStream('gzip')` with a minimal TAR writer (~50 lines).
 
 Export bundle contents:
+
 - `code.txt` - Final code
 - `invariants.txt` - User's invariants
 - `session.json` - Event log, metadata, reflection responses
@@ -258,13 +260,13 @@ Export bundle contents:
 
 **Goal**: Works on all screen sizes with tests
 
-| # | Task | Files |
-|---|------|-------|
-| H1 | Add CSS custom properties for breakpoints | `web/css/styles.css` |
-| H2 | Mobile-first base styles | `web/css/styles.css` |
-| H3 | Media queries for sm/md/lg breakpoints | `web/css/styles.css` |
-| H4 | Toast and modal responsive styles | `web/css/styles.css` |
-| H5 | E2E: Responsive tests | `e2e/responsive.spec.ts` |
+| #   | Task                                      | Files                    |
+| --- | ----------------------------------------- | ------------------------ |
+| H1  | Add CSS custom properties for breakpoints | `web/css/styles.css`     |
+| H2  | Mobile-first base styles                  | `web/css/styles.css`     |
+| H3  | Media queries for sm/md/lg breakpoints    | `web/css/styles.css`     |
+| H4  | Toast and modal responsive styles         | `web/css/styles.css`     |
+| H5  | E2E: Responsive tests                     | `e2e/responsive.spec.ts` |
 
 **Checkpoint**: `bun run test:e2e` passes at all viewport sizes
 
@@ -282,31 +284,31 @@ Export bundle contents:
 
 ## Summary
 
-| Phase | Description | New Files | Modified Files | E2E Tests |
-|-------|-------------|-----------|----------------|-----------|
-| **A** | Core + Foundation | 2 | 3 | 0 |
-| **B** | Storage + Router | 4 | 1 | 2 |
-| **C** | Components | 12 | 0 | 0 |
-| **D** | Screens | 9 | 1 | 1 |
-| **E** | Modals | 3 | 1 | 1 |
-| **F** | App Integration | 0 | 2 (+1 delete) | 2 |
-| **G** | Audio + Export | 3 | 2 | 2 |
-| **H** | Responsive CSS | 0 | 1 | 1 |
-| **Total** | | 33 | 11 | 9 |
+| Phase     | Description       | New Files | Modified Files | E2E Tests |
+| --------- | ----------------- | --------- | -------------- | --------- |
+| **A**     | Core + Foundation | 2         | 3              | 0         |
+| **B**     | Storage + Router  | 4         | 1              | 2         |
+| **C**     | Components        | 12        | 0              | 0         |
+| **D**     | Screens           | 9         | 1              | 1         |
+| **E**     | Modals            | 3         | 1              | 1         |
+| **F**     | App Integration   | 0         | 2 (+1 delete)  | 2         |
+| **G**     | Audio + Export    | 3         | 2              | 2         |
+| **H**     | Responsive CSS    | 0         | 1              | 1         |
+| **Total** |                   | 33        | 11             | 9         |
 
 ## E2E Test Files
 
-| Phase | Test File | Coverage |
-|-------|-----------|----------|
-| B | `routing.spec.ts` | URL routing, redirects, toast on mismatch |
-| B | `persistence.spec.ts` | IndexedDB save/restore, session recovery |
-| D | `session-flow.spec.ts` | Full session: Home → Prep → Coding → Silent → Summary → Reflection → Done |
-| E | `modals.spec.ts` | Confirm modal, Resume modal interactions |
-| F | `early-submission.spec.ts` | Submit Solution skips Silent phase |
-| F | `abandon.spec.ts` | Abandon session flow |
-| G | `audio.spec.ts` | Recording indicator, permission handling |
-| G | `export.spec.ts` | .tar.gz download, file contents |
-| H | `responsive.spec.ts` | 360px, 768px, 1200px viewport tests |
+| Phase | Test File                  | Coverage                                                                  |
+| ----- | -------------------------- | ------------------------------------------------------------------------- |
+| B     | `routing.spec.ts`          | URL routing, redirects, toast on mismatch                                 |
+| B     | `persistence.spec.ts`      | IndexedDB save/restore, session recovery                                  |
+| D     | `session-flow.spec.ts`     | Full session: Home → Prep → Coding → Silent → Summary → Reflection → Done |
+| E     | `modals.spec.ts`           | Confirm modal, Resume modal interactions                                  |
+| F     | `early-submission.spec.ts` | Submit Solution skips Silent phase                                        |
+| F     | `abandon.spec.ts`          | Abandon session flow                                                      |
+| G     | `audio.spec.ts`            | Recording indicator, permission handling                                  |
+| G     | `export.spec.ts`           | .tar.gz download, file contents                                           |
+| H     | `responsive.spec.ts`       | 360px, 768px, 1200px viewport tests                                       |
 
 ## Testing Commands
 
@@ -319,6 +321,7 @@ bun run test:all    # All tests
 ## Review Cadence
 
 After each phase:
+
 1. Show files created/modified
 2. Run relevant tests
 3. Playwright MCP verification if applicable

@@ -7,7 +7,6 @@ import {
   Preset,
   VALID_REFLECTION_RESPONSES,
 } from "./_helpers";
-import { createSession } from "../src/index";
 
 /**
  * Session Tests
@@ -178,7 +177,7 @@ describe("Session > PREP to CODING transition", () => {
     expectSuccess(
       session.dispatch("prep.invariants_changed", {
         invariants: "# Assumptions:\n- Array has at least 2 elements",
-      })
+      }),
     );
     expectSuccess(session.dispatch("coding.started"));
 
@@ -256,7 +255,7 @@ describe("Session > CODING to SILENT transition", () => {
     expectSuccess(
       session.dispatch("coding.code_changed", {
         code: "def two_sum(nums, target):\n    pass",
-      })
+      }),
     );
     expectSuccess(session.dispatch("coding.silent_started"));
 
@@ -302,13 +301,13 @@ describe("Session > SILENT to SUMMARY transition", () => {
     expectSuccess(
       session.dispatch("coding.code_changed", {
         code: "def two_sum(nums, target):\n    seen = {}",
-      })
+      }),
     );
     expectSuccess(session.dispatch("coding.silent_started"));
     expectSuccess(
       session.dispatch("coding.code_changed", {
         code: "def two_sum(nums, target):\n    seen = {}\n    return []",
-      })
+      }),
     );
     expectSuccess(session.dispatch("silent.ended"));
 
@@ -352,7 +351,7 @@ describe("Session > REFLECTION to DONE transition", () => {
     expectSuccess(
       session.dispatch("reflection.submitted", {
         responses: VALID_REFLECTION_RESPONSES,
-      })
+      }),
     );
 
     const state = session.getState();
@@ -370,7 +369,7 @@ describe("Session > REFLECTION to DONE transition", () => {
     expectSuccess(
       session.dispatch("reflection.submitted", {
         responses: VALID_REFLECTION_RESPONSES,
-      })
+      }),
     );
 
     const state = session.getState();
@@ -388,7 +387,7 @@ describe("Session > REFLECTION to DONE transition", () => {
     expectSuccess(
       session.dispatch("reflection.submitted", {
         responses: VALID_REFLECTION_RESPONSES,
-      })
+      }),
     );
 
     const events = session.getEvents();
@@ -420,7 +419,7 @@ describe("Session > Complete session (happy path)", () => {
     expectSuccess(
       session.dispatch("prep.invariants_changed", {
         invariants: "# Use hashmap for O(n) solution",
-      })
+      }),
     );
 
     // PREP → CODING
@@ -432,13 +431,13 @@ describe("Session > Complete session (happy path)", () => {
     expectSuccess(
       session.dispatch("coding.code_changed", {
         code: "def two_sum(nums, target):\n    seen = {}",
-      })
+      }),
     );
     expectSuccess(session.dispatch("nudge.requested"));
     expectSuccess(
       session.dispatch("coding.code_changed", {
         code: "def two_sum(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        pass",
-      })
+      }),
     );
 
     // CODING → SILENT
@@ -450,7 +449,7 @@ describe("Session > Complete session (happy path)", () => {
     expectSuccess(
       session.dispatch("coding.code_changed", {
         code: "def two_sum(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        if target - n in seen:\n            return [seen[target-n], i]\n        seen[n] = i",
-      })
+      }),
     );
 
     // SILENT → SUMMARY
@@ -472,7 +471,7 @@ describe("Session > Complete session (happy path)", () => {
           timePressure: "manageable",
           wouldChangeApproach: "no",
         },
-      })
+      }),
     );
     expect(session.getState().phase).toBe(Phase.Done);
 

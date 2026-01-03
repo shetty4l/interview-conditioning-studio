@@ -3,12 +3,9 @@ import {
   createTestSession,
   expectSuccess,
   expectError,
-  advanceToCoding,
   advanceToSilent,
   advanceToReflection,
   Phase,
-  Preset,
-  VALID_REFLECTION_RESPONSES,
 } from "./_helpers";
 
 /**
@@ -81,6 +78,97 @@ describe("Phases > CODING", () => {
     it.todo("should track code changes");
     it.todo("should count total code changes");
     it.todo("should preserve latest code snapshot");
+  });
+
+  describe("Early submission", () => {
+    it("should transition directly to SUMMARY when solution submitted", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+
+      expect(session.getState().phase).toBe(Phase.Coding);
+
+      expectSuccess(session.dispatch("coding.solution_submitted"));
+
+      expect(session.getState().phase).toBe(Phase.Summary);
+    });
+
+    it("should skip SILENT phase entirely", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+      expectSuccess(session.dispatch("coding.solution_submitted"));
+
+      // Should be in SUMMARY, not SILENT
+      expect(session.getState().phase).toBe(Phase.Summary);
+
+      // silentStartedAt should remain null since we skipped it
+      expect(session.getState().silentStartedAt).toBeNull();
+    });
+
+    it("should record submission timestamp in event log", () => {
+      const { session, clock } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+
+      clock.advance(10 * 60 * 1000); // 10 minutes into coding
+
+      expectSuccess(session.dispatch("coding.solution_submitted"));
+
+      const events = session.getEvents();
+      const submissionEvent = events.find((e) => e.type === "coding.solution_submitted");
+      expect(submissionEvent).toBeDefined();
+      expect(submissionEvent!.timestamp).toBe(clock.now());
+    });
+
+    it("should preserve code and invariants in state after submission", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(
+        session.dispatch("prep.invariants_changed", { invariants: "Use two pointers" }),
+      );
+      expectSuccess(session.dispatch("coding.started"));
+      expectSuccess(
+        session.dispatch("coding.code_changed", { code: "function solve() { return 42; }" }),
+      );
+      expectSuccess(session.dispatch("coding.solution_submitted"));
+
+      const state = session.getState();
+      expect(state.phase).toBe(Phase.Summary);
+      expect(state.invariants).toBe("Use two pointers");
+      expect(state.code).toBe("function solve() { return 42; }");
+    });
+
+    it("should not allow submission in phases other than CODING", () => {
+      const { session } = createTestSession();
+
+      // Try in PREP
+      expectSuccess(session.dispatch("session.started"));
+      expectError(session.dispatch("coding.solution_submitted"), "INVALID_PHASE");
+
+      // Try in SILENT
+      expectSuccess(session.dispatch("coding.started"));
+      expectSuccess(session.dispatch("coding.silent_started"));
+      expectError(session.dispatch("coding.solution_submitted"), "INVALID_PHASE");
+    });
+
+    it("should allow continuing to REFLECTION after early submission", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+      expectSuccess(session.dispatch("coding.solution_submitted"));
+
+      expect(session.getState().phase).toBe(Phase.Summary);
+
+      expectSuccess(session.dispatch("summary.continued"));
+
+      expect(session.getState().phase).toBe(Phase.Reflection);
+    });
   });
 
   describe("Nudge mechanics", () => {
@@ -192,7 +280,7 @@ describe("Phases > REFLECTION", () => {
             timePressure: "overwhelming",
             wouldChangeApproach: "yes",
           },
-        })
+        }),
       );
 
       const state = session.getState();

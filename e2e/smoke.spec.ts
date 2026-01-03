@@ -11,7 +11,7 @@ test.describe("App loads", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { name: "Interview Conditioning Studio" })
+      page.getByRole("heading", { name: "Interview Conditioning Studio" }),
     ).toBeVisible();
   });
 });

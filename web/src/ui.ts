@@ -2,10 +2,11 @@
  * UI Rendering
  *
  * Pure functions that render the app state to the DOM.
+ * NOTE: This file is deprecated and will be deleted in Phase F.
  */
 
 import { Preset } from "../../core/src/index";
-import type { AppState } from "./app";
+import type { AppState } from "./types";
 import {
   selectPreset,
   startSession,
@@ -43,8 +44,16 @@ function escapeHtml(text: string): string {
 function renderHomeScreen(state: AppState): string {
   const presets = [
     { value: Preset.Standard, label: "Standard", desc: "5 min prep, 35 min coding, 3 nudges" },
-    { value: Preset.HighPressure, label: "High Pressure", desc: "3 min prep, 25 min coding, 1 nudge" },
-    { value: Preset.NoAssistance, label: "No Assistance", desc: "5 min prep, 35 min coding, 0 nudges" },
+    {
+      value: Preset.HighPressure,
+      label: "High Pressure",
+      desc: "3 min prep, 25 min coding, 1 nudge",
+    },
+    {
+      value: Preset.NoAssistance,
+      label: "No Assistance",
+      desc: "5 min prep, 35 min coding, 0 nudges",
+    },
   ];
 
   return `
@@ -65,7 +74,7 @@ function renderHomeScreen(state: AppState): string {
               <span class="preset-label">${p.label}</span>
               <span class="preset-desc">${p.desc}</span>
             </button>
-          `
+          `,
             )
             .join("")}
         </div>
@@ -208,7 +217,7 @@ function renderSummaryScreen(state: AppState): string {
   `;
 }
 
-function renderReflectionScreen(state: AppState): string {
+function renderReflectionScreen(_state: AppState): string {
   return `
     <div class="reflection-screen">
       <div class="phase-header">
@@ -271,7 +280,7 @@ function renderReflectionScreen(state: AppState): string {
   `;
 }
 
-function renderDoneScreen(state: AppState): string {
+function renderDoneScreen(_state: AppState): string {
   return `
     <div class="done-screen">
       <div class="phase-header">
@@ -332,7 +341,7 @@ export function renderApp(state: AppState): void {
 // Event Listeners
 // ============================================================================
 
-function attachEventListeners(state: AppState): void {
+function attachEventListeners(_state: AppState): void {
   // Home screen
   document.querySelectorAll(".preset-card").forEach((card) => {
     card.addEventListener("click", (e) => {

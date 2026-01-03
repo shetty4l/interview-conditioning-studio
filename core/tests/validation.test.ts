@@ -3,7 +3,6 @@ import {
   createTestSession,
   expectSuccess,
   expectError,
-  advanceToCoding,
   advanceToSilent,
   advanceToSummary,
   advanceToReflection,
@@ -71,7 +70,7 @@ describe("Validation > Invalid transitions", () => {
       session.dispatch("reflection.submitted", {
         responses: VALID_REFLECTION_RESPONSES,
       }),
-      "INVALID_PHASE"
+      "INVALID_PHASE",
     );
 
     // Should still be in SUMMARY
@@ -145,7 +144,7 @@ describe("Validation > Backward transitions rejected", () => {
     const eventCountBefore = session.getEvents().length;
     expectError(
       session.dispatch("prep.invariants_changed", { invariants: "modified" }),
-      "INVALID_PHASE"
+      "INVALID_PHASE",
     );
 
     expect(session.getEvents().length).toBe(eventCountBefore);

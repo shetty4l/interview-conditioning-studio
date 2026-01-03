@@ -5,7 +5,6 @@ import {
   expectSuccess,
   expectError,
   advanceToCoding,
-  Phase,
   Preset,
   TEST_PROBLEM,
 } from "./_helpers";
