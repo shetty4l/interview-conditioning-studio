@@ -27,6 +27,9 @@ import {
   isDebugMode,
 } from "./router";
 import { IDS } from "./constants";
+import { getScreen, type Screen, type ScreenContext } from "./screens";
+import type { AppAction, ToastType, ModalConfig } from "./types";
+import * as Toast from "./components/Toast";
 
 // ============================================================================
 // App State
@@ -44,6 +47,8 @@ let appState: AppState = {
 };
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
+let currentScreen: Screen | null = null;
+let currentScreenName: ScreenName | null = null;
 
 // ============================================================================
 // State Management
@@ -444,6 +449,90 @@ async function handleRoute(route: Route): Promise<void> {
 }
 
 // ============================================================================
+// Action Dispatch
+// ============================================================================
+
+/**
+ * Dispatch an action from the UI.
+ * This is the main entry point for all user interactions.
+ */
+export function dispatch(action: AppAction): void {
+  switch (action.type) {
+    case "SELECT_PRESET":
+      selectPreset(action.preset);
+      break;
+    case "START_SESSION":
+      startSession();
+      break;
+    case "UPDATE_INVARIANTS":
+      updateInvariants(action.invariants);
+      break;
+    case "START_CODING":
+      startCoding();
+      break;
+    case "UPDATE_CODE":
+      updateCode(action.code);
+      break;
+    case "REQUEST_NUDGE":
+      requestNudge();
+      break;
+    case "SUBMIT_SOLUTION":
+      submitSolution();
+      break;
+    case "END_SILENT":
+      endSilentPhase();
+      break;
+    case "CONTINUE_TO_REFLECTION":
+      continuePastSummary();
+      break;
+    case "SUBMIT_REFLECTION":
+      submitReflection(action.responses);
+      break;
+    case "EXPORT_SESSION":
+      // TODO: Implement in Phase G
+      showToast("Export not yet implemented", "info");
+      break;
+    case "NEW_SESSION":
+      resetApp();
+      break;
+    case "ABANDON_SESSION":
+      abandonSession();
+      break;
+    case "RESUME_SESSION":
+      // TODO: Implement in Phase E
+      break;
+    case "AUDIO_STARTED":
+    case "AUDIO_STOPPED":
+    case "AUDIO_PERMISSION_DENIED":
+      // TODO: Implement in Phase G
+      break;
+  }
+}
+
+/**
+ * Show a toast notification.
+ */
+export function showToast(message: string, type: ToastType = "info"): void {
+  Toast.show(message, type);
+}
+
+/**
+ * Show a modal dialog.
+ * TODO: Implement in Phase E
+ */
+export function showModal(config: ModalConfig): void {
+  console.log("showModal not yet implemented:", config);
+}
+
+/**
+ * Hide the current modal.
+ * TODO: Implement in Phase E
+ */
+export function hideModal(): void {
+  console.log("hideModal not yet implemented");
+}
+
+// ============================================================================
 // Rendering
 // ============================================================================
 
@@ -453,15 +542,81 @@ function render(): void {
 
   // Check if debug mode is enabled
   if (isDebugMode()) {
+    // Unmount current screen if any
+    if (currentScreen) {
+      currentScreen.unmount();
+      currentScreen = null;
+      currentScreenName = null;
+    }
     app.innerHTML = renderDebugView();
     attachDebugEventListeners();
     return;
   }
 
-  // For Phase B, we render a minimal view
-  // Full screen rendering comes in Phase D
-  app.innerHTML = renderMinimalView();
-  attachMinimalEventListeners();
+  // Get screen for current state
+  const screenName = appState.screen;
+  const screen = getScreen(screenName);
+
+  // Check if we need to switch screens
+  if (currentScreenName !== screenName) {
+    // Unmount previous screen
+    if (currentScreen) {
+      currentScreen.unmount();
+    }
+
+    // Render new screen
+    app.innerHTML = screen.render(appState);
+
+    // Create screen context
+    const ctx: ScreenContext = {
+      state: appState,
+      session: appState.session,
+      navigate: (path: string) => {
+        // Parse path and navigate appropriately
+        if (path === "/" || path === "") {
+          navigateHome();
+        } else {
+          // For now, just navigate home on any other path
+          // Full path parsing comes later
+          navigateHome();
+        }
+      },
+      showToast,
+      showModal,
+      hideModal,
+      dispatch,
+    };
+
+    // Mount new screen
+    screen.mount(ctx);
+    currentScreen = screen;
+    currentScreenName = screenName;
+  } else if (currentScreen) {
+    // Same screen - try targeted update first
+    const handled = currentScreen.update?.(appState);
+    if (!handled) {
+      // Fall back to full re-render
+      app.innerHTML = currentScreen.render(appState);
+
+      // Re-mount with new context
+      const ctx: ScreenContext = {
+        state: appState,
+        session: appState.session,
+        navigate: (path: string) => {
+          if (path === "/" || path === "") {
+            navigateHome();
+          } else {
+            navigateHome();
+          }
+        },
+        showToast,
+        showModal,
+        hideModal,
+        dispatch,
+      };
+      currentScreen.mount(ctx);
+    }
+  }
 }
 
 function renderDebugView(): string {
@@ -566,66 +721,6 @@ function attachDebugEventListeners(): void {
       el.innerHTML = `<pre>Storage cleared!</pre>`;
     }
   });
-}
-
-function renderMinimalView(): string {
-  // Minimal view for Phase B - just shows current state
-  // Will be replaced with proper screens in Phase D
-  return `
-    <div class="home-screen">
-      <h1>Interview Conditioning Studio</h1>
-      <p class="tagline">Practice technical interviews under realistic conditions</p>
-
-      ${
-        appState.screen === "home"
-          ? `
-        <div class="preset-selector">
-          <h2>Select Difficulty</h2>
-          <div class="preset-cards">
-            <button class="preset-card ${appState.selectedPreset === "standard" ? "selected" : ""}" data-preset="standard">
-              <span class="preset-label">Standard</span>
-              <span class="preset-desc">5 min prep, 35 min coding, 3 nudges</span>
-            </button>
-            <button class="preset-card ${appState.selectedPreset === "high_pressure" ? "selected" : ""}" data-preset="high_pressure">
-              <span class="preset-label">High Pressure</span>
-              <span class="preset-desc">3 min prep, 25 min coding, 1 nudge</span>
-            </button>
-            <button class="preset-card ${appState.selectedPreset === "no_assistance" ? "selected" : ""}" data-preset="no_assistance">
-              <span class="preset-label">No Assistance</span>
-              <span class="preset-desc">5 min prep, 35 min coding, 0 nudges</span>
-            </button>
-          </div>
-        </div>
-        <button class="btn-primary btn-large start-button">Start Session</button>
-      `
-          : `
-        <div class="session-info">
-          <p>Session: ${appState.sessionId}</p>
-          <p>Phase: ${appState.sessionState?.phase ?? "unknown"}</p>
-          <p>Problem: ${appState.problem?.title ?? "unknown"}</p>
-          <p class="hint">Add ?debug=1 to URL for full debug view</p>
-        </div>
-        <button class="btn-secondary" data-action="go-home">Back to Home</button>
-      `
-      }
-    </div>
-  `;
-}
-
-function attachMinimalEventListeners(): void {
-  // Preset selection
-  document.querySelectorAll(".preset-card").forEach((card) => {
-    card.addEventListener("click", (e) => {
-      const preset = (e.currentTarget as HTMLElement).dataset.preset as Preset;
-      selectPreset(preset);
-    });
-  });
-
-  // Start session
-  document.querySelector(".start-button")?.addEventListener("click", startSession);
-
-  // Go home
-  document.querySelector('[data-action="go-home"]')?.addEventListener("click", resetApp);
 }
 
 // ============================================================================

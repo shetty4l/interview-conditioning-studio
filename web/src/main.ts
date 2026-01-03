@@ -39,6 +39,7 @@ import {
   buildHash,
   isDebugMode,
 } from "./router";
+import { allStyles } from "./components";
 
 // ============================================================================
 // Debug Interface
@@ -136,6 +137,21 @@ window.IDS = {
 };
 
 // ============================================================================
+// Style Injection
+// ============================================================================
+
+/**
+ * Inject component styles into the document head.
+ * This runs once at app initialization.
+ */
+function injectComponentStyles(): void {
+  const styleEl = document.createElement("style");
+  styleEl.id = "component-styles";
+  styleEl.textContent = allStyles;
+  document.head.appendChild(styleEl);
+}
+
+// ============================================================================
 // Initialization
 // ============================================================================
 
@@ -144,6 +160,9 @@ window.IDS = {
  */
 async function init(): Promise<void> {
   try {
+    // Inject component styles first
+    injectComponentStyles();
+
     await initApp();
     console.log("Interview Conditioning Studio initialized");
 
