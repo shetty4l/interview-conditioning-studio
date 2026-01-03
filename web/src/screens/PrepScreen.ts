@@ -4,7 +4,7 @@
  * Problem display and invariants input.
  */
 
-import type { Screen, ScreenContext, AppState } from "./types";
+import type { ScreenContext, AppState } from "./types";
 import { Phase } from "../../../core/src/index";
 import { ACTIONS, COMPONENTS } from "../constants";
 import * as PhaseHeader from "../components/PhaseHeader";
@@ -17,7 +17,7 @@ import * as Button from "../components/Button";
 // ============================================================================
 
 let cleanup: (() => void) | null = null;
-let currentCtx: ScreenContext | null = null;
+let _currentCtx: ScreenContext | null = null;
 
 // ============================================================================
 // Render
@@ -68,7 +68,7 @@ export function render(state: AppState): string {
 // ============================================================================
 
 export function mount(ctx: ScreenContext): void {
-  currentCtx = ctx;
+  _currentCtx = ctx;
   const container = document.querySelector(`[data-component="${COMPONENTS.SCREEN_PREP}"]`);
   if (!container) return;
 
@@ -117,7 +117,7 @@ export function unmount(): void {
     cleanup();
     cleanup = null;
   }
-  currentCtx = null;
+  _currentCtx = null;
 }
 
 // ============================================================================

@@ -16,6 +16,7 @@ export * as ProblemCard from "./ProblemCard";
 export * as CodeEditor from "./CodeEditor";
 export * as NudgeButton from "./NudgeButton";
 export * as PhaseHeader from "./PhaseHeader";
+export * as Modal from "./Modal";
 
 // Import styles from all components
 import { styles as toastStyles } from "./Toast";
@@ -29,6 +30,14 @@ import { styles as problemCardStyles } from "./ProblemCard";
 import { styles as codeEditorStyles } from "./CodeEditor";
 import { styles as nudgeButtonStyles } from "./NudgeButton";
 import { styles as phaseHeaderStyles } from "./PhaseHeader";
+import { styles as modalStyles } from "./Modal";
+
+// Import styles from screens (co-located)
+import { styles as doneScreenStyles } from "../screens/DoneScreen";
+import { styles as homeScreenStyles } from "../screens/HomeScreen";
+
+// Import styles from modals
+import { styles as modalManagerStyles } from "../modals";
 
 /**
  * All component styles concatenated.
@@ -46,4 +55,8 @@ export const allStyles = [
   codeEditorStyles,
   nudgeButtonStyles,
   phaseHeaderStyles,
+  modalStyles,
+  modalManagerStyles,
+  doneScreenStyles,
+  homeScreenStyles,
 ].join("\n");

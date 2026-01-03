@@ -4,7 +4,7 @@
  * Reusable button with variants: primary, secondary, danger.
  */
 
-import { ACTIONS, type Action } from "../constants";
+import { type Action } from "../constants";
 
 // ============================================================================
 // Types

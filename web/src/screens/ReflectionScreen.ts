@@ -4,7 +4,7 @@
  * Five-question reflection form.
  */
 
-import type { Screen, ScreenContext, AppState, ReflectionFormData } from "./types";
+import type { ScreenContext, AppState, ReflectionFormData } from "./types";
 import { Phase } from "../../../core/src/index";
 import { ACTIONS, COMPONENTS } from "../constants";
 import * as PhaseHeader from "../components/PhaseHeader";
@@ -20,7 +20,7 @@ let cleanup: (() => void) | null = null;
 // Render
 // ============================================================================
 
-export function render(state: AppState): string {
+export function render(_state: AppState): string {
   return `
     <div class="reflection-screen" data-component="${COMPONENTS.SCREEN_REFLECTION}">
       ${PhaseHeader.render({ phase: Phase.Reflection })}

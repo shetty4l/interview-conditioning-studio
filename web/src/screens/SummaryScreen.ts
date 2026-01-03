@@ -4,7 +4,7 @@
  * Session summary with stats, code, and invariants display.
  */
 
-import type { Screen, ScreenContext, AppState } from "./types";
+import type { ScreenContext, AppState } from "./types";
 import { Phase } from "../../../core/src/index";
 import { ACTIONS, COMPONENTS } from "../constants";
 import * as PhaseHeader from "../components/PhaseHeader";

@@ -30,6 +30,7 @@ import { IDS } from "./constants";
 import { getScreen, type Screen, type ScreenContext } from "./screens";
 import type { AppAction, ToastType, ModalConfig } from "./types";
 import * as Toast from "./components/Toast";
+import * as Modals from "./modals";
 
 // ============================================================================
 // App State
@@ -44,6 +45,7 @@ let appState: AppState = {
   sessionId: null,
   audioSupported: false,
   audioPermissionDenied: false,
+  incompleteSession: null,
 };
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -188,6 +190,40 @@ function stopTimer(): void {
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
+  }
+}
+
+// ============================================================================
+// Incomplete Session Detection
+// ============================================================================
+
+async function checkForIncompleteSession(): Promise<void> {
+  try {
+    const incomplete = await getIncompleteSession();
+    if (incomplete && incomplete.id !== appState.sessionId) {
+      // Get the phase from events
+      const lastEvent = incomplete.events[incomplete.events.length - 1];
+      const phaseMap: Record<string, string> = {
+        "session.started": "Prep",
+        "coding.started": "Coding",
+        "coding.silent_started": "Silent",
+        "silent.ended": "Summary",
+        "summary.continued": "Reflection",
+      };
+      const phase = phaseMap[lastEvent?.type] || "Unknown";
+
+      updateState({
+        incompleteSession: {
+          id: incomplete.id,
+          problemTitle: incomplete.problem.title,
+          phase,
+        },
+      });
+    } else {
+      updateState({ incompleteSession: null });
+    }
+  } catch (error) {
+    console.error("Failed to check for incomplete session:", error);
   }
 }
 
@@ -380,7 +416,10 @@ export function resetApp(): void {
     sessionId: null,
     audioSupported: appState.audioSupported,
     audioPermissionDenied: false,
+    incompleteSession: null,
   };
+  // Check for incomplete sessions after reset
+  checkForIncompleteSession();
   navigateHome();
   render();
 }
@@ -397,11 +436,7 @@ async function handleRoute(route: Route): Promise<void> {
     }
 
     // Check for incomplete session to resume
-    const incomplete = await getIncompleteSession();
-    if (incomplete) {
-      // TODO: Show resume modal in Phase E
-      console.log("Found incomplete session:", incomplete.id);
-    }
+    await checkForIncompleteSession();
     updateState({ screen: "home" });
     return;
   }
@@ -499,7 +534,7 @@ export function dispatch(action: AppAction): void {
       abandonSession();
       break;
     case "RESUME_SESSION":
-      // TODO: Implement in Phase E
+      resumeIncompleteSession();
       break;
     case "AUDIO_STARTED":
     case "AUDIO_STOPPED":
@@ -518,18 +553,77 @@ export function showToast(message: string, type: ToastType = "info"): void {
 
 /**
  * Show a modal dialog.
- * TODO: Implement in Phase E
  */
 export function showModal(config: ModalConfig): void {
-  console.log("showModal not yet implemented:", config);
+  if (config.type === "confirm") {
+    Modals.confirm({
+      title: config.title,
+      message: config.message,
+      confirmText: config.confirmText,
+      cancelText: config.cancelText,
+      onConfirm: () => config.onConfirm?.(),
+      onCancel: () => config.onCancel?.(),
+    });
+  } else if (config.type === "resume") {
+    // Resume modal is shown via showResumeModal
+    console.warn("Use showResumeModal for resume modals");
+  }
 }
 
 /**
  * Hide the current modal.
- * TODO: Implement in Phase E
  */
 export function hideModal(): void {
-  console.log("hideModal not yet implemented");
+  Modals.hide();
+}
+
+/**
+ * Show the resume session modal.
+ */
+export function showResumeModal(): void {
+  const incomplete = appState.incompleteSession;
+  if (!incomplete) return;
+
+  Modals.showResume({
+    sessionId: incomplete.id,
+    problemTitle: incomplete.problemTitle,
+    phase: incomplete.phase,
+    onResume: () => resumeIncompleteSession(),
+    onDiscard: () => discardIncompleteSession(),
+  });
+}
+
+/**
+ * Resume an incomplete session.
+ */
+async function resumeIncompleteSession(): Promise<void> {
+  const incomplete = appState.incompleteSession;
+  if (!incomplete) return;
+
+  const loaded = await loadSession(incomplete.id);
+  if (loaded) {
+    updateState({ incompleteSession: null });
+    showToast("Session resumed", "success");
+  } else {
+    showToast("Failed to resume session", "error");
+  }
+}
+
+/**
+ * Discard an incomplete session.
+ */
+async function discardIncompleteSession(): Promise<void> {
+  const incomplete = appState.incompleteSession;
+  if (!incomplete) return;
+
+  try {
+    await deleteSession(incomplete.id);
+    updateState({ incompleteSession: null });
+    showToast("Previous session discarded", "info");
+  } catch (error) {
+    console.error("Failed to discard session:", error);
+    showToast("Failed to discard session", "error");
+  }
 }
 
 // ============================================================================

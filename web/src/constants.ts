@@ -41,6 +41,7 @@ export const ACTIONS = {
   CONFIRM_YES: "confirm-yes",
   CONFIRM_NO: "confirm-no",
   RESUME_SESSION: "resume-session",
+  DISCARD_SESSION: "discard-session",
   ABANDON_SESSION: "abandon-session",
 } as const;
 

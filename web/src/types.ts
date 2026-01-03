@@ -37,6 +37,13 @@ export interface AppState {
 
   /** Whether audio permission was denied */
   audioPermissionDenied: boolean;
+
+  /** Incomplete session info (for resume banner) */
+  incompleteSession: {
+    id: string;
+    problemTitle: string;
+    phase: string;
+  } | null;
 }
 
 // ============================================================================
