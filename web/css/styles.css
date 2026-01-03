@@ -584,6 +584,7 @@ textarea {
   max-width: 900px;
   margin: 0 auto;
   padding: var(--space-lg);
+  width: 100%;
 }
 
 .debug-header {
@@ -602,6 +603,7 @@ textarea {
   padding: var(--space-lg);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-lg);
+  overflow: hidden;
 }
 
 .debug-section h3 {
@@ -619,7 +621,7 @@ textarea {
   border-radius: var(--radius-sm);
   overflow-x: auto;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-break: break-all;
 }
 
 .debug-actions {
