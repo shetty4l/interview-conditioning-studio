@@ -4,37 +4,37 @@
 
 Each session follows a fixed structure:
 
-| Phase | Duration | What Happens |
-|-------|----------|--------------|
-| **Prep** | 5 min (varies by preset) | Read problem, write invariants/assumptions |
-| **Coding** | 35 min (varies by preset) | Write solution, audio recorded, nudges available |
-| **Silent** | 5 min (varies by preset) | Continue coding, no nudges, audio continues |
-| **Summary** | — | Review stats and behavioral signals |
-| **Reflection** | ~60 seconds | Answer 5 self-assessment prompts |
-| **Done** | — | Export bundle, start new session |
+| Phase          | Duration                  | What Happens                                     |
+| -------------- | ------------------------- | ------------------------------------------------ |
+| **Prep**       | 5 min (varies by preset)  | Read problem, write invariants/assumptions       |
+| **Coding**     | 35 min (varies by preset) | Write solution, audio recorded, nudges available |
+| **Silent**     | 5 min (varies by preset)  | Continue coding, no nudges, audio continues      |
+| **Summary**    | —                         | Review stats and behavioral signals              |
+| **Reflection** | ~60 seconds               | Answer 5 self-assessment prompts                 |
+| **Done**       | —                         | Export bundle, start new session                 |
 
 ## Session Presets
 
-| Preset | Prep | Coding | Silent | Nudges | Intent |
-|--------|------|--------|--------|--------|--------|
-| **Standard** | 5 min | 35 min | 5 min | 3 | Default experience |
-| **High Pressure** | 3 min | 25 min | 2 min | 1 | Time compression + limited help |
-| **No Assistance** | 5 min | 35 min | 5 min | 0 | Full time, no nudges |
+| Preset            | Prep  | Coding | Silent | Nudges | Intent                          |
+| ----------------- | ----- | ------ | ------ | ------ | ------------------------------- |
+| **Standard**      | 5 min | 35 min | 5 min  | 3      | Default experience              |
+| **High Pressure** | 3 min | 25 min | 2 min  | 1      | Time compression + limited help |
+| **No Assistance** | 5 min | 35 min | 5 min  | 0      | Full time, no nudges            |
 
 ## Export Bundle
 
 After completing a session, you can download a ZIP bundle containing:
 
-| File | Purpose |
-|------|---------|
-| `session.json` | Structured session data (timing, metrics, events) |
-| `reflection.json` | Your self-assessment responses |
-| `summary.md` | Human-readable summary with timeline and reflection |
-| `problem.md` | The problem statement |
-| `invariants.txt` | Your pre-coding notes and assumptions |
-| `code.py` | Your final code |
-| `audio.webm` | Voice recording (if microphone was enabled) |
-| `prompt.md` | Suggested prompts for LLM analysis |
+| File              | Purpose                                             |
+| ----------------- | --------------------------------------------------- |
+| `session.json`    | Structured session data (timing, metrics, events)   |
+| `reflection.json` | Your self-assessment responses                      |
+| `summary.md`      | Human-readable summary with timeline and reflection |
+| `problem.md`      | The problem statement                               |
+| `invariants.txt`  | Your pre-coding notes and assumptions               |
+| `code.py`         | Your final code                                     |
+| `audio.webm`      | Voice recording (if microphone was enabled)         |
+| `prompt.md`       | Suggested prompts for LLM analysis                  |
 
 ## Using the Export with an LLM
 
@@ -61,13 +61,13 @@ The LLM has access to both objective signals (timing, nudge usage, code changes)
 
 The system captures objective signals for self-review:
 
-| Signal | What It Measures |
-|--------|------------------|
-| **Prep time used** | How much of prep phase you used before coding |
-| **Nudges used** | How many hints you requested (and when) |
-| **Nudge timing** | Whether nudges were early, mid, or late in coding |
-| **Code changes** | Number of edits during coding and silent phases |
-| **Phase overruns** | Whether you exceeded any phase time limits |
+| Signal             | What It Measures                                  |
+| ------------------ | ------------------------------------------------- |
+| **Prep time used** | How much of prep phase you used before coding     |
+| **Nudges used**    | How many hints you requested (and when)           |
+| **Nudge timing**   | Whether nudges were early, mid, or late in coding |
+| **Code changes**   | Number of edits during coding and silent phases   |
+| **Phase overruns** | Whether you exceeded any phase time limits        |
 
 These signals are descriptive, not evaluative. The system observes behavior without judging correctness.
 

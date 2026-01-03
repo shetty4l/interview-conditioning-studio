@@ -7,11 +7,16 @@
     "build:watch": "bun build core/src/index.ts --outdir web/js/lib --target browser --format esm --watch",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "serve": "bun scripts/serve.ts",
     "dev": "bun run build && bun run serve"
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",
+    "oxfmt": "^0.21.0",
+    "oxlint": "^1.36.0",
     "typescript": "^5.7.0"
   }
 }

@@ -3,6 +3,7 @@
 ## Summary
 
 A local-first, browser-based interview conditioning tool with:
+
 - TypeScript core engine (compiled to JS)
 - Pure JS/CSS web app
 - Minimal dependencies (just for build tooling)
@@ -11,13 +12,13 @@ A local-first, browser-based interview conditioning tool with:
 
 ## Session Timing (Standard Preset)
 
-| Phase | Duration | Nudges | Audio |
-|-------|----------|--------|-------|
-| PREP | 5 min | No | No |
-| CODING | 35 min | Yes (3 max) | Yes |
-| SILENT | 5 min | No | Yes |
-| SUMMARY | — | — | No |
-| REFLECTION | — | — | No |
+| Phase      | Duration | Nudges      | Audio |
+| ---------- | -------- | ----------- | ----- |
+| PREP       | 5 min    | No          | No    |
+| CODING     | 35 min   | Yes (3 max) | Yes   |
+| SILENT     | 5 min    | No          | Yes   |
+| SUMMARY    | —        | —           | No    |
+| REFLECTION | —        | —           | No    |
 
 **Total: 45 minutes + reflection (~60 seconds)**
 
@@ -25,11 +26,11 @@ A local-first, browser-based interview conditioning tool with:
 
 ## Session Presets
 
-| Preset | Prep | Coding | Silent | Nudges | Intent |
-|--------|------|--------|--------|--------|--------|
-| **Standard** | 5 min | 35 min | 5 min | 3 | Default experience |
-| **High Pressure** | 3 min | 25 min | 2 min | 1 | Time compression + limited help |
-| **No Assistance** | 5 min | 35 min | 5 min | 0 | Full time, no nudges |
+| Preset            | Prep  | Coding | Silent | Nudges | Intent                          |
+| ----------------- | ----- | ------ | ------ | ------ | ------------------------------- |
+| **Standard**      | 5 min | 35 min | 5 min  | 3      | Default experience              |
+| **High Pressure** | 3 min | 25 min | 2 min  | 1      | Time compression + limited help |
+| **No Assistance** | 5 min | 35 min | 5 min  | 0      | Full time, no nudges            |
 
 Presets are predefined configurations. No custom configuration in MVP.
 
@@ -183,26 +184,26 @@ InterviewDeck/
 │   ├── Architecture.md
 │   ├── PRD.md
 │   └── MVP.md
-├── core/                     
+├── core/
 │   ├── src/
-│   │   ├── index.ts          
-│   │   ├── session.ts        
-│   │   ├── events.ts         
-│   │   ├── nudge.ts          
-│   │   ├── timer.ts          
-│   │   ├── summary.ts        
-│   │   └── types.ts          
+│   │   ├── index.ts
+│   │   ├── session.ts
+│   │   ├── events.ts
+│   │   ├── nudge.ts
+│   │   ├── timer.ts
+│   │   ├── summary.ts
+│   │   └── types.ts
 │   ├── package.json
 │   └── tsconfig.json
-├── web/                      
+├── web/
 │   ├── index.html
 │   ├── css/
 │   │   └── styles.css
 │   ├── js/
-│   │   ├── app.js            
+│   │   ├── app.js
 │   │   ├── router.js
-│   │   ├── audio.js          
-│   │   ├── storage.js        
+│   │   ├── audio.js
+│   │   ├── storage.js
 │   │   ├── export.js
 │   │   ├── lib/
 │   │   │   └── core.js       # Copied from core/dist/
@@ -232,7 +233,7 @@ InterviewDeck/
 │   │       └── modals/
 │   │           ├── ResumeModal.js
 │   │           └── PrepWarningModal.js
-├── package.json              
+├── package.json
 └── README.md
 ```
 
@@ -240,28 +241,28 @@ InterviewDeck/
 
 ## Core Engine Modules
 
-| Module | Responsibility |
-|--------|----------------|
-| `types.ts` | Type definitions (Phase, Event, Session, Problem, Config, Summary) |
-| `events.ts` | Append-only event log, timestamping, filtering |
-| `session.ts` | State machine, phase transitions, validation |
-| `timer.ts` | Phase timing, remaining time calculation, expiry detection |
-| `nudge.ts` | Budget tracking (3 max), phase-gating rules |
-| `summary.ts` | Derive summary metrics from event log |
-| `index.ts` | Public API exports |
+| Module       | Responsibility                                                     |
+| ------------ | ------------------------------------------------------------------ |
+| `types.ts`   | Type definitions (Phase, Event, Session, Problem, Config, Summary) |
+| `events.ts`  | Append-only event log, timestamping, filtering                     |
+| `session.ts` | State machine, phase transitions, validation                       |
+| `timer.ts`   | Phase timing, remaining time calculation, expiry detection         |
+| `nudge.ts`   | Budget tracking (3 max), phase-gating rules                        |
+| `summary.ts` | Derive summary metrics from event log                              |
+| `index.ts`   | Public API exports                                                 |
 
 ---
 
 ## Web App Modules
 
-| Module | Responsibility |
-|--------|----------------|
-| `app.js` | Main controller, wires core engine to UI |
-| `router.js` | Hash-based client-side routing |
-| `audio.js` | MediaRecorder wrapper, start/stop/export |
-| `storage.js` | IndexedDB wrapper for sessions and audio |
-| `export.js` | Zip bundle creation using JSZip |
-| `problems.js` | Hardcoded problem set (3-5 problems) |
+| Module        | Responsibility                           |
+| ------------- | ---------------------------------------- |
+| `app.js`      | Main controller, wires core engine to UI |
+| `router.js`   | Hash-based client-side routing           |
+| `audio.js`    | MediaRecorder wrapper, start/stop/export |
+| `storage.js`  | IndexedDB wrapper for sessions and audio |
+| `export.js`   | Zip bundle creation using JSZip          |
+| `problems.js` | Hardcoded problem set (3-5 problems)     |
 
 ---
 
@@ -269,13 +270,13 @@ InterviewDeck/
 
 ### Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Framework | Vanilla JS | Smaller bundle (~100KB vs ~255KB), no build complexity, aligns with local-first philosophy |
-| UI organization | Screen Modules + Reusable Components | Reusability without framework overhead |
-| Screen lifecycle | `render(state)`, `mount(session)`, `unmount()` | Clear lifecycle, similar to React patterns |
-| ID/class management | Constants + Data Attributes | Prevents typos, separates JS hooks from CSS |
-| Modals | Separate modules with `show(callbacks)` / `hide()` | Reusable, layered rendering |
+| Decision            | Choice                                             | Rationale                                                                                  |
+| ------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Framework           | Vanilla JS                                         | Smaller bundle (~100KB vs ~255KB), no build complexity, aligns with local-first philosophy |
+| UI organization     | Screen Modules + Reusable Components               | Reusability without framework overhead                                                     |
+| Screen lifecycle    | `render(state)`, `mount(session)`, `unmount()`     | Clear lifecycle, similar to React patterns                                                 |
+| ID/class management | Constants + Data Attributes                        | Prevents typos, separates JS hooks from CSS                                                |
+| Modals              | Separate modules with `show(callbacks)` / `hide()` | Reusable, layered rendering                                                                |
 
 ### Screen Module Pattern
 
@@ -317,7 +318,7 @@ export function Timer(remainingTime, phase) {
   const minutes = Math.floor(remainingTime / 60000);
   const seconds = Math.floor((remainingTime % 60000) / 1000);
   const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  
+
   return `
     <div class="timer" data-component="timer" data-phase="${phase}">
       <span class="timer-display">${display}</span>
@@ -394,7 +395,7 @@ export function show(onResume, onAbandon) {
     </div>
   `;
   root.classList.remove('hidden');
-  
+
   document.querySelector(sel.action(ACTIONS.RESUME))
     .addEventListener('click', () => { hide(); onResume(); });
   document.querySelector(sel.action(ACTIONS.ABANDON))
@@ -410,17 +411,17 @@ export function hide() {
 
 ### Reusable Components List
 
-| Component | Used In | Props |
-|-----------|---------|-------|
-| `Timer` | Prep, Coding, Silent | `remainingTime`, `phase` |
-| `Header` | All screens | `title`, `rightContent` |
-| `ProblemCard` | Prep, Coding, Silent | `problem`, `collapsible` |
-| `CodeEditor` | Coding, Silent, Summary | `code`, `readonly` |
-| `InvariantsInput` | Prep | `value` |
-| `InvariantsDisplay` | Coding, Silent, Summary | `invariants` |
-| `NudgeButton` | Coding, Silent | `remaining`, `disabled` |
-| `RecordingIndicator` | Coding, Silent | `active` |
-| `Button` | All screens | `text`, `action`, `variant` |
+| Component            | Used In                 | Props                       |
+| -------------------- | ----------------------- | --------------------------- |
+| `Timer`              | Prep, Coding, Silent    | `remainingTime`, `phase`    |
+| `Header`             | All screens             | `title`, `rightContent`     |
+| `ProblemCard`        | Prep, Coding, Silent    | `problem`, `collapsible`    |
+| `CodeEditor`         | Coding, Silent, Summary | `code`, `readonly`          |
+| `InvariantsInput`    | Prep                    | `value`                     |
+| `InvariantsDisplay`  | Coding, Silent, Summary | `invariants`                |
+| `NudgeButton`        | Coding, Silent          | `remaining`, `disabled`     |
+| `RecordingIndicator` | Coding, Silent          | `active`                    |
+| `Button`             | All screens             | `text`, `action`, `variant` |
 
 ---
 
@@ -711,7 +712,7 @@ Structured self-assessment responses:
 
 Human-readable summary with timeline and observations:
 
-```markdown
+````markdown
 # Session Summary
 
 ## Problem
@@ -772,7 +773,7 @@ def two_sum(nums, target):
 - Used 1 of 3 available nudges at 27:15 remaining (early in coding phase)
 - Code was modified 12 times during silent phase
 - Self-reported getting stuck but recovering
-```
+````
 
 ### prompt.md
 
@@ -833,13 +834,13 @@ Reflection is mandatory and occurs after the summary screen. It captures structu
 
 ### Reflection Prompts
 
-| # | Prompt | Response Type |
-|---|--------|---------------|
-| 1 | Did you have a clear approach before coding? | Yes / Partially / No |
-| 2 | Did you experience a prolonged stall? | Yes / No |
-| 3 | Did you recover after getting stuck? | Yes / Partially / No / N/A |
-| 4 | How did the time pressure feel? | Comfortable / Manageable / Overwhelming |
-| 5 | Would you change how you approached the problem next time? | Yes / No |
+| #   | Prompt                                                     | Response Type                           |
+| --- | ---------------------------------------------------------- | --------------------------------------- |
+| 1   | Did you have a clear approach before coding?               | Yes / Partially / No                    |
+| 2   | Did you experience a prolonged stall?                      | Yes / No                                |
+| 3   | Did you recover after getting stuck?                       | Yes / Partially / No / N/A              |
+| 4   | How did the time pressure feel?                            | Comfortable / Manageable / Overwhelming |
+| 5   | Would you change how you approached the problem next time? | Yes / No                                |
 
 ### Design Principles
 
@@ -869,10 +870,10 @@ Reflection is mandatory and occurs after the summary screen. It captures structu
 
 Sessions have one of three statuses:
 
-| Status | Description |
-|--------|-------------|
-| `completed` | Session finished normally (all phases including reflection) |
-| `abandoned_explicit` | User explicitly clicked "Abandon" in resume modal |
+| Status                | Description                                                   |
+| --------------------- | ------------------------------------------------------------- |
+| `completed`           | Session finished normally (all phases including reflection)   |
+| `abandoned_explicit`  | User explicitly clicked "Abandon" in resume modal             |
 | `incomplete_inferred` | Session started but not completed (detected on next app load) |
 
 ### MVP Behavior
@@ -889,14 +890,14 @@ The system captures objective behavioral signals for self-review and historical 
 
 ### Signals Captured
 
-| Signal | Description | Derived From |
-|--------|-------------|--------------|
-| Prep time used | Time spent in PREP phase | `coding.started` timestamp - `session.started` timestamp |
-| Nudges used | Count of nudge requests | `nudge.requested` event count |
-| Nudge timing | When nudges were used (early/mid/late) | `nudge.requested` timestamps relative to coding phase |
-| Code change count | Number of code edits | `coding.code_changed` event count |
-| Phase overrun | Whether user exceeded phase time | Computed from phase timestamps |
-| Explicit abandonment | User clicked "Abandon" | `session.abandoned` event |
+| Signal               | Description                            | Derived From                                             |
+| -------------------- | -------------------------------------- | -------------------------------------------------------- |
+| Prep time used       | Time spent in PREP phase               | `coding.started` timestamp - `session.started` timestamp |
+| Nudges used          | Count of nudge requests                | `nudge.requested` event count                            |
+| Nudge timing         | When nudges were used (early/mid/late) | `nudge.requested` timestamps relative to coding phase    |
+| Code change count    | Number of code edits                   | `coding.code_changed` event count                        |
+| Phase overrun        | Whether user exceeded phase time       | Computed from phase timestamps                           |
+| Explicit abandonment | User clicked "Abandon"                 | `session.abandoned` event                                |
 
 ### Historical Comparison (Start Screen)
 
@@ -916,15 +917,15 @@ Hash-based routing for simplicity (no server configuration required).
 
 ### Routes
 
-| Hash | Screen |
-|------|--------|
-| `#/` | Start screen |
-| `#/prep` | Prep phase |
-| `#/coding` | Coding phase |
-| `#/silent` | Silent phase |
-| `#/summary` | Summary screen |
-| `#/reflection` | Reflection screen |
-| `#/done` | Done screen (download, new session) |
+| Hash           | Screen                              |
+| -------------- | ----------------------------------- |
+| `#/`           | Start screen                        |
+| `#/prep`       | Prep phase                          |
+| `#/coding`     | Coding phase                        |
+| `#/silent`     | Silent phase                        |
+| `#/summary`    | Summary screen                      |
+| `#/reflection` | Reflection screen                   |
+| `#/done`       | Done screen (download, new session) |
 
 ### Implementation
 
@@ -1117,7 +1118,7 @@ Timer display uses `setInterval` (not events) to avoid log bloat. Only phase tra
 setInterval(() => {
   const state = session.getState();
   renderTimer(state.remainingTime);
-  
+
   // Check for phase transitions
   if (state.phase === 'PREP' && state.remainingTime <= 0) {
     session.dispatch('prep.time_expired', {});
@@ -1136,7 +1137,7 @@ Time remaining is computed dynamically in `_deriveState()`:
 ```javascript
 _deriveState() {
   // ... replay events to get phase start times ...
-  
+
   const now = Date.now();
   if (state.phase === 'PREP') {
     state.remainingTime = PREP_DURATION - (now - state.prepStartTime);
@@ -1145,30 +1146,30 @@ _deriveState() {
   } else if (state.phase === 'SILENT') {
     state.remainingTime = SILENT_DURATION - (now - state.silentStartTime);
   }
-  
+
   return state;
 }
 ```
 
 ### Event Types
 
-| Event | When Dispatched | Data |
-|-------|-----------------|------|
-| `session.started` | User clicks "Start Session" | `{ problem, preset, config }` |
-| `prep.invariants_changed` | User types in invariants (debounced) | `{ invariants }` |
-| `prep.time_expired` | Prep timer reaches 0 | `{}` |
-| `coding.started` | User clicks "Start Coding" or prep time forces transition | `{}` |
-| `coding.code_changed` | User types in code editor (debounced) | `{ code }` |
-| `nudge.requested` | User clicks "Request Nudge" | `{}` |
-| `coding.silent_started` | Coding timer reaches 0, entering silent phase | `{}` |
-| `silent.ended` | Silent timer reaches 0, entering summary | `{}` |
-| `summary.continued` | User clicks "Continue" on summary screen | `{}` |
-| `reflection.submitted` | User completes reflection prompts | `{ responses }` |
-| `session.completed` | Reflection submitted, session fully complete | `{}` |
-| `session.abandoned` | User explicitly abandons session | `{}` |
-| `audio.started` | Audio recording begins | `{}` |
-| `audio.stopped` | Audio recording ends | `{}` |
-| `audio.permission_denied` | User denies microphone permission | `{}` |
+| Event                     | When Dispatched                                           | Data                          |
+| ------------------------- | --------------------------------------------------------- | ----------------------------- |
+| `session.started`         | User clicks "Start Session"                               | `{ problem, preset, config }` |
+| `prep.invariants_changed` | User types in invariants (debounced)                      | `{ invariants }`              |
+| `prep.time_expired`       | Prep timer reaches 0                                      | `{}`                          |
+| `coding.started`          | User clicks "Start Coding" or prep time forces transition | `{}`                          |
+| `coding.code_changed`     | User types in code editor (debounced)                     | `{ code }`                    |
+| `nudge.requested`         | User clicks "Request Nudge"                               | `{}`                          |
+| `coding.silent_started`   | Coding timer reaches 0, entering silent phase             | `{}`                          |
+| `silent.ended`            | Silent timer reaches 0, entering summary                  | `{}`                          |
+| `summary.continued`       | User clicks "Continue" on summary screen                  | `{}`                          |
+| `reflection.submitted`    | User completes reflection prompts                         | `{ responses }`               |
+| `session.completed`       | Reflection submitted, session fully complete              | `{}`                          |
+| `session.abandoned`       | User explicitly abandons session                          | `{}`                          |
+| `audio.started`           | Audio recording begins                                    | `{}`                          |
+| `audio.stopped`           | Audio recording ends                                      | `{}`                          |
+| `audio.permission_denied` | User denies microphone permission                         | `{}`                          |
 
 ---
 
@@ -1183,10 +1184,10 @@ Using IndexedDB for all persistence (replaces localStorage). Benefits:
 
 ### Object Stores
 
-| Store | Key | Contents |
-|-------|-----|----------|
-| `sessions` | `id` | Session object (events, problem, code, invariants) |
-| `audio` | `sessionId` | Audio chunks array (Blob[]) |
+| Store      | Key         | Contents                                           |
+| ---------- | ----------- | -------------------------------------------------- |
+| `sessions` | `id`        | Session object (events, problem, code, invariants) |
+| `audio`    | `sessionId` | Audio chunks array (Blob[])                        |
 
 ### Wrapper API
 
@@ -1301,22 +1302,22 @@ Local vendor copy for offline use:
 
 ## Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Session ID | Short random (`Math.random().toString(36).slice(2, 8)`) | Human-readable, sufficient entropy for local app |
-| Code change tracking | Debounced events (2-3s inactivity) | Captures intent without noise |
-| Timer display | MM:SS format | Clean, less stressful than showing milliseconds |
-| Problem selection | Pure random | Simple for MVP; repeats expected with small problem set |
-| Error handling | Graceful degradation | Mic denied → continue without audio; show user-friendly messages |
+| Decision             | Choice                                                  | Rationale                                                        |
+| -------------------- | ------------------------------------------------------- | ---------------------------------------------------------------- |
+| Session ID           | Short random (`Math.random().toString(36).slice(2, 8)`) | Human-readable, sufficient entropy for local app                 |
+| Code change tracking | Debounced events (2-3s inactivity)                      | Captures intent without noise                                    |
+| Timer display        | MM:SS format                                            | Clean, less stressful than showing milliseconds                  |
+| Problem selection    | Pure random                                             | Simple for MVP; repeats expected with small problem set          |
+| Error handling       | Graceful degradation                                    | Mic denied → continue without audio; show user-friendly messages |
 
 ---
 
 ## Dependencies
 
-| Package | Purpose | Where |
-|---------|---------|-------|
-| `typescript` | Compile core engine | Dev |
-| `jszip` | Bundle export (local vendor copy) | Web (runtime, `web/js/vendor/`) |
+| Package      | Purpose                           | Where                           |
+| ------------ | --------------------------------- | ------------------------------- |
+| `typescript` | Compile core engine               | Dev                             |
+| `jszip`      | Bundle export (local vendor copy) | Web (runtime, `web/js/vendor/`) |
 
 ---
 
@@ -1354,6 +1355,7 @@ core/src/__tests__/
 ### Test Coverage Goals
 
 Each workflow covers:
+
 - **Happy path** — Normal user flow
 - **Edge cases** — Boundary conditions (timer at 0, empty invariants, etc.)
 - **Error states** — Invalid transitions, budget exhaustion
@@ -1370,27 +1372,27 @@ Each workflow covers:
 
 ## Implementation Order
 
-| # | Task | Scope |
-|---|------|-------|
-| 1 | Core types & event log | `core/` |
-| 2 | Session state machine | `core/` |
-| 3 | Timer logic | `core/` |
-| 4 | Nudge system | `core/` |
-| 5 | Summary generator | `core/` |
-| 6 | Build setup (tsconfig, package.json) | `core/` |
-| 7 | HTML structure & CSS | `web/` |
-| 8 | Router (hash-based) | `web/` |
-| 9 | UI constants & utilities | `web/` |
-| 10 | Reusable components | `web/` |
-| 11 | Screen modules | `web/` |
-| 12 | Modals | `web/` |
-| 13 | App controller (app.js) | `web/` |
-| 14 | Hardcoded problems | `web/` |
-| 15 | Audio recording | `web/` |
-| 16 | IndexedDB storage | `web/` |
-| 17 | Session recovery flow | `web/` |
-| 18 | Zip export | `web/` |
-| 19 | Integration & testing | All |
+| #   | Task                                 | Scope   |
+| --- | ------------------------------------ | ------- |
+| 1   | Core types & event log               | `core/` |
+| 2   | Session state machine                | `core/` |
+| 3   | Timer logic                          | `core/` |
+| 4   | Nudge system                         | `core/` |
+| 5   | Summary generator                    | `core/` |
+| 6   | Build setup (tsconfig, package.json) | `core/` |
+| 7   | HTML structure & CSS                 | `web/`  |
+| 8   | Router (hash-based)                  | `web/`  |
+| 9   | UI constants & utilities             | `web/`  |
+| 10  | Reusable components                  | `web/`  |
+| 11  | Screen modules                       | `web/`  |
+| 12  | Modals                               | `web/`  |
+| 13  | App controller (app.js)              | `web/`  |
+| 14  | Hardcoded problems                   | `web/`  |
+| 15  | Audio recording                      | `web/`  |
+| 16  | IndexedDB storage                    | `web/`  |
+| 17  | Session recovery flow                | `web/`  |
+| 18  | Zip export                           | `web/`  |
+| 19  | Integration & testing                | All     |
 
 ---
 

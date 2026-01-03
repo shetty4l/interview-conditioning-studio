@@ -4,7 +4,7 @@
 
 ## What is this?
 
-Interview Conditioning Studio (ICS) helps engineers build interview-relevant behaviors through deliberate practice. Unlike LeetCode-style tools, ICS focuses on *conditioning* — time management, problem framing, articulating reasoning, and recovering from stuck points — not correctness evaluation.
+Interview Conditioning Studio (ICS) helps engineers build interview-relevant behaviors through deliberate practice. Unlike LeetCode-style tools, ICS focuses on _conditioning_ — time management, problem framing, articulating reasoning, and recovering from stuck points — not correctness evaluation.
 
 See [Product Principles](docs/PRINCIPLES.md) for core design invariants.
 
@@ -33,11 +33,13 @@ The goal is not to get the answer right — it's to build comfort with interview
 ## What This Is (and Isn't)
 
 **This is:**
+
 - A conditioning tool for interview pressure
 - Enforced constraints (time, nudges, silence)
 - Self-reflection and behavioral tracking
 
 **This is not:**
+
 - A leetcode alternative
 - A correctness checker
 - An AI interviewer or tutor
