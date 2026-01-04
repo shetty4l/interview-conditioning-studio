@@ -202,6 +202,21 @@ p {
   background-color: var(--danger-hover);
 }
 
+/* Ghost button - transparent with border */
+.btn--ghost {
+  background-color: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+}
+
+.btn--ghost:active:not(:disabled) {
+  transform: none;
+}
+
 /* Button sizes */
 .btn--large {
   padding: var(--space-md) var(--space-xl);
@@ -500,6 +515,11 @@ input[type="radio"] {
 .timer--overtime {
   color: var(--danger);
   animation: blink 1s ease-in-out infinite;
+}
+
+.timer--paused {
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 @keyframes blink {
@@ -910,6 +930,25 @@ input[type="radio"] {
 .recording-indicator--inactive::before {
   animation: none;
   opacity: 0.3;
+}
+
+/* ============================================================================
+   Pause Button
+   ============================================================================ */
+
+.pause-btn {
+  font-size: 0.875rem;
+  padding: var(--space-xs) var(--space-md);
+  min-width: 80px;
+}
+
+.pause-btn--paused {
+  color: var(--success);
+}
+
+/* Phase header paused state */
+.phase-header--paused {
+  opacity: 0.8;
 }
 
 /* ============================================================================

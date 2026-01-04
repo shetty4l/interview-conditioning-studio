@@ -12,6 +12,7 @@ import { span } from "../framework";
 
 export interface TimerProps {
   remainingMs: number | (() => number);
+  isPaused?: boolean | (() => boolean);
   id?: string;
 }
 
@@ -38,17 +39,22 @@ function getTimerState(ms: number): "normal" | "warning" | "overtime" {
 // ============================================================================
 
 export function Timer(props: TimerProps): HTMLSpanElement {
-  const { remainingMs, id } = props;
+  const { remainingMs, isPaused, id } = props;
 
   const getMs = typeof remainingMs === "function" ? remainingMs : () => remainingMs;
+  const getIsPaused = typeof isPaused === "function" ? isPaused : () => isPaused ?? false;
 
   return span(
     {
       id,
       class: () => {
         const ms = getMs();
+        const paused = getIsPaused();
         const state = getTimerState(ms);
-        return state === "normal" ? "timer" : `timer timer--${state}`;
+        const classes = ["timer"];
+        if (state !== "normal") classes.push(`timer--${state}`);
+        if (paused) classes.push("timer--paused");
+        return classes.join(" ");
       },
       "data-component": "timer",
     },

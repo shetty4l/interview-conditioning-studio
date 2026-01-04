@@ -21,3 +21,4 @@ export { CodeEditor, type CodeEditorProps } from "./CodeEditor";
 export { InvariantsInput, type InvariantsInputProps } from "./InvariantsInput";
 export { NudgeButton, type NudgeButtonProps } from "./NudgeButton";
 export { RecordingIndicator, type RecordingIndicatorProps } from "./RecordingIndicator";
+export { PauseButton, type PauseButtonProps } from "./PauseButton";

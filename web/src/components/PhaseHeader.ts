@@ -15,6 +15,7 @@ import type { Phase } from "../../../core/src/index";
 export interface PhaseHeaderProps {
   phase: Phase | string | (() => Phase | string);
   remainingMs: number | (() => number);
+  isPaused?: boolean | (() => boolean);
   actions?: HTMLElement[];
 }
 
@@ -39,13 +40,18 @@ function getPhaseName(phase: Phase | string): string {
 // ============================================================================
 
 export function PhaseHeader(props: PhaseHeaderProps): HTMLElement {
-  const { phase, remainingMs, actions = [] } = props;
+  const { phase, remainingMs, isPaused, actions = [] } = props;
 
   const getPhase = typeof phase === "function" ? phase : () => phase;
+  const getIsPaused = typeof isPaused === "function" ? isPaused : () => isPaused ?? false;
 
   return div(
     {
-      class: "phase-header",
+      class: () => {
+        const classes = ["phase-header"];
+        if (getIsPaused()) classes.push("phase-header--paused");
+        return classes.join(" ");
+      },
       "data-component": "phase-header",
     },
     [
@@ -58,7 +64,7 @@ export function PhaseHeader(props: PhaseHeaderProps): HTMLElement {
         },
         [() => getPhaseName(String(getPhase()))],
       ),
-      Timer({ remainingMs }),
+      Timer({ remainingMs, isPaused }),
       ...(actions.length > 0 ? [div({ class: "phase-header__actions" }, actions)] : []),
     ],
   );

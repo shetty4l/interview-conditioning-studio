@@ -10,7 +10,7 @@ import { button } from "../framework";
 // Types
 // ============================================================================
 
-export type ButtonVariant = "primary" | "secondary" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 export type ButtonSize = "small" | "normal" | "large";
 
 export interface ButtonProps {
