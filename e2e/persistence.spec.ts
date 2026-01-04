@@ -392,10 +392,9 @@ test.describe.serial("Session Persistence - Phase 3 Edge Cases", () => {
     await page.waitForFunction(() => window.IDS?.getAppState);
 
     // Session should still be in storage
-    const stored = (await page.evaluate(
-      (id) => window.IDS.storage.getSession(id),
-      sessionId!,
-    )) as { id: string } | null;
+    const stored = (await page.evaluate((id) => window.IDS.storage.getSession(id), sessionId!)) as {
+      id: string;
+    } | null;
     expect(stored).not.toBeNull();
     expect(stored?.id).toBe(sessionId);
   });
@@ -469,10 +468,9 @@ test.describe.serial("Session Persistence - Phase 3 Edge Cases", () => {
     // Final code should be persisted
     await waitForSessionPersisted(page, sessionId!);
 
-    const stored = (await page.evaluate(
-      (id) => window.IDS.storage.getSession(id),
-      sessionId!,
-    )) as { events: Array<{ type: string }> } | null;
+    const stored = (await page.evaluate((id) => window.IDS.storage.getSession(id), sessionId!)) as {
+      events: Array<{ type: string }>;
+    } | null;
 
     // Should not have 20 separate code_changed events (debounced)
     // Note: Implementation may vary - could batch events or just persist final state
@@ -547,9 +545,9 @@ test.describe.serial("Session Persistence - Phase 3 Edge Cases", () => {
     await page.waitForFunction(() => window.IDS?.getAppState);
 
     // Session should still be in storage
-    const allSessions = (await page.evaluate(() =>
-      window.IDS.storage.getAllSessions(),
-    )) as Array<{ id: string }>;
+    const allSessions = (await page.evaluate(() => window.IDS.storage.getAllSessions())) as Array<{
+      id: string;
+    }>;
     expect(allSessions.some((s) => s.id === sessionId)).toBe(true);
   });
 });

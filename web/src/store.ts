@@ -42,6 +42,9 @@ export interface AppStoreState {
   audioPermissionDenied: boolean;
   isRecording: boolean;
 
+  // Pause state
+  isPaused: boolean;
+
   // Resume
   incompleteSession: {
     id: string;
@@ -74,6 +77,10 @@ export interface AppStoreActions {
   discardIncompleteSession(): Promise<void>;
   abandonSession(): Promise<void>;
   resetApp(): void;
+
+  // Pause/Resume
+  pauseSession(): void;
+  resumeFromPause(): void;
 
   // Phase transitions
   startCoding(): Promise<void>;
@@ -122,6 +129,7 @@ const initialState: AppStoreState = {
   audioSupported: false,
   audioPermissionDenied: false,
   isRecording: false,
+  isPaused: false,
   incompleteSession: null,
   phase: null,
   invariants: "",
@@ -422,6 +430,38 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
 
         // Check for incomplete sessions after reset
         this._checkIncompleteSession();
+      },
+
+      // ----------------------------------------------------------------------
+      // Pause/Resume
+      // ----------------------------------------------------------------------
+      pauseSession() {
+        const { session, isPaused, phase } = get();
+        if (!session || isPaused) return;
+
+        // Only allow pause during timed phases
+        if (phase !== Phase.Prep && phase !== Phase.Coding && phase !== Phase.Silent) {
+          return;
+        }
+
+        timer?.pause();
+        set({ isPaused: true });
+
+        // Stop recording when paused (saves segment)
+        this.stopRecording();
+      },
+
+      resumeFromPause() {
+        const { session, isPaused, phase, audioSupported, audioPermissionDenied } = get();
+        if (!session || !isPaused) return;
+
+        timer?.resume();
+        set({ isPaused: false });
+
+        // Restart recording on resume (only during coding phase)
+        if (phase === Phase.Coding && audioSupported && !audioPermissionDenied) {
+          this.startRecording();
+        }
       },
 
       // ----------------------------------------------------------------------

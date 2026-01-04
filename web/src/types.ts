@@ -175,6 +175,8 @@ export type AppAction =
   // Session management
   | { type: "ABANDON_SESSION" }
   | { type: "RESUME_SESSION" }
+  | { type: "PAUSE_SESSION" }
+  | { type: "RESUME_FROM_PAUSE" }
 
   // Audio
   | { type: "START_RECORDING" }

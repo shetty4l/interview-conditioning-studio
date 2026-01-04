@@ -170,7 +170,9 @@ export function createStorage(): Storage {
       request.onsuccess = () => {
         const sessions = request.result as StoredSession[];
         // Filter out soft-deleted sessions and sort by updatedAt descending
-        const activeSessions = sessions.filter((s) => s.deletedAt === null || s.deletedAt === undefined);
+        const activeSessions = sessions.filter(
+          (s) => s.deletedAt === null || s.deletedAt === undefined,
+        );
         activeSessions.sort((a, b) => b.updatedAt - a.updatedAt);
         resolve(activeSessions);
       };
