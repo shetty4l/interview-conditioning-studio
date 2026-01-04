@@ -387,7 +387,7 @@ async function init(): Promise<void> {
 function setupBeforeUnloadHandler(): void {
   window.addEventListener("beforeunload", (event) => {
     const state = AppStore.getSnapshot();
-    
+
     // Only warn if there's an active, in-progress session
     if (state.status === "in_progress" && state.sessionId) {
       // Standard way to trigger the browser's confirmation dialog

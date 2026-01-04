@@ -35,6 +35,7 @@ export function PauseButton(props: PauseButtonProps): HTMLButtonElement {
         return paused ? "btn btn--ghost pause-btn pause-btn--paused" : "btn btn--ghost pause-btn";
       },
       "data-component": "pause-button",
+      "data-action": () => (getIsPaused() ? "resume-session" : "pause-session"),
       "aria-label": () => (getIsPaused() ? "Resume session" : "Pause session"),
       disabled: getDisabled,
       onClick: () => {

@@ -73,7 +73,7 @@ test.describe("Pause/Resume", () => {
   });
 
   // Edge case #1: Pause behavior - pauses timer AND recording
-  test.skip("should pause timer when pause button is clicked", async ({ page }) => {
+  test("should pause timer when pause button is clicked", async ({ page }) => {
     await startCodingSession(page);
 
     // Get initial remaining time
@@ -116,7 +116,7 @@ test.describe("Pause/Resume", () => {
   });
 
   // Edge case #4: Resume session + recording - auto-restart
-  test.skip("should resume timer when resume button is clicked", async ({ page }) => {
+  test("should resume timer when resume button is clicked", async ({ page }) => {
     await startCodingSession(page);
 
     // Pause
@@ -128,8 +128,8 @@ test.describe("Pause/Resume", () => {
     const pausedState = await getAppState(page);
     const pausedTime = pausedState.remainingMs;
 
-    // Resume
-    await page.click('[data-action="resume-session"]');
+    // Resume - click the Resume button in the overlay
+    await page.click('.paused-overlay button');
     await page.waitForFunction(
       () => (window.IDS.getAppState() as unknown as AppStateWithPause).isPaused === false,
     );
@@ -175,7 +175,7 @@ test.describe("Pause/Resume", () => {
   });
 
   // Edge case #2: Pause in Silent phase - allow
-  test.skip("should allow pause during PREP phase", async ({ page }) => {
+  test("should allow pause during PREP phase", async ({ page }) => {
     await page.click(".start-button");
     await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
 
@@ -188,7 +188,7 @@ test.describe("Pause/Resume", () => {
   });
 
   // Edge case #2: Pause in Silent phase - allow
-  test.skip("should allow pause during CODING phase", async ({ page }) => {
+  test("should allow pause during CODING phase", async ({ page }) => {
     await startCodingSession(page);
 
     // Pause button should be visible and clickable
@@ -274,7 +274,7 @@ test.describe("Pause/Resume", () => {
   });
 
   // Edge case #20: Dispatch event during pause - allow non-timer events
-  test.skip("should allow code editing while paused", async ({ page }) => {
+  test("should allow code editing while paused", async ({ page }) => {
     await startCodingSession(page);
 
     // Pause
@@ -283,21 +283,24 @@ test.describe("Pause/Resume", () => {
       () => (window.IDS.getAppState() as unknown as AppStateWithPause).isPaused === true,
     );
 
-    // Edit code while paused
+    // Edit code while paused (banner is non-blocking)
     await page.fill("#code", "function editedWhilePaused() { return true; }");
 
     // Code should be updated
     const state = await getAppState(page);
     expect(state.code).toContain("editedWhilePaused");
 
-    // Resume and verify code is still there
-    await page.click('[data-action="resume-session"]');
+    // Resume using the banner button and verify code is still there
+    await page.click('.paused-overlay button');
+    await page.waitForFunction(
+      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isPaused === false,
+    );
     const stateAfterResume = await getAppState(page);
     expect(stateAfterResume.code).toContain("editedWhilePaused");
   });
 
   // Edge case #20: Dispatch event during pause - allow non-timer events (PREP)
-  test.skip("should allow invariant editing while paused in PREP", async ({ page }) => {
+  test("should allow invariant editing while paused in PREP", async ({ page }) => {
     await page.click(".start-button");
     await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
 

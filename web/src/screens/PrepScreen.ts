@@ -65,20 +65,19 @@ export function PrepScreen(): HTMLElement {
       ],
     }),
 
-    // Paused overlay
+    // Paused banner (non-blocking)
     Show(
       () => state.isPaused(),
       () =>
         div({ class: "paused-overlay" }, [
-          div({ class: "paused-overlay__content" }, [
-            span({ class: "paused-overlay__icon" }, ["⏸"]),
-            span({ class: "paused-overlay__text" }, ["Session Paused"]),
-            Button({
-              label: "Resume",
-              variant: "primary",
-              onClick: handleResume,
-            }),
-          ]),
+          span({ class: "paused-overlay__icon" }, ["⏸"]),
+          span({ class: "paused-overlay__text" }, ["Session Paused"]),
+          Button({
+            label: "Resume",
+            variant: "primary",
+            size: "small",
+            onClick: handleResume,
+          }),
         ]),
     ),
 
