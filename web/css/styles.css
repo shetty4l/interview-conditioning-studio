@@ -613,6 +613,43 @@ input[type="radio"] {
   border: var(--border-width) solid var(--border);
 }
 
+/* Paused overlay */
+.paused-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(26, 26, 46, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.paused-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-2xl);
+  background-color: var(--bg-secondary);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--shadow);
+}
+
+.paused-overlay__icon {
+  font-size: 4rem;
+}
+
+.paused-overlay__text {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
 .problem-summary {
   background-color: var(--bg-secondary);
   padding: var(--space-md);

@@ -4,8 +4,15 @@
  * Preparation phase screen where users read the problem and note invariants.
  */
 
-import { div, useStore, useActions, Show } from "../framework";
-import { PhaseHeader, ProblemCard, InvariantsInput, Button, ConfirmButton } from "../components";
+import { div, span, useStore, useActions, Show } from "../framework";
+import {
+  PhaseHeader,
+  ProblemCard,
+  InvariantsInput,
+  Button,
+  ConfirmButton,
+  PauseButton,
+} from "../components";
 import { AppStore } from "../store";
 
 // ============================================================================
@@ -28,12 +35,26 @@ export function PrepScreen(): HTMLElement {
     await actions.abandonSession();
   };
 
+  const handlePause = () => {
+    actions.pauseSession();
+  };
+
+  const handleResume = () => {
+    actions.resumeFromPause();
+  };
+
   return div({ class: "screen prep-screen", id: "prep-screen" }, [
     // Header with timer and action
     PhaseHeader({
       phase: "prep",
       remainingMs: state.remainingMs,
+      isPaused: state.isPaused,
       actions: [
+        PauseButton({
+          isPaused: state.isPaused,
+          onPause: handlePause,
+          onResume: handleResume,
+        }),
         Button({
           label: "Start Coding",
           variant: "primary",
@@ -43,6 +64,23 @@ export function PrepScreen(): HTMLElement {
         }),
       ],
     }),
+
+    // Paused overlay
+    Show(
+      () => state.isPaused(),
+      () =>
+        div({ class: "paused-overlay" }, [
+          div({ class: "paused-overlay__content" }, [
+            span({ class: "paused-overlay__icon" }, ["⏸"]),
+            span({ class: "paused-overlay__text" }, ["Session Paused"]),
+            Button({
+              label: "Resume",
+              variant: "primary",
+              onClick: handleResume,
+            }),
+          ]),
+        ]),
+    ),
 
     // Main content
     div({ class: "screen-content" }, [
