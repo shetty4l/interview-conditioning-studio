@@ -7,9 +7,10 @@ Work planned in priority order:
 1. **Phase 0: Bug Fixes** - Fix export bug ✅ DONE
 2. **Phase 1: Reactive Framework** - Build minimal reactive UI framework ✅ DONE (131 tests)
 3. **Phase 2: Fresh UI + Neobrutalism** - Delete old UI, write fresh reactive components with neobrutalism design ✅ DONE
-4. **Phase 3: Dashboard + UI Polish** - Dashboard, simplified routing, two-column coding, auto-recording, pause/resume 🔜 NEXT
-5. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization
-6. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests
+4. **Phase 3: Dashboard + UI Polish** - Dashboard, simplified routing, pause/resume ✅ ~90% DONE
+5. **Phase 3.1: Audio Recording Bug** - Fix reactive feedback loop causing UI flicker 🔴 BLOCKING
+6. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization
+7. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests
 
 ## Key Design Decisions
 
@@ -263,212 +264,141 @@ Full session flow tested and working:
 
 ---
 
-## Phase 3: Dashboard + UI Polish 🔜 NEXT
+## Phase 3: Dashboard + UI Polish ✅ ~90% DONE
 
 **Goal**: Add dashboard for session management, simplify routing, improve coding screen layout, add pause/resume and auto-recording
 
-**Estimated Time**: ~15 hours (after 3.0 routing fix)
+**Status**: Most features complete. Blocked by audio recording bug (Phase 3.1).
 
-### 3.1 Route Structure (Simplified)
+### 3.1 What Was Completed
+
+| Item | Status |
+|------|--------|
+| `DashboardScreen.ts` | ✅ Created |
+| `SessionScreen.ts` | ✅ Created |
+| `ViewScreen.ts` | ✅ Created (placeholder) |
+| `HomeScreen.ts` (serves as NewSessionScreen) | ✅ Created |
+| `AppHeader.ts` component | ✅ Created |
+| `StatsCard.ts` component | ✅ Created |
+| `SessionCard.ts` component | ✅ Created |
+| `PauseButton.ts` component | ✅ Created |
+| `isPaused` state + `pauseSession()`/`resumeFromPause()` | ✅ Implemented |
+| `softDeleteSession()` + `deletedAt` field | ✅ Implemented |
+| `getSessionStats()` | ✅ Implemented |
+| `dashboard.spec.ts` E2E tests | ✅ Passing |
+| `pause.spec.ts` E2E tests | ✅ Passing |
+| Routes updated in `main.ts` | ✅ Done |
+| Timer paused styling | ✅ Done |
+| Button ghost variant | ✅ Done |
+
+### 3.2 Remaining Work (After Bug Fix)
+
+| Item | Status |
+|------|--------|
+| Fix audio recording feedback loop | 🔴 BLOCKING (see Phase 3.1) |
+| `MicStatusIndicator` component | ⏳ Not started |
+| `CollapsibleSection` component | ⏳ Not started |
+| Two-column coding layout | ⏳ Not started |
+| `ViewScreen` full implementation | ⏳ Placeholder exists |
+
+### 3.3 E2E Test Status
+
+```
+106 passed
+11 skipped
+```
+
+### 3.4 Route Structure
 
 | Route         | Screen            | Description                                       |
 | ------------- | ----------------- | ------------------------------------------------- |
 | `/#/`         | DashboardScreen   | Session list, stats, "New Session" button         |
-| `/#/new`      | NewSessionScreen  | Preset selection                                  |
+| `/#/new`      | HomeScreen        | Preset selection                                  |
 | `/#/:id`      | SessionScreen     | Active session (renders current phase internally) |
-| `/#/:id/view` | SessionViewScreen | Read-only view of completed session               |
+| `/#/:id/view` | ViewScreen        | Read-only view of completed session               |
 
 **Key Principle**: Each route must be directly navigable. Phase is state, not route.
 
-### 3.2 New Screens
+### 3.5 Edge Cases Reference
 
-| Screen                 | Purpose                                            |
-| ---------------------- | -------------------------------------------------- |
-| `DashboardScreen.ts`   | Landing page with session list and aggregate stats |
-| `NewSessionScreen.ts`  | Preset selection (extracted from HomeScreen)       |
-| `SessionScreen.ts`     | Container that renders appropriate phase component |
-| `SessionViewScreen.ts` | Read-only view of completed/abandoned session      |
+See sections 3.9 in git history for full edge case tables. Key decisions:
 
-### 3.3 Phase Components (Refactored)
+- Pause: Pauses timer AND recording
+- Abandoned sessions: Soft delete with `deletedAt` timestamp  
+- Recording: Auto-start on Coding, auto-stop on Summary or abandon
 
-Screens renamed to phase components (children of SessionScreen):
+---
 
-| Component            | Purpose                                      |
-| -------------------- | -------------------------------------------- |
-| `PrepPhase.ts`       | Prep phase UI                                |
-| `CodingPhase.ts`     | Coding + Silent phase UI (two-column layout) |
-| `SummaryPhase.ts`    | Summary phase UI                             |
-| `ReflectionPhase.ts` | Reflection phase UI                          |
-| `DonePhase.ts`       | Done phase UI with link to View              |
+## Phase 3.1: Fix Audio Recording Feedback Loop 🔴 BLOCKING
 
-### 3.4 New Components
+**Goal**: Fix the reactive feedback loop causing CodingScreen to flicker when audio recording is active
 
-| Component               | Purpose                                                 |
-| ----------------------- | ------------------------------------------------------- |
-| `AppHeader.ts`          | Global header with clickable title + "← Dashboard" link |
-| `StatsCard.ts`          | Dashboard stat display (value + label)                  |
-| `SessionCard.ts`        | Session row in list (title, status, actions)            |
-| `CollapsibleSection.ts` | Expandable section for mobile coding layout             |
-| `MicStatusIndicator.ts` | Shows mic state (recording/ready/blocked/unsupported)   |
+**Status**: Diagnosed, ready to implement
 
-### 3.5 Store Changes
+### Problem Summary
 
-**New State:**
+When entering the Coding phase with audio recording enabled:
+- REC indicator flickers on/off rapidly (~37ms cycles instead of stable)
+- Code textarea becomes unresponsive  
+- Buttons can't be clicked
+- Playwright reports "element was detached from the DOM"
 
-```typescript
-isPaused: boolean;
-```
+**Root Cause** (confirmed via Chrome DevTools trace analysis):
 
-**New Actions:**
+A reactive feedback loop where:
+1. `mediaRecorder.onstop` updates `isRecording` signal → `notifyStateChange()`
+2. Signal change triggers component re-render (via Show/Switch disposing and recreating)
+3. Component disposal calls `onCleanup` → `stopRecording()`
+4. New component mounts → `onMount` → `startRecording()`
+5. Cycle repeats ~262 times in 7 seconds (should be 0-1)
 
-```typescript
-pauseSession(): void;           // Pause timer + recording
-resumeSession(): void;          // Resume timer + recording
-softDeleteSession(id: string): Promise<void>;
-getSessionStats(): { total: number; avgNudges: number; avgPrepTimeMs: number };
-```
+**Evidence from trace:**
+- 262 `onstop` events (should be 0-1 in a normal session)
+- 35µs gap between `ondataavailable` and `onstop` proves `stop()` called synchronously
+- 92-102ms duration for each `onstop` handler (component disposal + recreation + IndexedDB)
 
-**Modified Actions:**
+### Solution
 
-- `startCoding()` - Auto-start recording if `audioSupported`
-- `submitSolution()` - Auto-stop recording
-- `handlePhaseExpiry()` (SILENT→SUMMARY) - Auto-stop recording
-- `abandonSession()` - Auto-stop recording
+Move audio lifecycle from component lifecycle (CodingScreen) to store-managed phase transitions.
 
-### 3.6 Storage Changes
+**Recording runs during**: Coding + Silent phases
 
-**New Field:**
+**Start triggers**:
+- `startCoding()` - Transition from Prep to Coding
+- `resumeFromPause()` - When unpausing during Coding/Silent (already exists)
+- `_loadSession()` - When resuming a session in Coding/Silent phase
 
-```typescript
-interface StoredSession {
-  // ... existing
-  deletedAt: number | null;  // Soft delete timestamp
-}
-```
+**Stop triggers**:
+- `submitSolution()` - Early submission (skips to Summary)
+- `handlePhaseExpiry()` for Silent→Summary - Natural timer expiry
+- `pauseSession()` - Pausing (already exists)
+- `abandonSession()` - Abandoning session
 
-**Modified Methods:**
+### Changes Required
 
-- `getAllSessions()` - Filter out deleted sessions
-- `getIncompleteSession()` - Filter out deleted sessions
+| File | Change |
+|------|--------|
+| `web/src/screens/CodingScreen.ts` | Remove `onMount`, `watch`, `onCleanup` for audio (~45 lines) |
+| `web/src/store.ts` | Add `startRecording()` in `startCoding()` |
+| `web/src/store.ts` | Add `stopRecording()` in `submitSolution()` |
+| `web/src/store.ts` | Add `stopRecording()` in `handlePhaseExpiry()` for Silent→Summary |
+| `web/src/store.ts` | Add `stopRecording()` in `abandonSession()` |
+| `web/src/store.ts` | Add recording resume in `_loadSession()` if phase is Coding/Silent |
+| `web/src/audio.ts` | Add guard in `onstop` to prevent redundant state notifications |
 
-**New Methods:**
+### Checkpoint
 
-- `softDeleteSession(id: string)` - Set `deletedAt = Date.now()`
-
-### 3.7 Coding Screen Layout (Two-Column)
-
-**Desktop (≥768px):**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  ← Dashboard          Interview Conditioning Studio             │
-├─────────────────────────────────────────────────────────────────┤
-│  [CODING] [28:15] [⏸ Pause] [Submit Solution]   [(ghost) Abandon]│
-├───────────────────────────────────┬─────────────────────────────┤
-│                                   │ [SILENT BANNER if silent]   │
-│                                   ├─────────────────────────────┤
-│                                   │ ▼ Problem: Two Sum          │
-│   CODE EDITOR                     │   Given an array of...      │
-│   (primary focus, ~65%)           ├─────────────────────────────┤
-│                                   │ ▼ Your Invariants           │
-│                                   │   - Array not sorted        │
-│                                   ├─────────────────────────────┤
-│                                   │ [Nudge (2/3)]               │
-├───────────────────────────────────┴─────────────────────────────┤
-│  [🔴 REC] or [⚠️ MIC BLOCKED] or [🚫 NO MIC]                    │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Mobile (<768px):** Stacked layout with collapsible Problem/Invariants sections.
-
-### 3.8 Dashboard Features
-
-- Aggregate stats (total sessions, avg nudges, avg prep time)
-- Session list with client-side pagination (10 per page)
-- Per-session actions:
-  - In Progress: Resume, Delete
-  - Completed/Abandoned: View, Export, Delete
-- Educational empty state for new users
-
-### 3.9 Edge Cases & Decisions
-
-#### Must Handle (20 items)
-
-| #   | Edge Case                          | Decision                                | E2E Test File         |
-| --- | ---------------------------------- | --------------------------------------- | --------------------- |
-| 1   | Pause behavior                     | Pauses timer AND recording              | `pause.spec.ts`       |
-| 2   | Pause in Silent phase              | Allow                                   | `pause.spec.ts`       |
-| 3   | Auto-record permission denied      | Show `MicStatusIndicator` blocked state | `audio.spec.ts`       |
-| 4   | Resume session + recording         | Auto-restart recording                  | `pause.spec.ts`       |
-| 5   | Dashboard nav with active session  | Warn but allow, auto-save               | `dashboard.spec.ts`   |
-| 6   | Abandoned sessions                 | Soft delete, hidden from UI             | `dashboard.spec.ts`   |
-| 7   | New session while one active       | Block with message                      | `dashboard.spec.ts`   |
-| 8   | Browser back button                | Allow, session auto-saved               | `persistence.spec.ts` |
-| 9   | Empty stats calculation            | Return zeros (no division error)        | `dashboard.spec.ts`   |
-| 10  | Export with no audio               | Omit audio file from export             | `export.spec.ts`      |
-| 11  | Export abandoned session           | Allow                                   | `export.spec.ts`      |
-| 12  | Export in-progress session         | Disallow                                | `export.spec.ts`      |
-| 13  | Timer drift across pause/resume    | Track `totalPausedMs` from timestamps   | `pause.spec.ts`       |
-| 14  | Session restore with expired timer | Auto-advance phase                      | `persistence.spec.ts` |
-| 15  | Direct URL to non-existent session | Redirect to Dashboard + toast           | `dashboard.spec.ts`   |
-| 16  | Direct URL to deleted session      | Redirect to Dashboard + toast           | `dashboard.spec.ts`   |
-| 17  | Rapid pause/resume                 | Debounce 300ms                          | `pause.spec.ts`       |
-| 18  | Rapid code changes                 | Debounce storage saves (500ms)          | `persistence.spec.ts` |
-| 19  | Refresh during session             | Restore from storage                    | `persistence.spec.ts` |
-| 20  | Dispatch event during pause        | Allow non-timer events                  | `pause.spec.ts`       |
-
-#### Deferred (15 items)
-
-| #   | Edge Case                     | Decision                  | Reason Deferred         |
-| --- | ----------------------------- | ------------------------- | ----------------------- |
-| 21  | Multiple browser tabs         | Defer                     | Complex, rare use case  |
-| 22  | Session deleted while viewing | Defer                     | Complex, rare use case  |
-| 23  | Very long recordings (50MB+)  | Defer                     | Already compressed      |
-| 24  | IndexedDB unavailable         | Toast + continue          | Rare (private browsing) |
-| 25  | Recording fails mid-session   | Toast + indicator         | Hard to simulate in E2E |
-| 26  | System sleep / laptop lid     | Recalculate on visibility | Hard to test in E2E     |
-| 27  | Pause at phase expiry         | Pause takes precedence    | Timing-sensitive        |
-| 28  | Storage quota exceeded        | Toast, don't crash        | Hard to test            |
-| 29  | Export download blocked       | Toast on failure          | Browser-specific        |
-| 30  | Same problem twice            | Defer                     | UX annoyance only       |
-| 31  | Mobile keyboard covers input  | Defer                     | Browser handles         |
-| 32  | Screen reader timer           | Defer                     | a11y enhancement        |
-| 33  | System clock change           | Defer                     | Very rare               |
-| 34  | Orphaned audio data           | Best effort               | Future cleanup          |
-| 35  | Reflection form autofill      | `autocomplete="off"`      | Minor UX                |
-
-### 3.10 E2E Test Plan
-
-| Test File                          | New Tests | Edge Cases Covered        |
-| ---------------------------------- | --------- | ------------------------- |
-| `e2e/dashboard.spec.ts` (new)      | 8         | #5, #6, #7, #9, #15, #16  |
-| `e2e/pause.spec.ts` (new)          | 11        | #1, #2, #4, #13, #17, #20 |
-| `e2e/persistence.spec.ts` (update) | 5         | #8, #14, #18, #19         |
-| `e2e/export.spec.ts` (update)      | 3         | #10, #11, #12             |
-| `e2e/audio.spec.ts` (update)       | 2         | #3                        |
-| **Total**                          | **~29**   |                           |
-
-### 3.11 Checkpoint
-
-- [ ] E2E: Create `dashboard.spec.ts` (8 tests, `.skip`)
-- [ ] E2E: Create `pause.spec.ts` (11 tests, `.skip`)
-- [ ] E2E: Update `persistence.spec.ts` (5 tests, `.skip`)
-- [ ] E2E: Update `export.spec.ts` (3 tests, `.skip`)
-- [ ] E2E: Update `audio.spec.ts` (2 tests, `.skip`)
-- [ ] Storage: Add `deletedAt`, soft delete, filter logic
-- [ ] Store: Add `isPaused`, pause/resume actions
-- [ ] Store: Add auto-recording in `startCoding()`, auto-stop
-- [ ] Store: Add `getSessionStats()`, `softDeleteSession()`
-- [ ] Components: Create `MicStatusIndicator`, `AppHeader`, `CollapsibleSection`
-- [ ] Components: Create `StatsCard`, `SessionCard`
-- [ ] Components: Modify `PhaseHeader` (pause), `Timer` (paused), `Button` (ghost)
-- [ ] Phases: Create all phase components in `web/src/phases/`
-- [ ] Screens: Create `DashboardScreen`, `NewSessionScreen`, `SessionScreen`, `SessionViewScreen`
-- [ ] Router: Update `main.ts` for new routes
-- [ ] CSS: Add all new styles
-- [ ] Delete old screen files, `RecordingIndicator.ts`
-- [ ] E2E: Unskip all tests, verify passing
-- [ ] Commit: `feat(web): add dashboard, simplified routing, UI polish`
+- [ ] Remove audio lifecycle from CodingScreen.ts
+- [ ] Add `startRecording()` to `startCoding()` action
+- [ ] Add `stopRecording()` to `submitSolution()` action  
+- [ ] Add `stopRecording()` to `handlePhaseExpiry()` for Silent→Summary
+- [ ] Add `stopRecording()` to `abandonSession()` action
+- [ ] Add recording resume to `_loadSession()` for Coding/Silent phases
+- [ ] Add guard in `audio.ts` onstop handler
+- [ ] Manual test: REC indicator stable, textarea usable
+- [ ] E2E tests pass: `bun run test:e2e`
+- [ ] Full CI passes: `bun run ci`
+- [ ] Commit: `fix(web): move audio lifecycle to store, prevent feedback loop`
 
 ---
 
@@ -529,13 +459,14 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 
 ## Estimated Time
 
-| Phase                             | Estimate    | Status  |
-| --------------------------------- | ----------- | ------- |
-| Phase 0 (Bug Fixes)               | -           | ✅ Done |
-| Phase 1 (Framework)               | ~4-6 hours  | ✅ Done |
-| Phase 2 (Fresh UI + Neobrutalism) | ~8-13 hours | ✅ Done |
-| Phase 3 (Dashboard + UI Polish)   | ~15 hours   | 🔜 Next |
-| Phase 4 (Mic Check)               | ~2-3 hours  | Pending |
-| Phase 5 (Core Engine)             | ~2-3 hours  | Pending |
+| Phase                             | Estimate    | Status       |
+| --------------------------------- | ----------- | ------------ |
+| Phase 0 (Bug Fixes)               | -           | ✅ Done      |
+| Phase 1 (Framework)               | ~4-6 hours  | ✅ Done      |
+| Phase 2 (Fresh UI + Neobrutalism) | ~8-13 hours | ✅ Done      |
+| Phase 3 (Dashboard + UI Polish)   | ~15 hours   | ✅ ~90% Done |
+| Phase 3.1 (Audio Bug Fix)         | ~2 hours    | 🔴 Blocking  |
+| Phase 4 (Mic Check)               | ~2-3 hours  | Pending      |
+| Phase 5 (Core Engine)             | ~2-3 hours  | Pending      |
 
-**Total Remaining: ~20-21 hours**
+**Total Remaining: ~6-8 hours** (Phase 3.1 + remaining Phase 3 polish + Phase 4 + Phase 5)
