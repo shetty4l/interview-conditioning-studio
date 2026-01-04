@@ -40,7 +40,7 @@ type ReactiveState<T extends object> = {
  * @returns Store object
  */
 export function createStore<T extends object, A extends object>(
-  config: StoreConfig<T, A>
+  config: StoreConfig<T, A>,
 ): Store<T, A> {
   // Create a signal for each state property
   const signals = {} as { [K in keyof T]: [() => T[K], (v: T[K]) => void] };
@@ -89,9 +89,7 @@ export function createStore<T extends object, A extends object>(
  * @param store - Store to read from
  * @returns Object with getter functions for each state property
  */
-export function useStore<T extends object, A extends object>(
-  store: Store<T, A>
-): ReactiveState<T> {
+export function useStore<T extends object, A extends object>(store: Store<T, A>): ReactiveState<T> {
   const state = {} as ReactiveState<T>;
 
   for (const key of Object.keys(store._signals) as (keyof T)[]) {
@@ -111,8 +109,6 @@ export function useStore<T extends object, A extends object>(
  * @param store - Store to get actions from
  * @returns Actions object
  */
-export function useActions<T extends object, A extends object>(
-  store: Store<T, A>
-): A {
+export function useActions<T extends object, A extends object>(store: Store<T, A>): A {
   return store.getActions();
 }

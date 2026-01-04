@@ -44,7 +44,7 @@ interface Props {
 export function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   props?: Props,
-  children?: Children
+  children?: Children,
 ): HTMLElementTagNameMap[K];
 export function h(tag: string, props?: Props, children?: Children): HTMLElement;
 export function h(tag: string, props: Props = {}, children: Children = []): HTMLElement {
@@ -183,7 +183,7 @@ export function text(content: string): Text {
 export function Show(
   condition: () => boolean,
   whenTrue: () => Node,
-  whenFalse?: () => Node
+  whenFalse?: () => Node,
 ): HTMLElement {
   const container = document.createElement("span");
   container.style.display = "contents";
@@ -225,7 +225,7 @@ export function Show(
  */
 export function For<T>(
   items: () => T[],
-  render: (item: T, index: () => number) => Node
+  render: (item: T, index: () => number) => Node,
 ): HTMLElement {
   const container = document.createElement("span");
   container.style.display = "contents";

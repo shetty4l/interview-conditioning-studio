@@ -6,36 +6,43 @@ Work planned in priority order:
 
 1. **Phase 0: Bug Fixes** - Fix export bug ✅ DONE
 2. **Phase 1: Reactive Framework** - Build minimal reactive UI framework ✅ DONE (131 tests)
-3. **Phase 2: Migrate App** - Rewrite screens using new framework
-4. **Phase 3: Dashboard** - Session management landing page with pagination and stats
-5. **Phase 4: Mic Check** - Pre-session microphone check (deferred, requires framework)
-6. **Phase 5: Core Engine** - Add missing behavioral metrics + complete todo tests
-7. **Phase 6: UI Redesign** - Apply neobrutalism design language
+3. **Phase 2: Fresh UI + Neobrutalism** - Delete old UI, write fresh reactive components with neobrutalism design ✅ DONE
+4. **Phase 3: Dashboard + UI Polish** - Dashboard, simplified routing, two-column coding, auto-recording, pause/resume 🔜 NEXT
+5. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization
+6. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests
 
 ## Key Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Development approach | TDD | Write tests first, then implementation |
-| Signal API | Tuple: `[get, set] = signal(0)` | Familiar, explicit read/write |
-| Modals | **Removed entirely** | Use two-click inline pattern instead |
-| Debug view | **Removed** | Use `window.IDS` API for debugging |
-| CSS location | Keep in `web/css/styles.css` | No runtime style injection (defer component styles) |
-| Timer logic | Lives in AppStore | Global behavior, not component-specific |
-| Helpers | Module-scoped, no OOP | Timer, audio, storage as factory functions coordinated by store |
-| Utilities | Shared `web/src/utils.ts` | Reduce duplication of `escapeHtml` etc. |
-| `getAppState()` return | Live session object | E2E tests depend on `session.dispatch()` |
-| Router | Replace entirely | New framework router replaces `web/src/router.ts` |
+| Decision               | Choice                          | Rationale                                         |
+| ---------------------- | ------------------------------- | ------------------------------------------------- |
+| Development approach   | TDD                             | Write tests first, then implementation            |
+| Signal API             | Tuple: `[get, set] = signal(0)` | Familiar, explicit read/write                     |
+| Modals                 | **Removed entirely**            | Use two-click inline pattern instead              |
+| Debug view             | **Removed**                     | Use `window.IDS` API for debugging                |
+| CSS location           | Keep in `web/css/styles.css`    | Single file, neobrutalism design                  |
+| Timer logic            | Lives in AppStore               | Global behavior, not component-specific           |
+| Helpers                | Module-scoped, no OOP           | Timer, audio, storage as factory functions        |
+| `getAppState()` return | Live session object             | E2E tests depend on `session.dispatch()`          |
+| Router                 | Replace entirely                | New framework router replaces `web/src/router.ts` |
+| Migration strategy     | **Fresh start**                 | Delete old UI, write new from scratch             |
+| Theme                  | **Dark neobrutalism**           | Dark bg, light borders, bold colors               |
+| URL structure          | **Phase not in URL**            | Each route must be directly navigable             |
+| Session routes         | `/#/:id` renders current phase  | Phase is state, not route                         |
+| Recording              | **Auto-start/stop**             | Reduces friction, PRD says "audio recorded"       |
+| Pause                  | Available on all timed phases   | Handle technical issues gracefully                |
+| Soft delete            | `deletedAt` timestamp           | Enable future eviction policy                     |
+| Global nav             | Clickable title + back link     | Easy return to Dashboard from anywhere            |
 
 ## Two-Click Inline Pattern (Replaces Modals)
 
 For destructive actions like "Discard session":
 
-1. **First click**: Button changes to "Confirm?" (red styling)
+1. **First click**: Button changes to "Confirm?" (danger styling)
 2. **Second click**: Executes the action
 3. **Click elsewhere or wait 3s**: Reverts to original state
 
 This eliminates:
+
 - ~300 lines of modal code
 - Complex lifecycle (body scroll lock, focus trap, escape key)
 - Portal/overlay framework primitives
@@ -54,13 +61,7 @@ This eliminates:
 
 ### 0.3 Add Export E2E Tests ✅
 
-**Added**: Comprehensive export tests that actually verify tar.gz contents:
-
-- `code.txt` contains actual code written
-- `invariants.txt` contains actual invariants written
-- `session.json` has correct structure and reflection data
-- Export contains exactly 3 files when no audio
-- Empty code/invariants export as empty strings
+**Added**: Comprehensive export tests that actually verify tar.gz contents.
 
 ---
 
@@ -74,12 +75,12 @@ This eliminates:
 
 ```
 web/src/framework/
-├── reactive.ts     # signal, derived, watch, batch (70 lines)
-├── elements.ts     # h, div, span, Show, For (150 lines)
-├── component.ts    # mount, onMount, onCleanup, context (100 lines)
-├── store.ts        # createStore, useStore, useActions (55 lines)
-├── router.ts       # createRouter, useRouter, useRoute, Link (170 lines)
-└── index.ts        # public exports (75 lines)
+├── reactive.ts     # signal, derived, watch, batch
+├── elements.ts     # h, div, span, Show, For
+├── component.ts    # mount, onMount, onCleanup, context
+├── store.ts        # createStore, useStore, useActions
+├── router.ts       # createRouter, useRouter, useRoute, Link
+└── index.ts        # public exports
 
 tests/framework/
 ├── reactive.test.ts   # 13 tests
@@ -89,369 +90,242 @@ tests/framework/
 └── router.test.ts     # 35 tests
 ```
 
-### 1.2 API Summary
+### 1.2 Foundation Helpers ✅ DONE
 
-```typescript
-// Reactive primitives
-const [count, setCount] = signal(0);
-const doubled = derived(() => count() * 2);
-const cleanup = watch(() => console.log(count()));
-batch(() => { setCount(1); setCount(2); });
-
-// Elements
-div({ class: "foo", onClick: handler }, [children]);
-Show(() => condition(), () => whenTrue(), () => whenFalse());
-For(() => items(), (item, index) => div({}, [item.name]));
-
-// Components
-const unmount = mount(Component, container);
-onMount(() => { /* setup */ return () => { /* cleanup */ }; });
-onCleanup(() => { /* cleanup */ });
-const ThemeCtx = createContext("light");
-const theme = useContext(ThemeCtx);
-
-// Store
-const Store = createStore({
-  state: { count: 0 },
-  actions: (set, get) => ({
-    increment: () => set({ count: get().count + 1 })
-  })
-});
-const { count } = useStore(Store);
-const { increment } = useActions(Store);
-Store.getSnapshot();
-
-// Router
-const Router = createRouter([
-  { path: "/", component: Home },
-  { path: "/user/:id", component: UserDetail },
-], { fallback: NotFound });
-const { navigate, back } = useRouter();
-const { path, params } = useRoute();
-Link({ href: "/about" }, ["About"]);
 ```
-
-### 1.3 Checkpoint ✅
-
-- [x] All framework modules implemented
-- [x] Unit tests pass for each module (131 total)
-- [x] Can mount a simple component with reactive state
-- [x] Router navigates between test components
-- [x] Commit: `feat(web): add reactive UI framework core`
+web/src/helpers/timer.ts    # Timer factory (26 tests)
+web/src/storage.ts          # Refactored to factory pattern
+web/src/store.ts            # AppStore (12 tests)
+```
 
 ---
 
-## Phase 2: Migrate App to Framework
+## Phase 2: Fresh UI + Neobrutalism ✅ DONE
 
-**Goal**: Rewrite all screens/components using the new framework, delete old code
+**Goal**: Delete all old UI code, write fresh reactive components with neobrutalism styling
 
-**Strategy**: Screen-by-screen migration with E2E validation checkpoints. Use Playwright MCP for interactive testing during migration.
+**Status**: Complete - All E2E tests passing (85 tests)
 
-### 2.1 Architecture: Module-Scoped Helpers
+### 2.1 What Was Done
 
-Timer, audio, and storage follow the same pattern - factory functions that return control objects, coordinated by the store:
+- Deleted old string-template UI code (`app.ts`, `router.ts`, `modals/`, old components)
+- Created 11 shared components with neobrutalism styling
+- Created 6 screens for all phases
+- Wired router with `window.IDS` API for E2E testing
+- Rewrote `modals.spec.ts` for two-click confirmation pattern
+- Implemented URL-based session restoration
 
-```typescript
-// web/src/timer.ts
-export function createTimer(callbacks: {
-  onTick: () => void;
-  onExpire: () => void;
-}): Timer {
-  return { start, stop, pause, resume };
-}
+### 2.2 Components Created
 
-// web/src/audio.ts (refactored)
-export function createRecorder(callbacks: {
-  onChunk: (chunk: Blob) => void;
-  onError: (error: Error) => void;
-}): Recorder {
-  return { start, stop, isSupported };
-}
+| Component               | Description                                                           |
+| ----------------------- | --------------------------------------------------------------------- |
+| `Button.ts`             | Neobrutalism button with variants (primary, secondary, danger, ghost) |
+| `Timer.ts`              | MM:SS display with warning/overtime states                            |
+| `Toast.ts`              | Toast notification manager                                            |
+| `ConfirmButton.ts`      | Two-click inline confirm pattern                                      |
+| `PhaseHeader.ts`        | Phase badge + timer + actions                                         |
+| `PresetCard.ts`         | Clickable preset selection                                            |
+| `ProblemCard.ts`        | Problem display (collapsible)                                         |
+| `InvariantsInput.ts`    | Controlled textarea                                                   |
+| `CodeEditor.ts`         | Code textarea + Tab key handling                                      |
+| `NudgeButton.ts`        | Nudge request with count                                              |
+| `RecordingIndicator.ts` | Recording status                                                      |
 
-// web/src/storage.ts (refactored)
-export function createStorage(): Storage {
-  return { saveSession, loadSession, deleteSession, getIncompleteSessions };
-}
-```
+### 2.3 Screens Created
 
-Store coordinates these at module level (no OOP, just closures):
+| Screen                | Key Elements                                           |
+| --------------------- | ------------------------------------------------------ |
+| `HomeScreen.ts`       | PresetCards, ConfirmButton, resume banner              |
+| `PrepScreen.ts`       | PhaseHeader, ProblemCard, InvariantsInput              |
+| `CodingScreen.ts`     | PhaseHeader, CodeEditor, NudgeButton (CODING + SILENT) |
+| `SummaryScreen.ts`    | Stats display, continue button                         |
+| `ReflectionScreen.ts` | Radio button form                                      |
+| `DoneScreen.ts`       | Export button, new session button                      |
 
-```typescript
-// web/src/store.ts
-const timer = createTimer({
-  onTick: () => set({ remainingTime: calculateRemaining() }),
-  onExpire: () => actions.handlePhaseExpiry(),
-});
+### 2.4 Neobrutalism Design Spec
 
-const recorder = createRecorder({
-  onChunk: (chunk) => { /* save to storage */ },
-  onError: (err) => set({ audioError: err.message }),
-});
+**Key Characteristics:**
 
-const storage = createStorage();
+| Property      | Value                                  |
+| ------------- | -------------------------------------- |
+| Borders       | 3px solid (light on dark bg)           |
+| Box shadows   | `4px 4px 0 0` (hard offset, no blur)   |
+| Border radius | 5px (small, not rounded)               |
+| Colors        | Bold, high-contrast, no gradients      |
+| Typography    | 700-900 weight headings                |
+| Hover         | `translate(-2px, -2px)` + shadow grows |
+| Active        | `translate(2px, 2px)` + shadow shrinks |
 
-export const AppStore = createStore({
-  state: { /* ... */ },
-  actions: (set, get) => ({
-    startCoding: () => {
-      timer.start(get().config.codingDuration);
-      recorder.start();
-      storage.saveSession(get().session);
-    },
-    // ...
-  }),
-});
-```
+**Color Palette (Dark Theme):**
 
-### 2.2 E2E Validation Strategy
+```css
+:root {
+  /* Base */
+  --bg: #1a1a2e;           /* Dark blue-black */
+  --bg-secondary: #16213e; /* Slightly lighter */
+  --text: #edf2f4;         /* Off-white text */
+  --text-muted: #8b949e;   /* Muted text */
 
-Validate each screen incrementally using subset of E2E tests:
+  /* Borders & Shadows */
+  --border: #edf2f4;       /* Light borders on dark bg */
+  --shadow: #edf2f4;       /* Light shadow */
 
-| Screen | E2E Tests to Run | Key Validations |
-|--------|------------------|-----------------|
-| HomeScreen | `smoke.spec.ts`, `modals.spec.ts` | Title, presets, resume banner |
-| PrepScreen | `responsive.spec.ts` (subset) | Problem display, invariants input |
-| CodingScreen | `audio.spec.ts` | Editor, nudge, submit, recording UI |
-| SilentScreen | **New: `silent.spec.ts`** | Silent banner, no nudge button |
-| SummaryScreen | `early-submission.spec.ts` (subset) | Stats display, continue button |
-| ReflectionScreen | **New: `reflection.spec.ts`** | Radio buttons, form submission |
-| DoneScreen | `export.spec.ts` | Export button, download, new session |
-
-**New E2E tests to create during migration:**
-- `e2e/silent.spec.ts` - Silent phase specific tests
-- `e2e/reflection.spec.ts` - Reflection form tests
-
-After all screens: Run full E2E suite (88 tests)
-
-### 2.3 Two-Click Confirmation UX
-
-Replaces modals for destructive actions (e.g., "Discard Session"):
-
-```
-[Discard]  →  click  →  [Confirm?]  →  click  →  action executes
-                            ↓
-                     (3s timeout or click elsewhere)
-                            ↓
-                        [Discard] (resets)
-```
-
-Implementation:
-- Button has local `confirming` state
-- First click: set `confirming = true`, change text/style
-- Second click: execute action, reset state
-- `setTimeout(3000)` or blur: reset state
-- CSS: `.btn--confirming { background: var(--color-danger); }`
-
-### 2.4 E2E Test Contract
-
-The following must be maintained for E2E tests to pass:
-
-**CSS Selectors:**
-
-| Type | Examples |
-|------|----------|
-| Classes | `.start-button`, `.start-coding-button`, `.resume-banner`, `.resume-banner__title`, `.toast`, `.timer`, `.btn--primary` |
-| IDs | `#invariants`, `#code`, `#app`, `#toast-container` |
-| Data attrs | `[data-action="start-session"]`, `[data-action="submit-solution"]`, `[data-action="resume-session"]`, `[data-action="discard-session"]`, `[data-component="timer"]` |
-| Form inputs | `input[name="clearApproach"][value="yes"]`, etc. |
-
-**Note:** Modal selectors (`.modal`, `.modal-backdrop`, `[data-action="modal-confirm"]`) are **removed** - replaced by two-click inline pattern.
-
-**window.IDS API:**
-
-```typescript
-window.IDS = {
-  getAppState(),  // Returns live session object for E2E test compatibility
-  startSession(), abandonSession(), resetApp(),
-  updateInvariants(), startCoding(), updateCode(),
-  requestNudge(), submitSolution(), continuePastSummary(),
-  submitReflection(),
-  storage: { clearAll(), getStats(), getSession(), getIncompleteSession(), getAllSessions() },
-  router: { getCurrentRoute() },
-};
-```
-
-### 2.5 Migration Order with Checkpoints
-
-| Step | Task | Test Checkpoint |
-|------|------|-----------------|
-| 1 | Create `timer.ts` helper | Unit tests |
-| 2 | Refactor `audio.ts` to factory pattern | Unit tests |
-| 3 | Refactor `storage.ts` to factory pattern | Unit tests |
-| 4 | Create `AppStore` | Unit tests |
-| 5 | Migrate shared components (Button, Timer, Toast, etc.) | Manual |
-| 6 | Migrate HomeScreen | `smoke.spec.ts`, `modals.spec.ts` |
-| 7 | Migrate PrepScreen | `responsive.spec.ts` |
-| 8 | Migrate CodingScreen | `audio.spec.ts` |
-| 9 | Create `silent.spec.ts`, migrate SilentScreen | `silent.spec.ts` |
-| 10 | Migrate SummaryScreen | `early-submission.spec.ts` |
-| 11 | Create `reflection.spec.ts`, migrate ReflectionScreen | `reflection.spec.ts` |
-| 12 | Migrate DoneScreen | `export.spec.ts` |
-| 13 | Wire router + window.IDS | `routing.spec.ts` |
-| 14 | Rewrite `modals.spec.ts` for two-click pattern | `modals.spec.ts` |
-| 15 | Full validation | All 88+ E2E tests |
-| 16 | Delete old files | - |
-
-### 2.6 Component Migration Order
-
-**Shared components (simplest to most complex):**
-
-1. `Button` - stateless, just props
-2. `Timer` - reactive `remainingMs` prop
-3. `PhaseHeader` - composes Timer
-4. `PresetCard` - click handler via props
-5. `InvariantsDisplay` - display only
-6. `InvariantsInput` - controlled input
-7. `CodeEditor` - controlled textarea + Tab handling
-8. `NudgeButton` - disabled state
-9. `RecordingIndicator` - active state
-10. `ProblemCard` - collapsible local state
-11. `Toast` - manager pattern (similar to current)
-12. `ConfirmButton` - two-click inline pattern (replaces Modal)
-
-**Screens (simplest to most complex):**
-
-1. `DoneScreen` - static, 2 buttons
-2. `SummaryScreen` - static display
-3. `HomeScreen` - preset selection, resume banner with two-click discard
-4. `PrepScreen` - timer, form input
-5. `ReflectionScreen` - form with radio buttons
-6. `CodingScreen` - timer, editor, recording, nudges
-
-### 2.7 Files to Delete After Migration
-
-| File | Reason |
-|------|--------|
-| `web/src/app.ts` | Replaced by store + components |
-| `web/src/router.ts` | Replaced by framework router |
-| `web/src/modals/index.ts` | Removed - using two-click inline pattern |
-| `web/src/components/Modal.ts` | Removed - using two-click inline pattern |
-| `web/src/screens/*.ts` (old) | Replaced by new implementations |
-| `web/src/components/*.ts` (old) | Replaced by new implementations |
-
-### 2.8 Example Migration: Button
-
-**Before (string template):**
-
-```typescript
-export function render(props: ButtonProps): string {
-  const { label, variant = "primary", disabled, action } = props;
-  return `
-    <button 
-      class="btn btn--${variant}" 
-      data-action="${action}"
-      ${disabled ? "disabled" : ""}
-    >${escapeHtml(label)}</button>
-  `;
+  /* Accents */
+  --primary: #e9c46a;      /* Gold - focus color */
+  --success: #52b788;      /* Green - completed */
+  --warning: #f4a261;      /* Orange - warning/silent */
+  --danger: #e76f51;       /* Red - danger */
+  --prep: #9d4edd;         /* Purple - prep phase */
+  --coding: #06d6a0;       /* Teal - coding phase */
 }
 ```
-
-**After (framework component):**
-
-```typescript
-export function Button(props: ButtonProps) {
-  const { label, variant = "primary", disabled, action, onClick } = props;
-  
-  return button({
-    class: `btn btn--${variant}`,
-    "data-action": action,
-    disabled,
-    onClick,
-  }, [label]);
-}
-```
-
-### 2.9 Checkpoint
-
-- [ ] Helper modules created (timer, audio, storage)
-- [ ] App store created with all state/actions
-- [ ] All shared components migrated
-- [ ] All screens migrated
-- [ ] New E2E tests created (`silent.spec.ts`, `reflection.spec.ts`)
-- [ ] Router wired up
-- [ ] window.IDS API works
-- [ ] `e2e/modals.spec.ts` rewritten for two-click pattern
-- [ ] All E2E tests pass
-- [ ] Old files deleted
-- [ ] Commit: `refactor(web): migrate to reactive framework`
 
 ---
 
-## Phase 3: Dashboard + Session Management
+## Phase 3: Dashboard + UI Polish 🔜 NEXT
 
-**Goal**: Add a dashboard as the landing page for session management
+**Goal**: Add dashboard for session management, simplify routing, improve coding screen layout, add pause/resume and auto-recording
 
-### 3.1 Route Structure
+**Estimated Time**: ~15 hours
 
-| Route | Screen | Description |
-|-------|--------|-------------|
-| `/#/` | Dashboard | List sessions, stats, start new |
-| `/#/new` | NewSessionScreen | Select preset/problem (current Home) |
-| `/#/:id/prep` | PrepScreen | Prep phase |
-| `/#/:id/coding` | CodingScreen | Coding phase |
-| `/#/:id/silent` | CodingScreen | Silent phase (same screen, silent mode) |
-| `/#/:id/summary` | SummaryScreen | Summary phase |
-| `/#/:id/reflection` | ReflectionScreen | Reflection phase |
-| `/#/:id/done` | DoneScreen | Completion screen |
+### 3.1 Route Structure (Simplified)
 
-### 3.2 Dashboard Screen
+| Route         | Screen            | Description                                       |
+| ------------- | ----------------- | ------------------------------------------------- |
+| `/#/`         | DashboardScreen   | Session list, stats, "New Session" button         |
+| `/#/new`      | NewSessionScreen  | Preset selection                                  |
+| `/#/:id`      | SessionScreen     | Active session (renders current phase internally) |
+| `/#/:id/view` | SessionViewScreen | Read-only view of completed session               |
 
-**Layout:**
+**Key Principle**: Each route must be directly navigable. Phase is state, not route.
 
+### 3.2 New Screens
+
+| Screen                 | Purpose                                            |
+| ---------------------- | -------------------------------------------------- |
+| `DashboardScreen.ts`   | Landing page with session list and aggregate stats |
+| `NewSessionScreen.ts`  | Preset selection (extracted from HomeScreen)       |
+| `SessionScreen.ts`     | Container that renders appropriate phase component |
+| `SessionViewScreen.ts` | Read-only view of completed/abandoned session      |
+
+### 3.3 Phase Components (Refactored)
+
+Screens renamed to phase components (children of SessionScreen):
+
+| Component            | Purpose                                      |
+| -------------------- | -------------------------------------------- |
+| `PrepPhase.ts`       | Prep phase UI                                |
+| `CodingPhase.ts`     | Coding + Silent phase UI (two-column layout) |
+| `SummaryPhase.ts`    | Summary phase UI                             |
+| `ReflectionPhase.ts` | Reflection phase UI                          |
+| `DonePhase.ts`       | Done phase UI with link to View              |
+
+### 3.4 New Components
+
+| Component               | Purpose                                                 |
+| ----------------------- | ------------------------------------------------------- |
+| `AppHeader.ts`          | Global header with clickable title + "← Dashboard" link |
+| `StatsCard.ts`          | Dashboard stat display (value + label)                  |
+| `SessionCard.ts`        | Session row in list (title, status, actions)            |
+| `CollapsibleSection.ts` | Expandable section for mobile coding layout             |
+| `MicStatusIndicator.ts` | Shows mic state (recording/ready/blocked/unsupported)   |
+
+### 3.5 Store Changes
+
+**New State:**
+
+```typescript
+isPaused: boolean;
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Interview Conditioning Studio                              │
-│  ─────────────────────────────────────────────────────────  │
-│                                                             │
-│  Stats Bar:                                                 │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
-│  │ 12      │ │ 2.1     │ │ 3:42    │ │ 4       │           │
-│  │Sessions │ │Avg Nudge│ │Avg Prep │ │This Week│           │
-│  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
-│                                                             │
-│  [+ Start New Session]                                      │
-│                                                             │
-│  ─────────────────────────────────────────────────────────  │
-│  Sessions                                                   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Two Sum        │ Completed │ Jan 3  │ [Export] [Delete] │
-│  └─────────────────────────────────────────────────────┘   │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Merge Lists    │ In Progress │ Jan 3 │ [Resume] [Delete] │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  [Prev]  Page 1 of 3  [Next]                               │
-└─────────────────────────────────────────────────────────────┘
+
+**New Actions:**
+
+```typescript
+pauseSession(): void;           // Pause timer + recording
+resumeSession(): void;          // Resume timer + recording
+softDeleteSession(id: string): Promise<void>;
+getSessionStats(): { total: number; avgNudges: number; avgPrepTimeMs: number };
 ```
 
-**Features:**
+**Modified Actions:**
 
-- Aggregate stats (total sessions, avg nudges, avg prep time, this week)
-- Session list with pagination (10 per page)
-- Per-session actions: Resume, Export, Delete
+- `startCoding()` - Auto-start recording if `audioSupported`
+- `submitSolution()` - Auto-stop recording
+- `handlePhaseExpiry()` (SILENT→SUMMARY) - Auto-stop recording
+- `abandonSession()` - Auto-stop recording
 
-### 3.3 Soft Delete Implementation
+### 3.6 Storage Changes
+
+**New Field:**
 
 ```typescript
 interface StoredSession {
-  // ... existing fields
-  deletedAt?: number | null; // Timestamp when soft-deleted
+  // ... existing
+  deletedAt: number | null;  // Soft delete timestamp
 }
 ```
 
-- `softDeleteSession(id)` - Sets deletedAt
-- `restoreSession(id)` - Clears deletedAt
-- `getAllSessions()` - Excludes soft-deleted
-- No automatic expiry (keep indefinitely for now)
+**Modified Methods:**
 
-### 3.4 Checkpoint
+- `getAllSessions()` - Filter out deleted sessions
+- `getIncompleteSession()` - Filter out deleted sessions
 
-- [ ] Dashboard screen implemented
-- [ ] Session list with pagination
-- [ ] Soft delete working
-- [ ] E2E tests for dashboard (`e2e/dashboard.spec.ts`)
-- [ ] Commit: `feat(web): add dashboard with session management`
+**New Methods:**
+
+- `softDeleteSession(id: string)` - Set `deletedAt = Date.now()`
+
+### 3.7 Coding Screen Layout (Two-Column)
+
+**Desktop (≥768px):**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ← Dashboard          Interview Conditioning Studio             │
+├─────────────────────────────────────────────────────────────────┤
+│  [CODING] [28:15] [⏸ Pause] [Submit Solution]   [(ghost) Abandon]│
+├───────────────────────────────────┬─────────────────────────────┤
+│                                   │ [SILENT BANNER if silent]   │
+│                                   ├─────────────────────────────┤
+│                                   │ ▼ Problem: Two Sum          │
+│   CODE EDITOR                     │   Given an array of...      │
+│   (primary focus, ~65%)           ├─────────────────────────────┤
+│                                   │ ▼ Your Invariants           │
+│                                   │   - Array not sorted        │
+│                                   ├─────────────────────────────┤
+│                                   │ [Nudge (2/3)]               │
+├───────────────────────────────────┴─────────────────────────────┤
+│  [🔴 REC] or [⚠️ MIC BLOCKED] or [🚫 NO MIC]                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Mobile (<768px):** Stacked layout with collapsible Problem/Invariants sections.
+
+### 3.8 Dashboard Features
+
+- Aggregate stats (total sessions, avg nudges, avg prep time)
+- Session list with client-side pagination (10 per page)
+- Per-session actions:
+  - In Progress: Resume, Delete
+  - Completed/Abandoned: View, Export, Delete
+- Educational empty state for new users
+
+### 3.9 Checkpoint
+
+- [ ] Storage: Add `deletedAt`, soft delete, filter logic
+- [ ] Store: Add `isPaused`, pause/resume actions
+- [ ] Store: Add auto-recording in `startCoding()`, auto-stop
+- [ ] Store: Add `getSessionStats()`, `softDeleteSession()`
+- [ ] Components: Create `MicStatusIndicator`, `AppHeader`, `CollapsibleSection`
+- [ ] Components: Create `StatsCard`, `SessionCard`
+- [ ] Components: Modify `PhaseHeader` (pause), `Timer` (paused), `Button` (ghost)
+- [ ] Phases: Create all phase components in `web/src/phases/`
+- [ ] Screens: Create `DashboardScreen`, `NewSessionScreen`, `SessionScreen`, `SessionViewScreen`
+- [ ] Router: Update `main.ts` for new routes
+- [ ] CSS: Add all new styles
+- [ ] Delete old screen files, `RecordingIndicator.ts`
+- [ ] E2E: Update existing tests
+- [ ] E2E: Create `dashboard.spec.ts`, `pause.spec.ts`
+- [ ] Commit: `feat(web): add dashboard, simplified routing, UI polish`
 
 ---
 
@@ -459,11 +333,7 @@ interface StoredSession {
 
 **Goal**: Add microphone check before starting a session
 
-**Why deferred**: Requires proper component lifecycle management from the framework. The previous attempt failed because the modal system destroyed event handlers on re-render.
-
-### 4.1 Mic Check Screen/Inline Component
-
-**Flow:**
+### 4.1 Flow
 
 1. User clicks "Start Session"
 2. If `audioSupported`, show mic check inline (not modal)
@@ -472,43 +342,19 @@ interface StoredSession {
 5. User confirms mic works → session starts with recording
 6. Or user clicks "Continue Without Recording" → session starts without audio
 
-**States:**
-
-- **Requesting**: "Requesting microphone access..."
-- **Denied**: "Microphone access denied. You can still practice without recording."
-- **No Audio**: "No audio detected. Check your microphone settings."
-- **Working**: "Microphone working" (green, audio meter active)
-
-### 4.2 Audio Level Monitoring
-
-Add to `web/src/audio.ts`:
-
-```typescript
-const getAudioLevel = (): number => {
-  if (!analyser) return 0;
-
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteFrequencyData(dataArray);
-
-  const sum = dataArray.reduce((a, b) => a + b, 0);
-  return sum / (dataArray.length * 255); // 0-1
-};
-```
-
-### 4.3 Why It Will Work Now
+### 4.2 Why It Will Work Now
 
 With the reactive framework:
 
 - `onMount` cleanup prevents audio analyzer leaks
 - State changes don't destroy/recreate the entire DOM
 - Event handlers survive re-renders
-- `signal` updates audio level meter smoothly at 60fps
+- `signal` updates audio level meter smoothly
 
-### 4.4 Checkpoint
+### 4.3 Checkpoint
 
 - [ ] Mic check inline component implemented
 - [ ] Audio level visualization works
-- [ ] Audio saves correctly across multiple sessions
 - [ ] Commit: `feat(web): add pre-session mic check`
 
 ---
@@ -519,29 +365,17 @@ With the reactive framework:
 
 ### 5.1 New Metrics
 
-Add to `SessionState`:
-
 ```typescript
 codeChanges: number;           // Total code change events
 codeChangesInSilent: number;   // Code changes during SILENT
 codeChangedInSilent: boolean;  // Whether any code changed in SILENT
-nudgeTiming: NudgeTiming[];    // When each nudge was used ('early' | 'mid' | 'late')
+nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 ```
 
 ### 5.2 Test Categories
 
-**`recovery.test.ts`** (~9 todos):
-
-- Restore session state from events
-- Explicit abandonment handling
-- State preservation after recovery
-
-**`phases.test.ts`** (~33 todos):
-
-- PREP: invariants handling, nudges not allowed
-- CODING: code tracking, nudge timing classification
-- SILENT: code changes tracking, nudges disabled
-- REFLECTION: response capture, validation, completion
+- `recovery.test.ts` (~9 todos): Restore from events, abandonment
+- `phases.test.ts` (~33 todos): Phase-specific behaviors
 
 ### 5.3 Checkpoint
 
@@ -550,70 +384,15 @@ nudgeTiming: NudgeTiming[];    // When each nudge was used ('early' | 'mid' | 'l
 
 ---
 
-## Phase 6: Neobrutalism CSS Redesign
-
-**Goal**: Apply bold, high-contrast neobrutalism design language
-
-### 6.1 Key Characteristics
-
-- Heavy black borders (2-3px)
-- Offset box shadows (4px 4px 0 0 black)
-- Bright/bold colors, high contrast
-- Small rounded corners (~5px)
-- Hover: translate + shadow disappears
-- Bold typography (800 headings, 500 body)
-- No gradients, no blur
-
-### 6.2 Why It Fits
-
-- "Uncomfortable" aesthetic matches product principle
-- High contrast aids focus during timed sessions
-- Distinctive look - not a "friendly" learning app
-
-### 6.3 Checkpoint
-
-- [ ] CSS variables updated
-- [ ] All components styled
-- [ ] Visual QA at all viewports
-- [ ] E2E tests still pass
-- [ ] Commit: `style(web): apply neobrutalism design language`
-
----
-
-## Design Decisions
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Development approach | TDD | Write tests first, then implementation |
-| Framework first | Build before mic check | Can't fix lifecycle issues without it |
-| Migration strategy | Screen-by-screen with E2E checkpoints | Validate incrementally, catch issues early |
-| Helpers pattern | Module-scoped factories, no OOP | Simple closures, store coordinates |
-| Modals | Removed entirely | Two-click inline pattern is simpler |
-| Debug view | Removed | Use `window.IDS` for debugging |
-| Naming convention | Unified kebab/camelCase | Consistency across codebase |
-| CSS approach | Keep in `styles.css` for now | Defer component-scoped styles to later phase |
-| Timer logic | In AppStore via helper | Global behavior, store coordinates |
-| `getAppState()` | Returns live session | E2E tests use `session.dispatch()` |
-| Two-click confirmation | Button text change + 3s timeout | Clear, no complex modal lifecycle |
-| Soft delete expiry | None (keep indefinitely) | Wait to see if it becomes an issue |
-| Dashboard stats | 4 metrics | Total, avg nudges, avg prep, this week |
-| Pagination | 10 per page | Reasonable default |
-| Route for new session | `/#/new` | Clear separation from dashboard |
-| Theme | Light (default) | Standard for neobrutalism, high contrast |
-| Fonts | System fonts | Zero load time, local-first philosophy |
-| Test directory | Consolidated `tests/` | Simpler `bun test` without path args |
-
----
-
 ## Estimated Time
 
-| Phase | Estimate |
-|-------|----------|
-| Phase 1 (Framework) | ~4-6 hours |
-| Phase 2 (Migration) | ~4-6 hours |
-| Phase 3 (Dashboard) | ~3-4 hours |
-| Phase 4 (Mic Check) | ~2-3 hours |
-| Phase 5 (Core Engine) | ~2-3 hours |
-| Phase 6 (Neobrutalism CSS) | ~3-4 hours |
+| Phase                             | Estimate    | Status  |
+| --------------------------------- | ----------- | ------- |
+| Phase 0 (Bug Fixes)               | -           | ✅ Done |
+| Phase 1 (Framework)               | ~4-6 hours  | ✅ Done |
+| Phase 2 (Fresh UI + Neobrutalism) | ~8-13 hours | ✅ Done |
+| Phase 3 (Dashboard + UI Polish)   | ~15 hours   | 🔜 Next |
+| Phase 4 (Mic Check)               | ~2-3 hours  | Pending |
+| Phase 5 (Core Engine)             | ~2-3 hours  | Pending |
 
-**Total: ~18-26 hours**
+**Total Remaining: ~20-21 hours**

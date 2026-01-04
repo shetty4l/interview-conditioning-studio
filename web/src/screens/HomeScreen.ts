@@ -1,247 +1,135 @@
 /**
- * Home Screen
+ * HomeScreen Component
  *
- * Preset selection and session start.
+ * Landing screen for selecting presets and starting sessions.
+ * Shows resume banner if there's an incomplete session.
  */
 
-import type { ScreenContext, AppState } from "./types";
-import { Preset } from "../../../core/src/index";
-import { ACTIONS, COMPONENTS } from "../constants";
-import * as PresetCard from "../components/PresetCard";
-import * as Button from "../components/Button";
+import { div, h1, h2, p, span, Show, useStore, useActions } from "../framework";
+import { Button, PresetCard, ConfirmButton, showToast } from "../components";
+import { AppStore, PresetEnum } from "../store";
+import type { Preset } from "../../../core/src/index";
 
 // ============================================================================
-// Preset Definitions
+// Constants
 // ============================================================================
 
-const PRESETS = [
+const PRESETS: Array<{
+  preset: Preset;
+  label: string;
+  description: string;
+}> = [
   {
-    preset: Preset.Standard,
+    preset: PresetEnum.Standard,
     label: "Standard",
-    description: "5 min prep, 35 min coding, 3 nudges",
+    description: "5 min prep, 35 min coding, 5 min silent, 3 nudges",
   },
   {
-    preset: Preset.HighPressure,
+    preset: PresetEnum.HighPressure,
     label: "High Pressure",
-    description: "3 min prep, 25 min coding, 1 nudge",
+    description: "3 min prep, 25 min coding, 2 min silent, 1 nudge",
   },
   {
-    preset: Preset.NoAssistance,
+    preset: PresetEnum.NoAssistance,
     label: "No Assistance",
-    description: "5 min prep, 35 min coding, 0 nudges",
+    description: "5 min prep, 35 min coding, 5 min silent, 0 nudges",
   },
 ];
 
 // ============================================================================
-// Styles (co-located)
+// Component
 // ============================================================================
 
-export const styles = `
-/* === Resume Banner === */
-.resume-banner {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  padding: var(--space-md) var(--space-lg);
-  margin-bottom: var(--space-xl);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-}
+export function HomeScreen(): HTMLElement {
+  const state = useStore(AppStore);
+  const actions = useActions(AppStore);
 
-.resume-banner__text {
-  flex: 1;
-  min-width: 200px;
-}
+  const handleSelectPreset = (preset: Preset) => {
+    actions.selectPreset(preset);
+  };
 
-.resume-banner__title {
-  font-weight: 600;
-  margin: 0 0 var(--space-xs) 0;
-  color: var(--color-text);
-}
+  const handleStartSession = async () => {
+    await actions.startSession();
+  };
 
-.resume-banner__subtitle {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  margin: 0;
-}
+  const handleResume = async () => {
+    await actions.resumeSession();
+    showToast("Session resumed", "success");
+  };
 
-.resume-banner__actions {
-  display: flex;
-  gap: var(--space-sm);
-}
-`;
+  const handleDiscard = async () => {
+    await actions.discardIncompleteSession();
+    showToast("Session discarded", "info");
+  };
 
-// ============================================================================
-// State
-// ============================================================================
+  return div({ class: "screen home-screen", id: "home-screen" }, [
+    // Resume Banner
+    Show(
+      () => state.incompleteSession() !== null,
+      () =>
+        div({ class: "resume-banner" }, [
+          div({ class: "resume-banner__content" }, [
+            span({ class: "resume-banner__title" }, ["Continue Previous Session"]),
+            span({ class: "resume-banner__info" }, [
+              () => {
+                const incomplete = state.incompleteSession();
+                return `${incomplete?.problemTitle || ""} - ${incomplete?.phase || ""}`;
+              },
+            ]),
+          ]),
+          div({ class: "resume-banner__actions" }, [
+            Button({
+              label: "Resume",
+              variant: "primary",
+              action: "resume-session",
+              onClick: handleResume,
+            }),
+            ConfirmButton({
+              label: "Discard",
+              confirmLabel: "Confirm Discard?",
+              variant: "danger",
+              action: "discard-session",
+              onConfirm: handleDiscard,
+            }),
+          ]),
+        ]),
+    ),
 
-let cleanup: (() => void) | null = null;
+    // Header
+    div({ class: "home-header" }, [
+      h1({}, ["Interview Conditioning Studio"]),
+      p({ class: "subtitle" }, [
+        "Practice technical interviews with timed constraints and limited assistance",
+      ]),
+    ]),
 
-// ============================================================================
-// Render
-// ============================================================================
+    // Preset Selection
+    div({ class: "preset-section" }, [
+      h2({}, ["Select Mode"]),
+      div(
+        { class: "preset-cards" },
+        PRESETS.map((p) =>
+          PresetCard({
+            preset: p.preset,
+            label: p.label,
+            description: p.description,
+            selected: () => state.selectedPreset() === p.preset,
+            onClick: () => handleSelectPreset(p.preset),
+          }),
+        ),
+      ),
+    ]),
 
-export function render(state: AppState): string {
-  const presetCards = PRESETS.map((p) =>
-    PresetCard.render({
-      preset: p.preset,
-      label: p.label,
-      description: p.description,
-      selected: state.selectedPreset === p.preset,
-    }),
-  ).join("");
-
-  // Resume banner if incomplete session exists
-  const resumeBanner = state.incompleteSession
-    ? `
-      <div class="resume-banner" data-component="resume-banner">
-        <div class="resume-banner__text">
-          <p class="resume-banner__title">Continue Previous Session?</p>
-          <p class="resume-banner__subtitle">
-            ${escapeHtml(state.incompleteSession.problemTitle)} - ${escapeHtml(state.incompleteSession.phase)} phase
-          </p>
-        </div>
-        <div class="resume-banner__actions">
-          ${Button.render({
-            label: "Discard",
-            variant: "secondary",
-            action: ACTIONS.DISCARD_SESSION,
-          })}
-          ${Button.render({
-            label: "Resume",
-            variant: "primary",
-            action: ACTIONS.RESUME_SESSION,
-          })}
-        </div>
-      </div>
-    `
-    : "";
-
-  return `
-    <div class="home-screen" data-component="${COMPONENTS.SCREEN_HOME}">
-      <h1>Interview Conditioning Studio</h1>
-      <p class="tagline">Practice technical interviews under realistic conditions</p>
-
-      ${resumeBanner}
-
-      <div class="preset-selector">
-        <h2>Select Difficulty</h2>
-        <div class="preset-cards">
-          ${presetCards}
-        </div>
-      </div>
-
-      ${Button.render({
+    // Start Button
+    div({ class: "start-section" }, [
+      Button({
         label: "Start Session",
         variant: "primary",
         size: "large",
-        action: ACTIONS.START_SESSION,
+        action: "start-session",
         className: "start-button",
-      })}
-    </div>
-  `;
-}
-
-// ============================================================================
-// Mount
-// ============================================================================
-
-export function mount(ctx: ScreenContext): void {
-  const container = document.querySelector(`[data-component="${COMPONENTS.SCREEN_HOME}"]`);
-  if (!container) return;
-
-  const handleClick = (e: Event) => {
-    const target = e.target as HTMLElement;
-
-    // Preset selection
-    const presetCard = target.closest(`[data-action="${ACTIONS.SELECT_PRESET}"]`);
-    if (presetCard) {
-      const preset = presetCard.getAttribute("data-preset") as Preset;
-      if (preset) {
-        ctx.dispatch({ type: "SELECT_PRESET", preset });
-      }
-      return;
-    }
-
-    // Start session
-    const startBtn = target.closest(`[data-action="${ACTIONS.START_SESSION}"]`);
-    if (startBtn) {
-      ctx.dispatch({ type: "START_SESSION" });
-      return;
-    }
-
-    // Resume session
-    const resumeBtn = target.closest(`[data-action="${ACTIONS.RESUME_SESSION}"]`);
-    if (resumeBtn) {
-      ctx.dispatch({ type: "RESUME_SESSION" });
-      return;
-    }
-
-    // Discard session
-    const discardBtn = target.closest(`[data-action="${ACTIONS.DISCARD_SESSION}"]`);
-    if (discardBtn) {
-      // Show confirm modal before discarding
-      ctx.showModal({
-        type: "confirm",
-        title: "Discard Session?",
-        message: "This will permanently delete your previous session. Are you sure?",
-        confirmText: "Discard",
-        cancelText: "Keep",
-        onConfirm: () => {
-          // Dispatch a discard action - we'll handle this in app.ts
-          discardIncompleteFromBanner(ctx);
-        },
-      });
-      return;
-    }
-  };
-
-  container.addEventListener("click", handleClick);
-
-  cleanup = () => {
-    container.removeEventListener("click", handleClick);
-  };
-}
-
-// Helper to discard from banner (avoids needing a new action type)
-async function discardIncompleteFromBanner(ctx: ScreenContext): Promise<void> {
-  const state = ctx.state;
-  if (state.incompleteSession) {
-    // Import dynamically to avoid circular dependency
-    const { deleteSession } = await import("../storage");
-    const { showToast } = await import("../app");
-    try {
-      await deleteSession(state.incompleteSession.id);
-      showToast("Previous session discarded", "info");
-      // Force re-render by navigating home
-      window.location.hash = "#/";
-    } catch (error) {
-      console.error("Failed to discard session:", error);
-      showToast("Failed to discard session", "error");
-    }
-  }
-}
-
-// ============================================================================
-// Unmount
-// ============================================================================
-
-export function unmount(): void {
-  if (cleanup) {
-    cleanup();
-    cleanup = null;
-  }
-}
-
-// ============================================================================
-// Utilities
-// ============================================================================
-
-function escapeHtml(text: string): string {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+        onClick: handleStartSession,
+      }),
+    ]),
+  ]);
 }

@@ -1,129 +1,81 @@
 /**
- * Summary Screen
+ * SummaryScreen Component
  *
- * Session summary with stats, code, and invariants display.
+ * Session summary with stats and continue button.
  */
 
-import type { ScreenContext, AppState } from "./types";
-import { Phase } from "../../../core/src/index";
-import { ACTIONS, COMPONENTS } from "../constants";
-import * as PhaseHeader from "../components/PhaseHeader";
-import * as Button from "../components/Button";
+import { div, h1, h2, span, useStore, useActions } from "../framework";
+import { PhaseHeader, Button } from "../components";
+import { AppStore } from "../store";
 import { formatTime } from "../components/Timer";
 
 // ============================================================================
-// State
+// Component
 // ============================================================================
 
-let cleanup: (() => void) | null = null;
+export function SummaryScreen(): HTMLElement {
+  const state = useStore(AppStore);
+  const actions = useActions(AppStore);
 
-// ============================================================================
-// Render
-// ============================================================================
-
-export function render(state: AppState): string {
-  const { sessionState, problem } = state;
-  if (!sessionState || !problem) {
-    return `<div class="summary-screen">Loading...</div>`;
-  }
-
-  const totalNudges = sessionState.nudgesRemaining + sessionState.nudgesUsed;
-
-  return `
-    <div class="summary-screen" data-component="${COMPONENTS.SCREEN_SUMMARY}">
-      ${PhaseHeader.render({ phase: Phase.Summary })}
-
-      <h2>Session Complete</h2>
-
-      <div class="summary-stats">
-        <div class="stat">
-          <span class="stat-label">Prep Time Used</span>
-          <span class="stat-value">${sessionState.prepTimeUsed ? formatTime(sessionState.prepTimeUsed) : "N/A"}</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Nudges Used</span>
-          <span class="stat-value">${sessionState.nudgesUsed} / ${totalNudges}</span>
-        </div>
-      </div>
-
-      <div class="summary-section">
-        <h3>Problem</h3>
-        <p>${escapeHtml(problem.title)}</p>
-      </div>
-
-      <div class="summary-section">
-        <h3>Your Invariants</h3>
-        <pre class="summary-content">${escapeHtml(sessionState.invariants || "(none)")}</pre>
-      </div>
-
-      <div class="summary-section">
-        <h3>Your Code</h3>
-        <pre class="summary-content code">${escapeHtml(sessionState.code || "(none)")}</pre>
-      </div>
-
-      ${Button.render({
-        label: "Continue to Reflection",
-        variant: "primary",
-        size: "large",
-        action: ACTIONS.CONTINUE_TO_REFLECTION,
-        className: "continue-button",
-      })}
-    </div>
-  `;
-}
-
-// ============================================================================
-// Mount
-// ============================================================================
-
-export function mount(ctx: ScreenContext): void {
-  const container = document.querySelector(`[data-component="${COMPONENTS.SCREEN_SUMMARY}"]`);
-  if (!container) return;
-
-  const handleClick = (e: Event) => {
-    const target = e.target as HTMLElement;
-
-    // Continue to reflection
-    const continueBtn = target.closest(`[data-action="${ACTIONS.CONTINUE_TO_REFLECTION}"]`);
-    if (continueBtn) {
-      ctx.dispatch({ type: "CONTINUE_TO_REFLECTION" });
-      return;
-    }
+  const handleContinue = async () => {
+    await actions.continuePastSummary();
   };
 
-  container.addEventListener("click", handleClick);
-
-  cleanup = () => {
-    container.removeEventListener("click", handleClick);
+  // Calculate session stats
+  const getTotalTime = () => {
+    const prep = state.prepDurationMs();
+    const coding = state.codingDurationMs();
+    return prep + coding;
   };
-}
 
-// ============================================================================
-// Unmount
-// ============================================================================
+  return div({ class: "screen summary-screen", id: "summary-screen" }, [
+    // Header (no timer in summary)
+    PhaseHeader({
+      phase: "summary",
+      remainingMs: 0,
+    }),
 
-export function unmount(): void {
-  if (cleanup) {
-    cleanup();
-    cleanup = null;
-  }
-}
+    // Main content
+    div({ class: "screen-content summary-content" }, [
+      h1({}, ["Session Complete"]),
 
-// ============================================================================
-// Update (no-op - summary is static)
-// ============================================================================
+      // Stats grid
+      div({ class: "stats-grid" }, [
+        // Total Time
+        div({ class: "stat-card" }, [
+          span({ class: "stat-label" }, ["Total Time"]),
+          span({ class: "stat-value" }, [() => formatTime(getTotalTime())]),
+        ]),
 
-export function update(_state: AppState): boolean {
-  // Return true to prevent unnecessary re-renders
-  return true;
-}
+        // Nudges Used
+        div({ class: "stat-card" }, [
+          span({ class: "stat-label" }, ["Nudges Used"]),
+          span({ class: "stat-value" }, [() => `${state.nudgesUsed()} / ${state.nudgesAllowed()}`]),
+        ]),
 
-// ============================================================================
-// Utilities
-// ============================================================================
+        // Problem
+        div({ class: "stat-card stat-card--wide" }, [
+          span({ class: "stat-label" }, ["Problem"]),
+          span({ class: "stat-value" }, [() => state.problem()?.title || "Unknown"]),
+        ]),
+      ]),
 
-function escapeHtml(text: string): string {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+      // Code preview
+      div({ class: "code-preview" }, [
+        h2({}, ["Your Solution"]),
+        div({ class: "code-preview__content" }, [() => state.code() || "(No code submitted)"]),
+      ]),
+
+      // Continue button
+      div({ class: "summary-actions" }, [
+        Button({
+          label: "Continue to Reflection",
+          variant: "primary",
+          size: "large",
+          action: "continue-to-reflection",
+          onClick: handleContinue,
+        }),
+      ]),
+    ]),
+  ]);
 }

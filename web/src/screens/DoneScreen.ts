@@ -1,146 +1,66 @@
 /**
- * Done Screen
+ * DoneScreen Component
  *
- * Session completion with export and new session options.
- * Centered layout with inline badge (no PhaseHeader).
+ * Final screen with export and new session options.
  */
 
-import type { ScreenContext, AppState } from "./types";
-import { ACTIONS, COMPONENTS } from "../constants";
-import * as Button from "../components/Button";
+import { div, h1, p, useStore, useActions } from "../framework";
+import { PhaseHeader, Button, showToast } from "../components";
+import { AppStore } from "../store";
 
 // ============================================================================
-// Styles (co-located)
+// Component
 // ============================================================================
 
-export const styles = `
-/* === DoneScreen === */
-.done-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  text-align: center;
-  padding: var(--space-xl);
-}
+export function DoneScreen(): HTMLElement {
+  const state = useStore(AppStore);
+  const actions = useActions(AppStore);
 
-.done-screen__badge {
-  display: inline-block;
-  padding: var(--space-xs) var(--space-lg);
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background-color: var(--color-done);
-  color: white;
-  margin-bottom: var(--space-xl);
-}
+  const handleExport = async () => {
+    try {
+      await actions.exportSession();
+      showToast("Session exported successfully", "success");
+    } catch (_error) {
+      showToast("Export failed", "error");
+    }
+  };
 
-.done-screen__title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 var(--space-sm) 0;
-}
+  const handleNewSession = () => {
+    actions.resetApp();
+  };
 
-.done-screen__subtitle {
-  color: var(--color-text-muted);
-  margin: 0 0 var(--space-xl) 0;
-}
+  return div({ class: "screen done-screen", id: "done-screen" }, [
+    // Header
+    PhaseHeader({
+      phase: "done",
+      remainingMs: 0,
+    }),
 
-.done-screen__actions {
-  display: flex;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-  justify-content: center;
-}
-`;
+    // Main content
+    div({ class: "screen-content done-content" }, [
+      div({ class: "done-message" }, [
+        h1({}, ["Session Complete!"]),
+        p({}, ["Great work! You've completed your practice session."]),
+        p({ class: "problem-name" }, [() => `Problem: ${state.problem()?.title || "Unknown"}`]),
+      ]),
 
-// ============================================================================
-// State
-// ============================================================================
-
-let cleanup: (() => void) | null = null;
-
-// ============================================================================
-// Render
-// ============================================================================
-
-export function render(_state: AppState): string {
-  return `
-    <div class="done-screen" data-component="${COMPONENTS.SCREEN_DONE}">
-      <span class="done-screen__badge">Done</span>
-      <h2 class="done-screen__title">Session Complete!</h2>
-      <p class="done-screen__subtitle">Great job completing your practice session.</p>
-
-      <div class="done-screen__actions">
-        ${Button.render({
+      // Actions
+      div({ class: "done-actions" }, [
+        Button({
           label: "Export Session",
           variant: "primary",
           size: "large",
-          action: ACTIONS.EXPORT_SESSION,
-        })}
-
-        ${Button.render({
+          action: "export-session",
+          onClick: handleExport,
+        }),
+        Button({
           label: "Start New Session",
           variant: "secondary",
-          action: ACTIONS.NEW_SESSION,
-        })}
-      </div>
-    </div>
-  `;
-}
-
-// ============================================================================
-// Mount
-// ============================================================================
-
-export function mount(ctx: ScreenContext): void {
-  const container = document.querySelector(`[data-component="${COMPONENTS.SCREEN_DONE}"]`);
-  if (!container) return;
-
-  const handleClick = (e: Event) => {
-    const target = e.target as HTMLElement;
-
-    // Export session
-    const exportBtn = target.closest(`[data-action="${ACTIONS.EXPORT_SESSION}"]`);
-    if (exportBtn) {
-      ctx.dispatch({ type: "EXPORT_SESSION" });
-      return;
-    }
-
-    // New session
-    const newBtn = target.closest(`[data-action="${ACTIONS.NEW_SESSION}"]`);
-    if (newBtn) {
-      ctx.dispatch({ type: "NEW_SESSION" });
-      return;
-    }
-  };
-
-  container.addEventListener("click", handleClick);
-
-  cleanup = () => {
-    container.removeEventListener("click", handleClick);
-  };
-}
-
-// ============================================================================
-// Unmount
-// ============================================================================
-
-export function unmount(): void {
-  if (cleanup) {
-    cleanup();
-    cleanup = null;
-  }
-}
-
-// ============================================================================
-// Update (no-op - done screen is static)
-// ============================================================================
-
-export function update(_state: AppState): boolean {
-  // Return true to prevent unnecessary re-renders
-  return true;
+          size: "large",
+          action: "new-session",
+          onClick: handleNewSession,
+        }),
+      ]),
+    ]),
+  ]);
 }

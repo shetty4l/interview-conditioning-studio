@@ -241,9 +241,7 @@ describe("createContext and useContext", () => {
 
     function App() {
       return ThemeContext.Provider({ value: "outer" }, () => [
-        div({}, [
-          ThemeContext.Provider({ value: "inner" }, () => [Child()]),
-        ]),
+        div({}, [ThemeContext.Provider({ value: "inner" }, () => [Child()])]),
       ]);
     }
 

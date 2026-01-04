@@ -185,4 +185,12 @@ export const VALID_REFLECTION_RESPONSES = {
 };
 
 // Re-export types and enums for convenience
-export { Phase, Preset, type Session, type Event, type DispatchResult, type DispatchError, type DispatchErrorCode };
+export {
+  Phase,
+  Preset,
+  type Session,
+  type Event,
+  type DispatchResult,
+  type DispatchError,
+  type DispatchErrorCode,
+};

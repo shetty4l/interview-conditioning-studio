@@ -1,226 +1,166 @@
 /**
- * Coding Screen
+ * CodingScreen Component
  *
- * Code editor with nudge button. Handles both CODING and SILENT phases.
+ * Coding phase screen with code editor, nudges, and recording.
+ * Also handles SILENT phase (shows banner, disables nudges).
  */
 
-import type { ScreenContext, AppState } from "./types";
-import { Phase } from "../../../core/src/index";
-import { ACTIONS, COMPONENTS } from "../constants";
-import * as PhaseHeader from "../components/PhaseHeader";
-import * as CodeEditor from "../components/CodeEditor";
-import * as NudgeButton from "../components/NudgeButton";
-import * as InvariantsDisplay from "../components/InvariantsDisplay";
-import * as RecordingIndicator from "../components/RecordingIndicator";
-import * as Button from "../components/Button";
+import { div, span, useStore, useActions, Show } from "../framework";
+import {
+  PhaseHeader,
+  ProblemCard,
+  CodeEditor,
+  NudgeButton,
+  Button,
+  ConfirmButton,
+  RecordingIndicator,
+} from "../components";
+import { AppStore, PhaseEnum } from "../store";
 
 // ============================================================================
-// State
+// Component
 // ============================================================================
 
-let cleanup: (() => void) | null = null;
-let _currentCtx: ScreenContext | null = null;
+export function CodingScreen(): HTMLElement {
+  const state = useStore(AppStore);
+  const actions = useActions(AppStore);
 
-// ============================================================================
-// Render
-// ============================================================================
+  const isSilentPhase = () => state.phase() === PhaseEnum.Silent;
 
-export function render(state: AppState): string {
-  const { sessionState, problem, screen, isRecording, audioSupported, audioPermissionDenied } =
-    state;
-  if (!sessionState || !problem) {
-    return `<div class="coding-screen">Loading...</div>`;
-  }
+  const handleCodeChange = (value: string) => {
+    actions.updateCode(value);
+  };
 
-  const isSilent = screen === "silent";
-  const phase = isSilent ? Phase.Silent : Phase.Coding;
+  const handleRequestNudge = async () => {
+    await actions.requestNudge();
+  };
 
-  // Build action buttons for header
-  let headerActions = "";
+  const handleSubmitSolution = async () => {
+    await actions.submitSolution();
+  };
 
-  // Recording button (CODING and SILENT phases)
-  if (audioSupported && !audioPermissionDenied) {
-    if (isRecording) {
-      headerActions += RecordingIndicator.render({ isRecording: true });
-      headerActions += Button.render({
-        label: "Stop",
+  const handleAbandon = async () => {
+    await actions.abandonSession();
+  };
+
+  const handleStartRecording = async () => {
+    await actions.startRecording();
+  };
+
+  const handleStopRecording = async () => {
+    await actions.stopRecording();
+  };
+
+  // Determine current phase name for header
+  const currentPhase = () => (isSilentPhase() ? "silent" : "coding");
+
+  return div({ class: "screen coding-screen", id: "coding-screen" }, [
+    // Header with timer
+    PhaseHeader({
+      phase: currentPhase,
+      remainingMs: state.remainingMs,
+      actions: [
+        Button({
+          label: "Submit Solution",
+          variant: "primary",
+          action: "submit-solution",
+          onClick: handleSubmitSolution,
+        }),
+      ],
+    }),
+
+    // Silent phase banner
+    Show(isSilentPhase, () =>
+      div({ class: "silent-banner" }, [
+        span({ class: "silent-banner__icon" }, ["🤫"]),
+        span({ class: "silent-banner__text" }, ["Silent Phase - No assistance available"]),
+      ]),
+    ),
+
+    // Main content
+    div({ class: "screen-content" }, [
+      // Problem display (collapsible in coding)
+      Show(
+        () => state.problem() !== null,
+        () => ProblemCard({ problem: state.problem()!, collapsible: true }),
+      ),
+
+      // Coding area
+      div({ class: "coding-area" }, [
+        // Invariants reference (read-only, collapsed)
+        Show(
+          () => state.invariants().length > 0,
+          () =>
+            div({ class: "invariants-reference" }, [
+              span({ class: "invariants-reference__label" }, ["Your invariants:"]),
+              span({ class: "invariants-reference__text" }, [state.invariants]),
+            ]),
+        ),
+
+        // Code editor
+        CodeEditor({
+          value: state.code,
+          onChange: handleCodeChange,
+        }),
+      ]),
+
+      // Actions row
+      div({ class: "coding-actions" }, [
+        // Nudge button (disabled in silent phase)
+        Show(
+          () => !isSilentPhase(),
+          () =>
+            NudgeButton({
+              nudgesUsed: state.nudgesUsed,
+              nudgesAllowed: state.nudgesAllowed,
+              onClick: handleRequestNudge,
+            }),
+        ),
+
+        // Recording button (when audio supported)
+        Show(
+          () => state.audioSupported() && !state.isRecording(),
+          () =>
+            Button({
+              label: "Start Recording",
+              variant: "secondary",
+              action: "start-recording",
+              onClick: handleStartRecording,
+            }),
+        ),
+
+        // Stop recording button (when recording)
+        Show(
+          () => state.audioSupported() && state.isRecording(),
+          () =>
+            Button({
+              label: "Stop Recording",
+              variant: "danger",
+              action: "stop-recording",
+              onClick: handleStopRecording,
+            }),
+        ),
+
+        // Recording indicator
+        Show(
+          () => state.isRecording(),
+          () =>
+            RecordingIndicator({
+              isRecording: state.isRecording,
+            }),
+        ),
+      ]),
+    ]),
+
+    // Footer with abandon option
+    div({ class: "screen-footer" }, [
+      ConfirmButton({
+        label: "Abandon Session",
+        confirmLabel: "Confirm Abandon?",
         variant: "danger",
-        size: "small",
-        action: ACTIONS.STOP_RECORDING,
-      });
-    } else {
-      headerActions += Button.render({
-        label: "Record",
-        variant: "secondary",
-        size: "small",
-        action: ACTIONS.START_RECORDING,
-      });
-    }
-  } else if (audioPermissionDenied) {
-    headerActions += `<span class="audio-denied" title="Microphone access denied">Mic denied</span>`;
-  }
-
-  // Nudge button (CODING only)
-  if (!isSilent) {
-    headerActions += NudgeButton.render({
-      remaining: sessionState.nudgesRemaining,
-      total: sessionState.nudgesRemaining + sessionState.nudgesUsed,
-    });
-  }
-
-  // Submit solution button
-  headerActions += Button.render({
-    label: "Submit Solution",
-    variant: "secondary",
-    action: ACTIONS.SUBMIT_SOLUTION,
-  });
-
-  const silentBanner = isSilent
-    ? `<div class="silent-banner">Silent Phase - No assistance available</div>`
-    : "";
-
-  const silentClass = isSilent ? " coding-screen--silent" : "";
-
-  return `
-    <div class="coding-screen${silentClass}" data-component="${COMPONENTS.SCREEN_CODING}">
-      ${PhaseHeader.render({
-        phase,
-        remainingMs: sessionState.remainingTime,
-        actions: headerActions,
-      })}
-
-      ${silentBanner}
-
-      <div class="problem-summary">
-        <strong>${escapeHtml(problem.title)}</strong>
-        ${sessionState.invariants ? InvariantsDisplay.render({ value: sessionState.invariants }) : ""}
-      </div>
-
-      <div class="code-section">
-        ${CodeEditor.render({
-          value: sessionState.code,
-          id: "code",
-        })}
-      </div>
-    </div>
-  `;
-}
-
-// ============================================================================
-// Mount
-// ============================================================================
-
-export function mount(ctx: ScreenContext): void {
-  _currentCtx = ctx;
-  const container = document.querySelector(`[data-component="${COMPONENTS.SCREEN_CODING}"]`);
-  if (!container) return;
-
-  // Mount code editor
-  const codeEditorEl = container.querySelector(`[data-component="${COMPONENTS.CODE_EDITOR}"]`);
-  let codeEditorCleanup: (() => void) | null = null;
-  if (codeEditorEl) {
-    codeEditorCleanup = CodeEditor.mount(codeEditorEl as HTMLElement, {
-      onChange: (value) => ctx.dispatch({ type: "UPDATE_CODE", code: value }),
-    });
-  }
-
-  const handleClick = (e: Event) => {
-    const target = e.target as HTMLElement;
-
-    // Start recording
-    const startRecordBtn = target.closest(`[data-action="${ACTIONS.START_RECORDING}"]`);
-    if (startRecordBtn) {
-      ctx.dispatch({ type: "START_RECORDING" });
-      return;
-    }
-
-    // Stop recording
-    const stopRecordBtn = target.closest(`[data-action="${ACTIONS.STOP_RECORDING}"]`);
-    if (stopRecordBtn) {
-      ctx.dispatch({ type: "STOP_RECORDING" });
-      return;
-    }
-
-    // Request nudge
-    const nudgeBtn = target.closest(`[data-action="${ACTIONS.REQUEST_NUDGE}"]`);
-    if (nudgeBtn && !nudgeBtn.hasAttribute("disabled")) {
-      ctx.dispatch({ type: "REQUEST_NUDGE" });
-      return;
-    }
-
-    // Submit solution
-    const submitBtn = target.closest(`[data-action="${ACTIONS.SUBMIT_SOLUTION}"]`);
-    if (submitBtn) {
-      ctx.dispatch({ type: "SUBMIT_SOLUTION" });
-      return;
-    }
-  };
-
-  container.addEventListener("click", handleClick);
-
-  cleanup = () => {
-    container.removeEventListener("click", handleClick);
-    codeEditorCleanup?.();
-  };
-}
-
-// ============================================================================
-// Unmount
-// ============================================================================
-
-export function unmount(): void {
-  if (cleanup) {
-    cleanup();
-    cleanup = null;
-  }
-  _currentCtx = null;
-}
-
-// ============================================================================
-// Update (targeted)
-// ============================================================================
-
-export function update(state: AppState): boolean {
-  const { sessionState } = state;
-  if (!sessionState) return false;
-
-  let handled = false;
-
-  // Update timer
-  const headerEl = document.querySelector(`[data-component="${COMPONENTS.PHASE_HEADER}"]`);
-  if (headerEl) {
-    PhaseHeader.updateTimer(headerEl as HTMLElement, sessionState.remainingTime);
-    handled = true;
-  }
-
-  // Update nudge button
-  const nudgeEl = document.querySelector(`[data-component="${COMPONENTS.NUDGE_BUTTON}"]`);
-  if (nudgeEl) {
-    NudgeButton.update(nudgeEl as HTMLElement, {
-      remaining: sessionState.nudgesRemaining,
-      total: sessionState.nudgesRemaining + sessionState.nudgesUsed,
-    });
-    handled = true;
-  }
-
-  // Update recording indicator
-  const recordingEl = document.querySelector(
-    `[data-component="${COMPONENTS.RECORDING_INDICATOR}"]`,
-  );
-  if (recordingEl) {
-    RecordingIndicator.update(recordingEl as HTMLElement, { isRecording: state.isRecording });
-    handled = true;
-  }
-
-  return handled;
-}
-
-// ============================================================================
-// Utilities
-// ============================================================================
-
-function escapeHtml(text: string): string {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+        action: "abandon-session",
+        onConfirm: handleAbandon,
+      }),
+    ]),
+  ]);
 }

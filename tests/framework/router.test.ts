@@ -94,9 +94,7 @@ describe("Router", () => {
     test("should render fallback for unmatched routes", () => {
       window.location.hash = "#/unknown";
 
-      const routes: RouteConfig[] = [
-        { path: "/", component: () => div({}, ["Home"]) },
-      ];
+      const routes: RouteConfig[] = [{ path: "/", component: () => div({}, ["Home"]) }];
 
       const Router = createRouter(routes, {
         fallback: () => div({ class: "not-found" }, ["404 Not Found"]),
@@ -110,9 +108,7 @@ describe("Router", () => {
     test("should render nothing for unmatched routes without fallback", () => {
       window.location.hash = "#/unknown";
 
-      const routes: RouteConfig[] = [
-        { path: "/", component: () => div({}, ["Home"]) },
-      ];
+      const routes: RouteConfig[] = [{ path: "/", component: () => div({}, ["Home"]) }];
 
       const Router = createRouter(routes);
       cleanup = mount(() => Router(), container);
@@ -221,9 +217,7 @@ describe("Router", () => {
       window.location.hash = "#/";
       const removeEventListenerSpy = spyOn(window, "removeEventListener");
 
-      const routes: RouteConfig[] = [
-        { path: "/", component: () => div({}, ["Home"]) },
-      ];
+      const routes: RouteConfig[] = [{ path: "/", component: () => div({}, ["Home"]) }];
 
       const Router = createRouter(routes);
       cleanup = mount(() => Router(), container);
@@ -446,8 +440,7 @@ describe("Router", () => {
       const routes: RouteConfig[] = [
         {
           path: "/",
-          component: () =>
-            div({}, [Link({ href: "/about" }, ["Go to About"])]),
+          component: () => div({}, [Link({ href: "/about" }, ["Go to About"])]),
         },
       ];
 
@@ -506,10 +499,7 @@ describe("Router", () => {
           path: "/",
           component: () =>
             div({}, [
-              Link(
-                { href: "/about", class: "nav-link", "data-testid": "about-link" },
-                ["About"]
-              ),
+              Link({ href: "/about", class: "nav-link", "data-testid": "about-link" }, ["About"]),
             ]),
         },
       ];
@@ -528,10 +518,7 @@ describe("Router", () => {
       const routes: RouteConfig[] = [
         {
           path: "/",
-          component: () =>
-            div({}, [
-              Link({ href: "/about" }, [span({}, ["Icon"]), " About"]),
-            ]),
+          component: () => div({}, [Link({ href: "/about" }, [span({}, ["Icon"]), " About"])]),
         },
       ];
 

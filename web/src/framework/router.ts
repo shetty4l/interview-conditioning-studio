@@ -5,7 +5,7 @@
  */
 
 import { signal } from "./reactive";
-import { createContext, useContext, onCleanup } from "./component";
+import { createContext, onCleanup } from "./component";
 import { h, type Child } from "./elements";
 
 // ============================================================================
@@ -47,7 +47,7 @@ interface RouterContextValue {
 // Context
 // ============================================================================
 
-const RouterContext = createContext<RouterContextValue | null>(null);
+const _RouterContext = createContext<RouterContextValue | null>(null);
 
 // ============================================================================
 // Path Matching
@@ -88,10 +88,7 @@ function parseHash(hash: string): string {
  * - /path - exact match
  * - /path/:param - single segment param
  */
-function matchRoute(
-  pattern: string,
-  path: string
-): Record<string, string> | null {
+function matchRoute(pattern: string, path: string): Record<string, string> | null {
   const patternSegments = pattern.split("/").filter(Boolean);
   const pathSegments = path.split("/").filter(Boolean);
 
@@ -139,7 +136,7 @@ let activeRouterContext: RouterContextValue | null = null;
  */
 export function createRouter(
   routes: RouteConfig[],
-  options: RouterOptions = {}
+  options: RouterOptions = {},
 ): () => HTMLElement {
   return function Router(): HTMLElement {
     // Current route state
@@ -303,6 +300,6 @@ export function Link(props: LinkProps, children: Child[]): HTMLElement {
       href: "#" + href,
       onClick: handleClick,
     },
-    children
+    children,
   );
 }

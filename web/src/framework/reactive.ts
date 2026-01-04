@@ -55,7 +55,8 @@ export function signal<T>(initialValue: T): [SignalGetter<T>, SignalSetter<T>] {
   };
 
   const set: SignalSetter<T> = (newValue) => {
-    const nextValue = typeof newValue === "function" ? (newValue as (prev: T) => T)(value) : newValue;
+    const nextValue =
+      typeof newValue === "function" ? (newValue as (prev: T) => T)(value) : newValue;
 
     // Skip if value hasn't changed (using Object.is for NaN handling)
     if (Object.is(value, nextValue)) {

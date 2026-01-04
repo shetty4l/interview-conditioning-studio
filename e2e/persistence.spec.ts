@@ -79,10 +79,10 @@ test.describe.serial("Session Persistence", () => {
     expect(stats.sessionCount).toBe(1);
 
     // Verify session exists in storage
-    const storedSession = await page.evaluate(
+    const storedSession = (await page.evaluate(
       (id) => window.IDS.storage.getSession(id),
       sessionId!,
-    );
+    )) as { id: string } | null;
     expect(storedSession).not.toBeNull();
     expect(storedSession?.id).toBe(sessionId);
   });
@@ -212,7 +212,9 @@ test.describe.serial("Session Persistence", () => {
 
     // Check that incomplete session was detected
     // (In future phases, this would show a resume modal)
-    const incomplete = await page.evaluate(() => window.IDS.storage.getIncompleteSession());
+    const incomplete = (await page.evaluate(() => window.IDS.storage.getIncompleteSession())) as {
+      id: string;
+    } | null;
     expect(incomplete).not.toBeNull();
     expect(incomplete?.id).toBe(sessionId);
   });
@@ -339,7 +341,9 @@ test.describe.serial("Session Persistence", () => {
     await waitForSessionCount(page, 3);
 
     // Get all sessions
-    const allSessions = await page.evaluate(() => window.IDS.storage.getAllSessions());
+    const allSessions = (await page.evaluate(() => window.IDS.storage.getAllSessions())) as Array<{
+      id: string;
+    }>;
     expect(allSessions.length).toBe(3);
 
     // Should be sorted by updatedAt descending (most recent first)

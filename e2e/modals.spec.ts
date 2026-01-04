@@ -1,9 +1,10 @@
 import { test, expect, type Page } from "playwright/test";
 
 /**
- * Modal E2E Tests
+ * Confirm Actions E2E Tests
  *
- * Tests for modal dialogs: resume banner, confirm modal, modal interactions.
+ * Tests for two-click confirmation pattern: resume banner, confirm button, toasts.
+ * Note: Modals were replaced with inline two-click confirmation buttons.
  */
 
 // Helper to clear storage and verify it's empty
@@ -103,7 +104,7 @@ test.describe("Resume Banner", () => {
     expect(state.sessionState?.code).toBe("function test() { return 42; }");
   });
 
-  test("discard button shows confirmation modal", async ({ page }) => {
+  test("discard button uses two-click confirmation pattern", async ({ page }) => {
     // Create an incomplete session
     await page.evaluate(() => window.IDS.startSession());
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
@@ -119,46 +120,24 @@ test.describe("Resume Banner", () => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    // Click discard
-    await page.click('[data-action="discard-session"]');
+    // First click shows confirmation state
+    const discardBtn = page.locator('[data-action="discard-session"]');
+    await expect(discardBtn).toContainText("Discard");
+    await discardBtn.click();
 
-    // Should show confirmation modal
-    await expect(page.locator(".modal")).toBeVisible();
-    await expect(page.locator(".modal__title")).toContainText("Discard Session");
+    // Button should now show confirmation text
+    await expect(discardBtn).toContainText("Confirm");
   });
 });
 
-test.describe("Confirm Modal", () => {
+test.describe("Two-Click Confirmation", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
     await clearStorageAndVerify(page);
   });
 
-  test("confirm modal has confirm and cancel buttons", async ({ page }) => {
-    // Create incomplete session to trigger discard modal
-    await page.evaluate(() => window.IDS.startSession());
-    await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
-
-    await page.evaluate(async () => {
-      await window.IDS.startCoding();
-    });
-
-    const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
-    await waitForSessionPersisted(page, sessionId!);
-
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
-
-    // Open confirm modal
-    await page.click('[data-action="discard-session"]');
-
-    // Verify buttons exist
-    await expect(page.locator('[data-action="modal-confirm"]')).toBeVisible();
-    await expect(page.locator('[data-action="modal-cancel"]')).toBeVisible();
-  });
-
-  test("cancel button closes modal without action", async ({ page }) => {
+  test("confirm button changes text on first click", async ({ page }) => {
     // Create incomplete session
     await page.evaluate(() => window.IDS.startSession());
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
@@ -173,14 +152,41 @@ test.describe("Confirm Modal", () => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    // Open and cancel
-    await page.click('[data-action="discard-session"]');
-    await expect(page.locator(".modal")).toBeVisible();
+    // First click
+    const discardBtn = page.locator('[data-action="discard-session"]');
+    await discardBtn.click();
 
-    await page.click('[data-action="modal-cancel"]');
+    // Button should show confirming state
+    await expect(discardBtn).toHaveClass(/btn--confirming/);
+    await expect(discardBtn).toContainText("Confirm");
+  });
 
-    // Modal should close
-    await expect(page.locator(".modal")).not.toBeVisible();
+  test("button resets to original state on blur", async ({ page }) => {
+    // Create incomplete session
+    await page.evaluate(() => window.IDS.startSession());
+    await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
+
+    await page.evaluate(async () => {
+      await window.IDS.startCoding();
+    });
+
+    const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
+    await waitForSessionPersisted(page, sessionId!);
+
+    await page.goto("/");
+    await page.waitForFunction(() => window.IDS?.getAppState);
+
+    // First click
+    const discardBtn = page.locator('[data-action="discard-session"]');
+    await discardBtn.click();
+    await expect(discardBtn).toContainText("Confirm");
+
+    // Click elsewhere to blur
+    await page.click("body", { position: { x: 10, y: 10 } });
+
+    // Button should reset
+    await expect(discardBtn).toContainText("Discard");
+    await expect(discardBtn).not.toHaveClass(/btn--confirming/);
 
     // Session should still exist
     const storedSession = await page.evaluate(
@@ -188,12 +194,9 @@ test.describe("Confirm Modal", () => {
       sessionId!,
     );
     expect(storedSession).not.toBeNull();
-
-    // Resume banner should still be visible
-    await expect(page.locator(".resume-banner")).toBeVisible();
   });
 
-  test("confirm button executes action and closes modal", async ({ page }) => {
+  test("second click executes the action", async ({ page }) => {
     // Create incomplete session
     await page.evaluate(() => window.IDS.startSession());
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
@@ -208,14 +211,10 @@ test.describe("Confirm Modal", () => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    // Open and confirm discard
-    await page.click('[data-action="discard-session"]');
-    await expect(page.locator(".modal")).toBeVisible();
-
-    await page.click('[data-action="modal-confirm"]');
-
-    // Modal should close
-    await expect(page.locator(".modal")).not.toBeVisible();
+    // Two clicks to confirm
+    const discardBtn = page.locator('[data-action="discard-session"]');
+    await discardBtn.click();
+    await discardBtn.click();
 
     // Wait for deletion
     await page.waitForFunction(
@@ -236,42 +235,8 @@ test.describe("Confirm Modal", () => {
     // Resume banner should be gone
     await expect(page.locator(".resume-banner")).not.toBeVisible();
   });
-});
 
-test.describe("Modal Interactions", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
-  });
-
-  test("modal closes on backdrop click", async ({ page }) => {
-    // Create incomplete session to get a modal
-    await page.evaluate(() => window.IDS.startSession());
-    await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
-
-    await page.evaluate(async () => {
-      await window.IDS.startCoding();
-    });
-
-    const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
-    await waitForSessionPersisted(page, sessionId!);
-
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
-
-    // Open modal
-    await page.click('[data-action="discard-session"]');
-    await expect(page.locator(".modal")).toBeVisible();
-
-    // Click backdrop (outside modal content)
-    await page.click(".modal-backdrop", { position: { x: 10, y: 10 } });
-
-    // Modal should close
-    await expect(page.locator(".modal")).not.toBeVisible();
-  });
-
-  test("modal closes on close button click", async ({ page }) => {
+  test("button auto-resets after 3 seconds", async ({ page }) => {
     // Create incomplete session
     await page.evaluate(() => window.IDS.startSession());
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
@@ -286,77 +251,17 @@ test.describe("Modal Interactions", () => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    // Open modal
-    await page.click('[data-action="discard-session"]');
-    await expect(page.locator(".modal")).toBeVisible();
+    // First click
+    const discardBtn = page.locator('[data-action="discard-session"]');
+    await discardBtn.click();
+    await expect(discardBtn).toContainText("Confirm");
 
-    // Click close button
-    await page.click(".modal__close");
+    // Wait for auto-reset (3 seconds)
+    await page.waitForTimeout(3500);
 
-    // Modal should close
-    await expect(page.locator(".modal")).not.toBeVisible();
-  });
-
-  test("modal closes on Escape key", async ({ page }) => {
-    // Create incomplete session
-    await page.evaluate(() => window.IDS.startSession());
-    await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
-
-    await page.evaluate(async () => {
-      await window.IDS.startCoding();
-    });
-
-    const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
-    await waitForSessionPersisted(page, sessionId!);
-
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
-
-    // Open modal
-    await page.click('[data-action="discard-session"]');
-    await expect(page.locator(".modal")).toBeVisible();
-
-    // Press Escape
-    await page.keyboard.press("Escape");
-
-    // Modal should close
-    await expect(page.locator(".modal")).not.toBeVisible();
-  });
-
-  test("modal prevents body scroll when open", async ({ page }) => {
-    // Create incomplete session
-    await page.evaluate(() => window.IDS.startSession());
-    await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
-
-    await page.evaluate(async () => {
-      await window.IDS.startCoding();
-    });
-
-    const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
-    await waitForSessionPersisted(page, sessionId!);
-
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
-
-    // Check initial body overflow
-    const initialOverflow = await page.evaluate(() => document.body.style.overflow);
-    expect(initialOverflow).toBe("");
-
-    // Open modal
-    await page.click('[data-action="discard-session"]');
-    await expect(page.locator(".modal")).toBeVisible();
-
-    // Body should have overflow hidden
-    const modalOpenOverflow = await page.evaluate(() => document.body.style.overflow);
-    expect(modalOpenOverflow).toBe("hidden");
-
-    // Close modal
-    await page.click('[data-action="modal-cancel"]');
-    await expect(page.locator(".modal")).not.toBeVisible();
-
-    // Body overflow should be restored
-    const afterCloseOverflow = await page.evaluate(() => document.body.style.overflow);
-    expect(afterCloseOverflow).toBe("");
+    // Button should reset
+    await expect(discardBtn).toContainText("Discard");
+    await expect(discardBtn).not.toHaveClass(/btn--confirming/);
   });
 });
 
@@ -405,9 +310,10 @@ test.describe("Toast Notifications", () => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    // Discard session
-    await page.click('[data-action="discard-session"]');
-    await page.click('[data-action="modal-confirm"]');
+    // Discard session (two clicks)
+    const discardBtn = page.locator('[data-action="discard-session"]');
+    await discardBtn.click();
+    await discardBtn.click();
 
     // Should show info toast
     await expect(page.locator(".toast")).toBeVisible();

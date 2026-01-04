@@ -4,7 +4,7 @@
  * TDD tests for signal, derived, watch, and batch.
  */
 
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, mock } from "bun:test";
 import { signal, derived, watch, batch } from "../../web/src/framework/reactive";
 
 describe("signal", () => {

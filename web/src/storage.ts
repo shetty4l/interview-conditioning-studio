@@ -213,10 +213,7 @@ export function createStorage(): Storage {
     const database = getDb();
 
     await new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(
-        [STORES.SESSIONS, STORES.AUDIO],
-        "readwrite"
-      );
+      const transaction = database.transaction([STORES.SESSIONS, STORES.AUDIO], "readwrite");
 
       transaction.objectStore(STORES.SESSIONS).clear();
       transaction.objectStore(STORES.AUDIO).clear();
@@ -246,7 +243,7 @@ export function createStorage(): Storage {
   const saveAudioChunk = async (
     sessionId: string,
     chunk: Blob,
-    mimeType: string
+    mimeType: string,
   ): Promise<void> => {
     const database = getDb();
 

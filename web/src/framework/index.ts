@@ -56,13 +56,7 @@ export {
 // Component Lifecycle
 // ============================================================================
 
-export {
-  mount,
-  onMount,
-  onCleanup,
-  createContext,
-  useContext,
-} from "./component";
+export { mount, onMount, onCleanup, createContext, useContext } from "./component";
 
 // ============================================================================
 // Store

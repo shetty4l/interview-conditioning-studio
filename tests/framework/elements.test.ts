@@ -200,10 +200,7 @@ describe("reactive props", () => {
 
   test("reactive children update correctly", () => {
     const [count, setCount] = signal(1);
-    const el = div({}, [
-      span({}, ["Count: "]),
-      () => String(count()),
-    ]);
+    const el = div({}, [span({}, ["Count: "]), () => String(count())]);
 
     expect(el.textContent).toBe("Count: 1");
 
@@ -224,7 +221,7 @@ describe("Show", () => {
   test("renders truthy branch when condition is true", () => {
     const el = Show(
       () => true,
-      () => span({}, ["Visible"])
+      () => span({}, ["Visible"]),
     );
 
     container.appendChild(el);
@@ -235,7 +232,7 @@ describe("Show", () => {
     const el = Show(
       () => false,
       () => span({}, ["Visible"]),
-      () => span({}, ["Hidden"])
+      () => span({}, ["Hidden"]),
     );
 
     container.appendChild(el);
@@ -245,7 +242,7 @@ describe("Show", () => {
   test("renders nothing when condition is false and no fallback", () => {
     const el = Show(
       () => false,
-      () => span({}, ["Visible"])
+      () => span({}, ["Visible"]),
     );
 
     container.appendChild(el);
@@ -258,7 +255,7 @@ describe("Show", () => {
     const el = Show(
       () => visible(),
       () => span({}, ["Visible"]),
-      () => span({}, ["Hidden"])
+      () => span({}, ["Hidden"]),
     );
 
     container.appendChild(el);
@@ -277,7 +274,7 @@ describe("Show", () => {
 
     const el = Show(
       () => show(),
-      () => span({}, [() => `Count: ${count()}`])
+      () => span({}, [() => `Count: ${count()}`]),
     );
 
     container.appendChild(el);
@@ -299,10 +296,7 @@ describe("For", () => {
   test("renders list of items", () => {
     const [items] = signal([1, 2, 3]);
 
-    const el = For(
-      items,
-      (item) => span({}, [String(item)])
-    );
+    const el = For(items, (item) => span({}, [String(item)]));
 
     container.appendChild(el);
     expect(container.textContent).toBe("123");
@@ -311,10 +305,7 @@ describe("For", () => {
   test("updates when items change", () => {
     const [items, setItems] = signal([1, 2, 3]);
 
-    const el = For(
-      items,
-      (item) => span({}, [String(item)])
-    );
+    const el = For(items, (item) => span({}, [String(item)]));
 
     container.appendChild(el);
     expect(container.textContent).toBe("123");
@@ -326,10 +317,7 @@ describe("For", () => {
   test("handles empty array", () => {
     const [items] = signal<number[]>([]);
 
-    const el = For(
-      items,
-      (item) => span({}, [String(item)])
-    );
+    const el = For(items, (item) => span({}, [String(item)]));
 
     container.appendChild(el);
     expect(container.textContent).toBe("");
@@ -338,10 +326,7 @@ describe("For", () => {
   test("provides index to render function", () => {
     const [items] = signal(["a", "b", "c"]);
 
-    const el = For(
-      items,
-      (item, index) => span({}, [`${index()}:${item}`])
-    );
+    const el = For(items, (item, index) => span({}, [`${index()}:${item}`]));
 
     container.appendChild(el);
     expect(container.textContent).toBe("0:a1:b2:c");
@@ -350,10 +335,7 @@ describe("For", () => {
   test("handles items added to end", () => {
     const [items, setItems] = signal([1, 2]);
 
-    const el = For(
-      items,
-      (item) => span({}, [String(item)])
-    );
+    const el = For(items, (item) => span({}, [String(item)]));
 
     container.appendChild(el);
     expect(container.textContent).toBe("12");
@@ -365,10 +347,7 @@ describe("For", () => {
   test("handles items removed from end", () => {
     const [items, setItems] = signal([1, 2, 3, 4]);
 
-    const el = For(
-      items,
-      (item) => span({}, [String(item)])
-    );
+    const el = For(items, (item) => span({}, [String(item)]));
 
     container.appendChild(el);
     expect(container.textContent).toBe("1234");
@@ -380,10 +359,7 @@ describe("For", () => {
   test("handles complete replacement", () => {
     const [items, setItems] = signal([1, 2, 3]);
 
-    const el = For(
-      items,
-      (item) => span({}, [String(item)])
-    );
+    const el = For(items, (item) => span({}, [String(item)]));
 
     container.appendChild(el);
     expect(container.textContent).toBe("123");
@@ -398,10 +374,7 @@ describe("For", () => {
       { id: 2, name: "Bob" },
     ]);
 
-    const el = For(
-      items,
-      (item) => span({}, [item.name])
-    );
+    const el = For(items, (item) => span({}, [item.name]));
 
     container.appendChild(el);
     expect(container.textContent).toBe("AliceBob");

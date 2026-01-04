@@ -1,144 +1,151 @@
 /**
- * Reflection Screen
+ * ReflectionScreen Component
  *
- * Five-question reflection form.
+ * Quick reflection form after session completion.
  */
 
-import type { ScreenContext, AppState, ReflectionFormData } from "./types";
-import { Phase } from "../../../core/src/index";
-import { ACTIONS, COMPONENTS } from "../constants";
-import * as PhaseHeader from "../components/PhaseHeader";
-import * as Button from "../components/Button";
+import { div, h1, form, label, input, span, useActions, signal } from "../framework";
+import { PhaseHeader, Button } from "../components";
+import { AppStore } from "../store";
+import type { ReflectionFormData } from "../types";
 
 // ============================================================================
-// State
+// Types
 // ============================================================================
 
-let cleanup: (() => void) | null = null;
-
-// ============================================================================
-// Render
-// ============================================================================
-
-export function render(_state: AppState): string {
-  return `
-    <div class="reflection-screen" data-component="${COMPONENTS.SCREEN_REFLECTION}">
-      ${PhaseHeader.render({ phase: Phase.Reflection })}
-
-      <h2>Quick Reflection</h2>
-      <p class="reflection-intro">Take a moment to reflect on your performance</p>
-
-      <form class="reflection-form" data-form="reflection">
-        <div class="question">
-          <label>Did you have a clear approach before coding?</label>
-          <div class="options">
-            <label><input type="radio" name="clearApproach" value="yes" required> Yes</label>
-            <label><input type="radio" name="clearApproach" value="partially"> Partially</label>
-            <label><input type="radio" name="clearApproach" value="no"> No</label>
-          </div>
-        </div>
-
-        <div class="question">
-          <label>Did you experience a prolonged stall?</label>
-          <div class="options">
-            <label><input type="radio" name="prolongedStall" value="yes" required> Yes</label>
-            <label><input type="radio" name="prolongedStall" value="no"> No</label>
-          </div>
-        </div>
-
-        <div class="question">
-          <label>Did you recover after getting stuck?</label>
-          <div class="options">
-            <label><input type="radio" name="recoveredFromStall" value="yes" required> Yes</label>
-            <label><input type="radio" name="recoveredFromStall" value="partially"> Partially</label>
-            <label><input type="radio" name="recoveredFromStall" value="no"> No</label>
-            <label><input type="radio" name="recoveredFromStall" value="n/a"> N/A</label>
-          </div>
-        </div>
-
-        <div class="question">
-          <label>How did the time pressure feel?</label>
-          <div class="options">
-            <label><input type="radio" name="timePressure" value="comfortable" required> Comfortable</label>
-            <label><input type="radio" name="timePressure" value="manageable"> Manageable</label>
-            <label><input type="radio" name="timePressure" value="overwhelming"> Overwhelming</label>
-          </div>
-        </div>
-
-        <div class="question">
-          <label>Would you change your approach next time?</label>
-          <div class="options">
-            <label><input type="radio" name="wouldChangeApproach" value="yes" required> Yes</label>
-            <label><input type="radio" name="wouldChangeApproach" value="no"> No</label>
-          </div>
-        </div>
-
-        ${Button.render({
-          label: "Submit Reflection",
-          variant: "primary",
-          size: "large",
-          action: ACTIONS.SUBMIT_REFLECTION,
-          type: "submit",
-          className: "submit-reflection-button",
-        })}
-      </form>
-    </div>
-  `;
+interface QuestionConfig {
+  name: keyof ReflectionFormData;
+  label: string;
+  options: Array<{ value: string; label: string }>;
 }
 
 // ============================================================================
-// Mount
+// Constants
 // ============================================================================
 
-export function mount(ctx: ScreenContext): void {
-  const container = document.querySelector(`[data-component="${COMPONENTS.SCREEN_REFLECTION}"]`);
-  if (!container) return;
+const QUESTIONS: QuestionConfig[] = [
+  {
+    name: "clearApproach",
+    label: "Did you have a clear approach before coding?",
+    options: [
+      { value: "yes", label: "Yes" },
+      { value: "partially", label: "Partially" },
+      { value: "no", label: "No" },
+    ],
+  },
+  {
+    name: "prolongedStall",
+    label: "Did you experience a prolonged stall (>2 min)?",
+    options: [
+      { value: "yes", label: "Yes" },
+      { value: "no", label: "No" },
+    ],
+  },
+  {
+    name: "recoveredFromStall",
+    label: "If you stalled, did you recover?",
+    options: [
+      { value: "yes", label: "Yes" },
+      { value: "partially", label: "Partially" },
+      { value: "no", label: "No" },
+      { value: "n/a", label: "N/A" },
+    ],
+  },
+  {
+    name: "timePressure",
+    label: "How did you handle time pressure?",
+    options: [
+      { value: "comfortable", label: "Comfortable" },
+      { value: "manageable", label: "Manageable" },
+      { value: "overwhelming", label: "Overwhelming" },
+    ],
+  },
+  {
+    name: "wouldChangeApproach",
+    label: "Would you change your approach next time?",
+    options: [
+      { value: "yes", label: "Yes" },
+      { value: "no", label: "No" },
+    ],
+  },
+];
 
-  const form = container.querySelector('[data-form="reflection"]') as HTMLFormElement;
-  if (!form) return;
+// ============================================================================
+// Component
+// ============================================================================
 
-  const handleSubmit = (e: Event) => {
+export function ReflectionScreen(): HTMLElement {
+  const actions = useActions(AppStore);
+
+  // Form state
+  const [formData, setFormData] = signal<Partial<ReflectionFormData>>({});
+
+  const handleChange = (name: keyof ReflectionFormData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const isFormComplete = () => {
+    const data = formData();
+    return QUESTIONS.every((q) => data[q.name] !== undefined);
+  };
+
+  const handleSubmit = async (e: Event) => {
     e.preventDefault();
 
-    const formData = new FormData(form);
-    const responses: ReflectionFormData = {
-      clearApproach: formData.get("clearApproach") as ReflectionFormData["clearApproach"],
-      prolongedStall: formData.get("prolongedStall") as ReflectionFormData["prolongedStall"],
-      recoveredFromStall: formData.get(
-        "recoveredFromStall",
-      ) as ReflectionFormData["recoveredFromStall"],
-      timePressure: formData.get("timePressure") as ReflectionFormData["timePressure"],
-      wouldChangeApproach: formData.get(
-        "wouldChangeApproach",
-      ) as ReflectionFormData["wouldChangeApproach"],
-    };
+    const data = formData();
+    if (!isFormComplete()) return;
 
-    ctx.dispatch({ type: "SUBMIT_REFLECTION", responses });
+    await actions.submitReflection(data as ReflectionFormData);
   };
 
-  form.addEventListener("submit", handleSubmit);
+  return div({ class: "screen reflection-screen", id: "reflection-screen" }, [
+    // Header (no timer)
+    PhaseHeader({
+      phase: "reflection",
+      remainingMs: 0,
+    }),
 
-  cleanup = () => {
-    form.removeEventListener("submit", handleSubmit);
-  };
-}
+    // Main content
+    div({ class: "screen-content" }, [
+      h1({}, ["Quick Reflection"]),
+      span({ class: "subtitle" }, ["Take a moment to reflect on your session."]),
 
-// ============================================================================
-// Unmount
-// ============================================================================
+      form({ class: "reflection-form", onSubmit: handleSubmit }, [
+        ...QUESTIONS.map((question) =>
+          div({ class: "form-group" }, [
+            label({ class: "form-label" }, [question.label]),
+            div(
+              { class: "radio-group" },
+              question.options.map((option) =>
+                label({ class: "radio-label" }, [
+                  input({
+                    type: "radio",
+                    name: question.name,
+                    value: option.value,
+                    onChange: () => handleChange(question.name, option.value),
+                  }),
+                  span({}, [option.label]),
+                ]),
+              ),
+            ),
+          ]),
+        ),
 
-export function unmount(): void {
-  if (cleanup) {
-    cleanup();
-    cleanup = null;
-  }
-}
-
-// ============================================================================
-// Update (no-op - form state shouldn't be lost)
-// ============================================================================
-
-export function update(_state: AppState): boolean {
-  // Return true to prevent full re-render (form would lose state)
-  return true;
+        // Submit button
+        div({ class: "form-actions" }, [
+          Button({
+            label: "Submit Reflection",
+            variant: "primary",
+            size: "large",
+            type: "submit",
+            action: "submit-reflection",
+            disabled: () => !isFormComplete(),
+          }),
+        ]),
+      ]),
+    ]),
+  ]);
 }

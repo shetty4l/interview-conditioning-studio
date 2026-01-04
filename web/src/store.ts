@@ -6,7 +6,13 @@
  */
 
 import { createStore } from "./framework";
-import { createSession, type Session, type Preset, Preset as PresetEnum, Phase } from "../../core/src/index";
+import {
+  createSession,
+  type Session,
+  type Preset,
+  Preset as PresetEnum,
+  Phase,
+} from "../../core/src/index";
 import { createTimer, type Timer } from "./helpers/timer";
 import { createStorage, type Storage } from "./storage";
 import { createAudioRecorder, isAudioSupported, type AudioRecorder } from "./audio";

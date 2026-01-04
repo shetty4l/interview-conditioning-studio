@@ -1,70 +1,45 @@
 /**
  * NudgeButton Component
  *
- * Button for requesting a nudge/hint during coding phase.
- * Shows remaining count and disables when exhausted.
+ * Button for requesting nudges with count display.
  */
 
-import { COMPONENTS, ACTIONS } from "../constants";
-import * as Button from "./Button";
+import { button } from "../framework";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface NudgeButtonProps {
-  /** Number of nudges remaining */
-  remaining: number;
-  /** Total nudges allowed */
-  total: number;
+  nudgesUsed: number | (() => number);
+  nudgesAllowed: number | (() => number);
+  disabled?: boolean | (() => boolean);
+  onClick: () => void;
 }
 
 // ============================================================================
-// Styles
+// Component
 // ============================================================================
 
-export const styles = `
-/* === NudgeButton === */
-.nudge-button {
-  position: relative;
-}
+export function NudgeButton(props: NudgeButtonProps): HTMLButtonElement {
+  const { nudgesUsed, nudgesAllowed, disabled = false, onClick } = props;
 
-.nudge-button__count {
-  font-family: var(--font-mono);
-  font-size: 0.875em;
-  opacity: 0.8;
-}
-`;
+  const getUsed = typeof nudgesUsed === "function" ? nudgesUsed : () => nudgesUsed;
+  const getAllowed = typeof nudgesAllowed === "function" ? nudgesAllowed : () => nudgesAllowed;
+  const getDisabled = typeof disabled === "function" ? disabled : () => disabled;
 
-// ============================================================================
-// Render
-// ============================================================================
+  const isDisabled = () => getDisabled() || getUsed() >= getAllowed();
 
-export function render(props: NudgeButtonProps): string {
-  const { remaining, total } = props;
-  const disabled = remaining <= 0;
-
-  return `
-    <span class="nudge-button" data-component="${COMPONENTS.NUDGE_BUTTON}">
-      ${Button.render({
-        label: `Nudge (${remaining}/${total})`,
-        variant: "secondary",
-        disabled,
-        action: ACTIONS.REQUEST_NUDGE,
-      })}
-    </span>
-  `;
-}
-
-// ============================================================================
-// Update
-// ============================================================================
-
-export function update(element: HTMLElement, props: NudgeButtonProps): void {
-  const { remaining, total } = props;
-  const button = element.querySelector("button");
-  if (!button) return;
-
-  button.textContent = `Nudge (${remaining}/${total})`;
-  button.disabled = remaining <= 0;
+  return button(
+    {
+      class: "btn btn--secondary nudge-button",
+      "data-action": "request-nudge",
+      disabled: isDisabled,
+      onClick,
+    },
+    [
+      // Display remaining nudges (allowed - used) / total
+      () => `Nudge (${getAllowed() - getUsed()}/${getAllowed()})`,
+    ],
+  );
 }
