@@ -4,8 +4,8 @@
  * Session summary with stats and continue button.
  */
 
-import { div, h1, h2, span, useStore, useActions } from "../framework";
-import { PhaseHeader, Button } from "../components";
+import { div, h1, h2, span, useActions, useStore } from "../framework";
+import { Button, PhaseHeader } from "../components";
 import { AppStore } from "../store";
 import { formatTime } from "../components/Timer";
 

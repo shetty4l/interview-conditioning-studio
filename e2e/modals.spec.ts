@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "playwright/test";
+import { test, expect } from "playwright/test";
+import { clearStorage, goToNewSession, waitForSessionPersisted, getAppState } from "./_helpers";
 
 /**
  * Confirm Actions E2E Tests
@@ -7,41 +8,22 @@ import { test, expect, type Page } from "playwright/test";
  * Note: Modals were replaced with inline two-click confirmation buttons.
  */
 
-// Helper to clear storage and verify it's empty
-async function clearStorageAndVerify(page: Page) {
-  await page.waitForFunction(() => window.IDS?.storage?.clearAll);
-  await page.evaluate(() => window.IDS.storage.clearAll());
-
-  await page.waitForFunction(
-    () => {
-      return window.IDS.storage
-        .getStats()
-        .then(
-          (stats: { sessionCount: number; audioCount: number }) =>
-            stats.sessionCount === 0 && stats.audioCount === 0,
-        );
-    },
-    undefined,
-    { timeout: 5000 },
-  );
-}
-
-// Helper to wait for session to be persisted
-async function waitForSessionPersisted(page: Page, sessionId: string, timeout = 5000) {
-  await page.waitForFunction(
-    (id) => {
-      return window.IDS.storage.getSession(id).then((session: unknown) => session !== null);
-    },
-    sessionId,
-    { timeout },
-  );
+/**
+ * Helper to simulate a fresh visit to /#/new after creating a session.
+ * This resets app state but keeps storage, simulating opening a new browser tab.
+ */
+async function simulateFreshVisitToNew(page: import("playwright/test").Page): Promise<void> {
+  await page.evaluate(() => window.IDS.resetApp());
+  await page.goto("/#/new");
+  await page.waitForFunction(() => window.IDS?.getAppState);
+  await page.waitForSelector('button:has-text("Start Session")', { timeout: 10000 });
 }
 
 test.describe("Resume Banner", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("shows resume banner when incomplete session exists", async ({ page }) => {
@@ -56,9 +38,8 @@ test.describe("Resume Banner", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    // Navigate to fresh home page (simulate new visit)
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit to /#/new (resets app but keeps storage)
+    await simulateFreshVisitToNew(page);
 
     // Should show resume banner
     await expect(page.locator(".resume-banner")).toBeVisible();
@@ -66,9 +47,8 @@ test.describe("Resume Banner", () => {
   });
 
   test("does not show resume banner when no incomplete session", async ({ page }) => {
-    // Just load home page with no sessions
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Just load new session page with no sessions
+    await goToNewSession(page);
 
     // Should not show resume banner
     await expect(page.locator(".resume-banner")).not.toBeVisible();
@@ -88,9 +68,8 @@ test.describe("Resume Banner", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    // Navigate to fresh home page
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit to /#/new
+    await simulateFreshVisitToNew(page);
 
     // Click resume
     await page.click('[data-action="resume-session"]');
@@ -98,10 +77,10 @@ test.describe("Resume Banner", () => {
     // Should load the session and navigate to coding screen
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
 
-    const state = await page.evaluate(() => window.IDS.getAppState());
+    const state = await getAppState(page);
     expect(state.sessionId).toBe(sessionId);
-    expect(state.sessionState?.phase).toBe("CODING");
-    expect(state.sessionState?.code).toBe("function test() { return 42; }");
+    expect(state.phase).toBe("CODING");
+    expect(state.code).toBe("function test() { return 42; }");
   });
 
   test("discard button uses two-click confirmation pattern", async ({ page }) => {
@@ -116,9 +95,8 @@ test.describe("Resume Banner", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    // Navigate to fresh home page
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit to /#/new
+    await simulateFreshVisitToNew(page);
 
     // First click shows confirmation state
     const discardBtn = page.locator('[data-action="discard-session"]');
@@ -134,7 +112,7 @@ test.describe("Two-Click Confirmation", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("confirm button changes text on first click", async ({ page }) => {
@@ -149,8 +127,8 @@ test.describe("Two-Click Confirmation", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit
+    await simulateFreshVisitToNew(page);
 
     // First click
     const discardBtn = page.locator('[data-action="discard-session"]');
@@ -173,8 +151,8 @@ test.describe("Two-Click Confirmation", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit
+    await simulateFreshVisitToNew(page);
 
     // First click
     const discardBtn = page.locator('[data-action="discard-session"]');
@@ -208,8 +186,8 @@ test.describe("Two-Click Confirmation", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit
+    await simulateFreshVisitToNew(page);
 
     // Two clicks to confirm
     const discardBtn = page.locator('[data-action="discard-session"]');
@@ -248,8 +226,8 @@ test.describe("Two-Click Confirmation", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit
+    await simulateFreshVisitToNew(page);
 
     // First click
     const discardBtn = page.locator('[data-action="discard-session"]');
@@ -269,7 +247,7 @@ test.describe("Toast Notifications", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("shows toast on session resume", async ({ page }) => {
@@ -284,8 +262,8 @@ test.describe("Toast Notifications", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit
+    await simulateFreshVisitToNew(page);
 
     // Resume session
     await page.click('[data-action="resume-session"]');
@@ -307,8 +285,8 @@ test.describe("Toast Notifications", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit
+    await simulateFreshVisitToNew(page);
 
     // Discard session (two clicks)
     const discardBtn = page.locator('[data-action="discard-session"]');
@@ -332,8 +310,8 @@ test.describe("Toast Notifications", () => {
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
     await waitForSessionPersisted(page, sessionId!);
 
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    // Simulate a fresh visit
+    await simulateFreshVisitToNew(page);
 
     // Resume session to trigger toast
     await page.click('[data-action="resume-session"]');

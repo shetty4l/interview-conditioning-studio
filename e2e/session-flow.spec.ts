@@ -1,135 +1,131 @@
 import { test, expect } from "playwright/test";
+import {
+  clearStorage,
+  goToNewSession,
+  startSession,
+  goToCoding,
+  submitSolution,
+  goToReflection,
+  completeReflection,
+  waitForScreen,
+  getAppState,
+  requestNudge,
+  updateCode,
+} from "./_helpers";
 
 /**
  * Session Flow E2E Tests
  *
  * Tests for the complete session flow through all phases.
+ * URL structure: #/ (dashboard), #/new (new session), #/:id (session)
+ * Phase is determined by state.screen, not URL.
  */
 
 test.describe("Session Flow", () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate and wait for app to initialize before clearing storage
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.storage?.clearAll);
-    await page.evaluate(() => window.IDS.storage.clearAll());
-    await page.waitForTimeout(100);
-    // Reload to start fresh
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    await clearStorage(page);
   });
 
   test("happy path: complete session flow through all phases", async ({ page }) => {
-    // Start at home screen
+    // Navigate to new session screen
+    await goToNewSession(page);
+
+    // Should see the preset selection
     await expect(
       page.getByRole("heading", { name: "Interview Conditioning Studio" }),
     ).toBeVisible();
 
     // Select preset and start session
     await page.getByRole("button", { name: /Standard/ }).click();
-    await page.getByRole("button", { name: "Start Session" }).click();
+    const sessionId = await startSession(page);
 
-    // Should be on prep screen
-    await page.waitForURL(/.*\/prep$/);
+    // Should be on prep screen (URL is /#/:id, state.screen is "prep")
+    expect(page.url()).toContain(`#/${sessionId}`);
+    let state = await getAppState(page);
+    expect(state.screen).toBe("prep");
     await expect(page.getByText("PREP")).toBeVisible();
     await expect(page.getByRole("heading", { level: 2 })).toBeVisible(); // Problem title
 
     // Enter some invariants
-    await page.getByRole("textbox").fill("- Check for null inputs\n- Handle empty lists");
+    await page.getByRole("textbox").first().fill("- Check for null inputs\n- Handle empty lists");
 
     // Start coding
-    await page.getByRole("button", { name: "Start Coding" }).click();
+    await goToCoding(page);
 
-    // Should be on coding screen
-    await page.waitForURL(/.*\/coding$/);
+    // Should be on coding screen (same URL, different state.screen)
+    expect(page.url()).toContain(`#/${sessionId}`);
+    state = await getAppState(page);
+    expect(state.screen).toBe("coding");
     await expect(page.getByText("CODING")).toBeVisible();
     await expect(page.getByRole("button", { name: /Nudge/ })).toBeVisible();
 
     // Enter some code
-    await page.getByRole("textbox").fill("function solution() {\n  return null;\n}");
+    await updateCode(page, "function solution() {\n  return null;\n}");
 
     // Use a nudge
-    await page.getByRole("button", { name: /Nudge \(3\/3\)/ }).click();
-    await expect(page.getByRole("button", { name: /Nudge \(2\/3\)/ })).toBeVisible();
+    await requestNudge(page);
+    state = await getAppState(page);
+    expect(state.nudgesUsed).toBe(1);
 
-    // Wait for silent phase to start automatically (after coding timer)
-    // For faster testing, we'll use the debug API to skip ahead
-    await page.evaluate(() => {
-      window.IDS.getAppState().session?.dispatch("coding.silent_started");
-    });
-
-    // Should be on silent screen
-    await page.waitForURL(/.*\/silent$/);
-    await expect(page.getByText("SILENT", { exact: true })).toBeVisible();
-    await expect(page.getByText("Silent Phase - No assistance available")).toBeVisible();
-
-    // End silent phase manually for test speed
-    await page.evaluate(() => {
-      window.IDS.getAppState().session?.dispatch("silent.ended");
-    });
+    // Submit solution (skips silent phase for early submission)
+    await submitSolution(page);
 
     // Should be on summary screen
-    await page.waitForURL(/.*\/summary$/);
+    state = await getAppState(page);
+    expect(state.screen).toBe("summary");
     await expect(page.getByText("SUMMARY")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Session Complete" })).toBeVisible();
     await expect(page.getByText("Nudges Used")).toBeVisible();
     await expect(page.getByText("1 / 3")).toBeVisible(); // Used 1 nudge
 
     // Continue to reflection
-    await page.getByRole("button", { name: "Continue to Reflection" }).click();
+    await goToReflection(page);
 
     // Should be on reflection screen
-    await page.waitForURL(/.*\/reflection$/);
+    state = await getAppState(page);
+    expect(state.screen).toBe("reflection");
     await expect(page.getByText("REFLECTION", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Quick Reflection" })).toBeVisible();
 
-    // Fill out reflection form
-    await page.locator('input[name="clearApproach"][value="yes"]').click();
-    await page.locator('input[name="prolongedStall"][value="no"]').click();
-    await page.locator('input[name="recoveredFromStall"][value="n/a"]').click();
-    await page.locator('input[name="timePressure"][value="comfortable"]').click();
-    await page.locator('input[name="wouldChangeApproach"][value="no"]').click();
-
-    // Submit reflection
-    await page.getByRole("button", { name: "Submit Reflection" }).click();
+    // Complete reflection
+    await completeReflection(page);
 
     // Should be on done screen
-    await page.waitForURL(/.*\/done$/);
+    state = await getAppState(page);
+    expect(state.screen).toBe("done");
     await expect(page.getByText("DONE")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Session Complete!" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start New Session" })).toBeVisible();
   });
 
   test("early submission: submit solution skips silent phase", async ({ page }) => {
-    // Start session
-    await page.getByRole("button", { name: "Start Session" }).click();
-    await page.waitForURL(/.*\/prep$/);
+    // Start session from new session screen
+    await goToNewSession(page);
+    await startSession(page);
 
     // Start coding
-    await page.getByRole("button", { name: "Start Coding" }).click();
-    await page.waitForURL(/.*\/coding$/);
+    await goToCoding(page);
 
     // Submit solution early (skips silent phase)
-    await page.getByRole("button", { name: "Submit Solution" }).click();
+    await submitSolution(page);
 
     // Should go directly to summary (not silent)
-    await page.waitForURL(/.*\/summary$/);
+    const state = await getAppState(page);
+    expect(state.screen).toBe("summary");
+    expect(state.phase).toBe("SUMMARY");
     await expect(page.getByText("SUMMARY")).toBeVisible();
-
-    // Verify we're on summary, not silent
-    const url = page.url();
-    expect(url).toContain("/summary");
-    expect(url).not.toContain("/silent");
   });
 
   test("nudge exhaustion: button disables when all nudges used", async ({ page }) => {
     // Start with high pressure preset (only 1 nudge)
+    await goToNewSession(page);
     await page.getByRole("button", { name: /High Pressure/ }).click();
-    await page.getByRole("button", { name: "Start Session" }).click();
-    await page.waitForURL(/.*\/prep$/);
+    await startSession(page);
 
     // Start coding
-    await page.getByRole("button", { name: "Start Coding" }).click();
-    await page.waitForURL(/.*\/coding$/);
+    await goToCoding(page);
 
     // Should have 1 nudge available
     const nudgeButton = page.getByRole("button", { name: /Nudge \(1\/1\)/ });
@@ -143,31 +139,23 @@ test.describe("Session Flow", () => {
     const exhaustedButton = page.getByRole("button", { name: /Nudge \(0\/1\)/ });
     await expect(exhaustedButton).toBeVisible();
     await expect(exhaustedButton).toBeDisabled();
+
+    // Verify state
+    const state = await getAppState(page);
+    expect(state.nudgesUsed).toBe(1);
+    expect(state.nudgesAllowed).toBe(1);
   });
 
   test("overtime: timer shows negative time with danger styling", async ({ page }) => {
     // Start session
-    await page.getByRole("button", { name: "Start Session" }).click();
-    await page.waitForURL(/.*\/prep$/);
+    await goToNewSession(page);
+    await startSession(page);
 
     // Start coding
-    await page.getByRole("button", { name: "Start Coding" }).click();
-    await page.waitForURL(/.*\/coding$/);
+    await goToCoding(page);
 
-    // Manually set the session to overtime using debug API
-    // We'll simulate by checking the timer component has overtime class when time is negative
-    await page.evaluate(() => {
-      // Get the session and manually update time by dispatching many ticks worth of time
-      const session = window.IDS.getAppState().session;
-      const state = session?.getState();
-      if (state) {
-        // Fast-forward the timer by modifying internal state (for testing only)
-        // In production, this would happen naturally over time
-      }
-    });
-
-    // Check that the timer component exists and will show overtime styling when negative
-    const timer = page.locator('[data-component="timer"]');
+    // Check that the timer component exists
+    const timer = page.locator(".timer");
     await expect(timer).toBeVisible();
 
     // Verify timer is displaying (shows time format)
@@ -176,5 +164,52 @@ test.describe("Session Flow", () => {
 
     // Note: Full overtime testing would require waiting 35+ minutes,
     // so we just verify the timer component is present and functioning
+  });
+
+  test("silent phase: shows banner and disables nudges", async ({ page }) => {
+    // Start session
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
+
+    // Manually trigger silent phase via session dispatch
+    await page.evaluate(() => {
+      window.IDS.getAppState().session?.dispatch("coding.silent_started");
+    });
+
+    // Wait for silent screen
+    await waitForScreen(page, "silent");
+
+    // Should show silent banner
+    await expect(page.getByText("SILENT", { exact: true })).toBeVisible();
+    await expect(page.getByText("Silent Phase")).toBeVisible();
+
+    // Nudge button should be hidden in silent phase (implementation hides it)
+    const nudgeButton = page.getByRole("button", { name: /Nudge/ });
+    await expect(nudgeButton).toHaveCount(0);
+  });
+
+  test("can navigate back to session after page reload", async ({ page }) => {
+    // Start session
+    await goToNewSession(page);
+    const sessionId = await startSession(page);
+
+    // Go to coding
+    await goToCoding(page);
+    await updateCode(page, "const x = 1;");
+
+    // Reload the page
+    await page.reload();
+    await page.waitForFunction(() => window.IDS?.getAppState);
+
+    // Navigate to the session
+    await page.goto(`/#/${sessionId}`);
+    await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
+
+    // Should restore the session at the correct phase
+    const state = await getAppState(page);
+    expect(state.sessionId).toBe(sessionId);
+    expect(state.screen).toBe("coding");
+    expect(state.code).toBe("const x = 1;");
   });
 });

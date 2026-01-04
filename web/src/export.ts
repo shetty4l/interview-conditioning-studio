@@ -7,7 +7,7 @@
 
 import type { StoredSession } from "./types";
 import type { Event } from "../../core/src/index";
-import { createTarArchive, stringToUint8Array, blobToUint8Array, type TarEntry } from "./tar";
+import { blobToUint8Array, createTarArchive, stringToUint8Array, type TarEntry } from "./tar";
 import { getAudioBlob, getAudioMimeType } from "./storage";
 import { getFileExtension } from "./audio";
 

@@ -7,7 +7,7 @@
  * Uses factory pattern with internal singleton for consistency with other modules.
  */
 
-import type { StoredSession, StoredAudio } from "./types";
+import type { StoredAudio, StoredSession } from "./types";
 
 // ============================================================================
 // Constants
@@ -154,7 +154,15 @@ export function createStorage(): Storage {
       const request = store.get(id);
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result ?? null);
+      request.onsuccess = () => {
+        const session = request.result as StoredSession | undefined;
+        // Return null for soft-deleted sessions
+        if (session && session.deletedAt !== null && session.deletedAt !== undefined) {
+          resolve(null);
+        } else {
+          resolve(session ?? null);
+        }
+      };
     });
   };
 

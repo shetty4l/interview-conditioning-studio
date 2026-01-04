@@ -192,12 +192,12 @@ web/src/store.ts            # AppStore (12 tests)
 
 ### 3.0.1 What Was Fixed
 
-| Issue | Fix |
-|-------|-----|
-| **Router context lost on reactive updates** | Keep `activeRouterContext` set for router lifetime (not just during initial render) |
-| **`Switch` component not creating owner scope** | Added `createRoot()` wrapper for each case render |
-| **`Show` component not creating owner scope** | Added `createRoot()` wrapper for each branch render |
-| **IDS API manipulating hash directly** | Removed `window.location.hash` from `startSession`, `abandonSession`, `resetApp` - they now only call store actions |
+| Issue                                           | Fix                                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Router context lost on reactive updates**     | Keep `activeRouterContext` set for router lifetime (not just during initial render)                                 |
+| **`Switch` component not creating owner scope** | Added `createRoot()` wrapper for each case render                                                                   |
+| **`Show` component not creating owner scope**   | Added `createRoot()` wrapper for each branch render                                                                 |
+| **IDS API manipulating hash directly**          | Removed `window.location.hash` from `startSession`, `abandonSession`, `resetApp` - they now only call store actions |
 
 ### 3.0.2 Design Decision (Confirmed)
 
@@ -205,6 +205,7 @@ web/src/store.ts            # AppStore (12 tests)
 > **URL structure** - Each route must be directly navigable
 
 Routes:
+
 - `/#/` - Dashboard
 - `/#/new` - New session (preset selection)
 - `/#/:id` - Session (renders phase based on `state.screen`)
@@ -212,7 +213,7 @@ Routes:
 
 ### 3.0.3 Changes Made
 
-1. **`web/src/framework/router.ts`**: 
+1. **`web/src/framework/router.ts`**:
    - Keep `activeRouterContext` active for router lifetime
    - Use `createRoot()` for route component rendering
    - Proper cleanup via `onCleanup`
@@ -234,17 +235,19 @@ Routes:
 ### 3.0.4 E2E Test Status
 
 E2E tests are re-enabled but many need updates:
+
 - Tests use old selectors (`.start-button`, `.start-coding-button`)
 - Tests navigate to `/` expecting HomeScreen but get DashboardScreen
 - Tests expect URL to include phase (`/#/:id/prep`) but URL is now `/#/:id`
 
 **Pattern for fixing tests**:
+
 ```typescript
 // Before (broken)
 await page.goto("/");
 await page.click(".start-button");
 
-// After (correct)  
+// After (correct)
 await page.goto("/#/new");
 await page.click('button:has-text("Start Session")');
 ```
@@ -252,6 +255,7 @@ await page.click('button:has-text("Start Session")');
 ### 3.0.5 Manual Testing Results
 
 Full session flow tested and working:
+
 - Dashboard → New Session → Prep → Coding → Summary → Reflection → Done ✅
 - Phase transitions render correct screens ✅
 - Router context available in all screens ✅

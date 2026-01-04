@@ -10,6 +10,7 @@ import {
   useRouter,
   useRoute,
   Link,
+  _resetRouterContext,
   type RouteConfig,
   type RouterInstance,
 } from "../../web/src/framework/router";
@@ -26,6 +27,8 @@ describe("Router", () => {
     document.body.appendChild(container);
     originalHash = window.location.hash;
     window.location.hash = "";
+    // Reset router context to ensure clean state
+    _resetRouterContext();
   });
 
   afterEach(() => {
@@ -35,6 +38,8 @@ describe("Router", () => {
     }
     container.remove();
     window.location.hash = originalHash;
+    // Reset router context after each test
+    _resetRouterContext();
   });
 
   // ============================================================================

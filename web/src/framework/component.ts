@@ -137,7 +137,7 @@ export function onCleanup(cleanup: Cleanup): void {
 /**
  * Create a component scope for dynamic rendering.
  * Used by Switch, Show, and other conditional rendering helpers.
- * 
+ *
  * @param fn - Function to execute within the component scope
  * @returns Object containing the result and a dispose function
  */

@@ -6,7 +6,7 @@
  * Resets after 3s timeout or blur.
  */
 
-import { button, signal, onCleanup } from "../framework";
+import { button, onCleanup, signal } from "../framework";
 
 // ============================================================================
 // Types

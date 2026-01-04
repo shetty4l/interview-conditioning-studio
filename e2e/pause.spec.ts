@@ -1,4 +1,16 @@
-import { test, expect, type Page } from "playwright/test";
+import { test, expect } from "playwright/test";
+import {
+  clearStorage,
+  goToNewSession,
+  startSession,
+  goToCoding,
+  waitForScreen,
+  getAppState,
+  updateCode,
+  updateInvariants,
+  pauseSession,
+  resumeSession,
+} from "./_helpers";
 
 /**
  * Pause/Resume E2E Tests
@@ -19,96 +31,52 @@ import { test, expect, type Page } from "playwright/test";
  * - #20: Dispatch event during pause (allow non-timer events)
  */
 
-// Type for app state with isPaused (will be added in implementation)
-interface AppStateWithPause {
-  isPaused: boolean;
-  remainingMs: number;
-  screen: string;
-  code: string;
-  invariants: string;
-  isRecording: boolean;
-  audioSupported: boolean;
-  session: unknown;
-}
-
-// Helper to get app state with pause support
-async function getAppState(page: Page): Promise<AppStateWithPause> {
-  return page.evaluate(() => window.IDS.getAppState() as unknown as AppStateWithPause);
-}
-
-// Helper to clear storage and verify it's empty
-async function clearStorageAndVerify(page: Page) {
-  await page.waitForFunction(() => window.IDS?.storage?.clearAll);
-  await page.evaluate(() => window.IDS.storage.clearAll());
-
-  await page.waitForFunction(
-    () => {
-      return window.IDS.storage
-        .getStats()
-        .then(
-          (stats: { sessionCount: number; audioCount: number }) =>
-            stats.sessionCount === 0 && stats.audioCount === 0,
-        );
-    },
-    undefined,
-    { timeout: 5000 },
-  );
-}
-
-// Helper to start a session and go to coding
-async function startCodingSession(page: Page): Promise<void> {
-  await page.click(".start-button");
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-  await page.fill("#invariants", "Test invariants");
-  await page.click(".start-coding-button");
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
-}
-
 test.describe("Pause/Resume", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   // Edge case #1: Pause behavior - pauses timer AND recording
   test("should pause timer when pause button is clicked", async ({ page }) => {
-    await startCodingSession(page);
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Get initial remaining time
-    const initialState = await getAppState(page);
-    const initialTime = initialState.remainingMs;
+    const initialTime = await page.evaluate(() => window.IDS.getAppState().remainingMs);
 
     // Click pause
-    await page.click('[data-action="pause-session"]');
+    await pauseSession(page);
 
     // Wait a bit
     await page.waitForTimeout(2000);
 
     // Time should not have changed significantly (allow small margin for timing)
-    const pausedState = await getAppState(page);
-    expect(Math.abs(pausedState.remainingMs - initialTime)).toBeLessThan(500);
+    const pausedTime = await page.evaluate(() => window.IDS.getAppState().remainingMs);
+    expect(Math.abs(pausedTime - initialTime)).toBeLessThan(500);
 
     // isPaused should be true
-    expect(pausedState.isPaused).toBe(true);
+    const state = await getAppState(page);
+    expect(state.isPaused).toBe(true);
   });
 
   // Edge case #1: Pause behavior - pauses timer AND recording
   test.skip("should pause recording when pause button is clicked", async ({ page }) => {
-    await startCodingSession(page);
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
-    // Start recording (if supported)
+    // Check if audio is supported
     const state = await getAppState(page);
-    if (state.audioSupported) {
-      await page.click('[data-action="start-recording"]');
-      await page.waitForFunction(
-        () => (window.IDS.getAppState() as unknown as AppStateWithPause).isRecording === true,
-      );
+    if (!state.audioSupported) {
+      test.skip();
+      return;
     }
 
     // Click pause
-    await page.click('[data-action="pause-session"]');
+    await pauseSession(page);
 
     // Recording should be stopped
     const pausedState = await getAppState(page);
@@ -117,133 +85,100 @@ test.describe("Pause/Resume", () => {
 
   // Edge case #4: Resume session + recording - auto-restart
   test("should resume timer when resume button is clicked", async ({ page }) => {
-    await startCodingSession(page);
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Pause
-    await page.click('[data-action="pause-session"]');
-    await page.waitForFunction(
-      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isPaused === true,
-    );
+    await pauseSession(page);
 
-    const pausedState = await getAppState(page);
-    const pausedTime = pausedState.remainingMs;
+    const pausedTime = await page.evaluate(() => window.IDS.getAppState().remainingMs);
 
-    // Resume - click the Resume button in the overlay
-    await page.click('.paused-overlay button');
-    await page.waitForFunction(
-      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isPaused === false,
-    );
+    // Resume
+    await resumeSession(page);
 
     // Wait a bit
     await page.waitForTimeout(2000);
 
     // Time should have decreased
-    const resumedState = await getAppState(page);
-    expect(resumedState.remainingMs).toBeLessThan(pausedTime);
+    const resumedTime = await page.evaluate(() => window.IDS.getAppState().remainingMs);
+    expect(resumedTime).toBeLessThan(pausedTime);
   });
 
-  // Edge case #4: Resume session + recording - auto-restart
-  test.skip("should resume recording when resume button is clicked", async ({ page }) => {
-    await startCodingSession(page);
-
-    // Start recording (if supported)
-    const state = await getAppState(page);
-    if (!state.audioSupported) {
-      test.skip();
-      return;
-    }
-
-    await page.click('[data-action="start-recording"]');
-    await page.waitForFunction(
-      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isRecording === true,
-    );
-
-    // Pause (stops recording)
-    await page.click('[data-action="pause-session"]');
-    await page.waitForFunction(
-      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isRecording === false,
-    );
-
-    // Resume (should restart recording)
-    await page.click('[data-action="resume-session"]');
-    await page.waitForFunction(
-      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isRecording === true,
-    );
-
-    const resumedState = await getAppState(page);
-    expect(resumedState.isRecording).toBe(true);
-  });
-
-  // Edge case #2: Pause in Silent phase - allow
+  // Edge case #2: Pause in PREP phase - allow
   test("should allow pause during PREP phase", async ({ page }) => {
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    await startSession(page);
 
     // Pause button should be visible and clickable
-    await expect(page.locator('[data-action="pause-session"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: /Pause/ })).toBeVisible();
 
-    await page.click('[data-action="pause-session"]');
+    await pauseSession(page);
     const state = await getAppState(page);
     expect(state.isPaused).toBe(true);
   });
 
-  // Edge case #2: Pause in Silent phase - allow
+  // Edge case #2: Pause in CODING phase - allow
   test("should allow pause during CODING phase", async ({ page }) => {
-    await startCodingSession(page);
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Pause button should be visible and clickable
-    await expect(page.locator('[data-action="pause-session"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: /Pause/ })).toBeVisible();
 
-    await page.click('[data-action="pause-session"]');
+    await pauseSession(page);
     const state = await getAppState(page);
     expect(state.isPaused).toBe(true);
   });
 
   // Edge case #2: Pause in Silent phase - allow
   test.skip("should allow pause during SILENT phase", async ({ page }) => {
-    await startCodingSession(page);
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
-    // Trigger silent phase (wait for coding timer or force it)
+    // Trigger silent phase
     await page.evaluate(() => {
-      // Force transition to silent using the session's dispatch method
       const state = window.IDS.getAppState();
       if (state.session) {
         (state.session as { dispatch: (type: string) => void }).dispatch("coding.silent_started");
       }
     });
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "silent");
+    await waitForScreen(page, "silent");
 
     // Pause button should be visible and clickable
-    await expect(page.locator('[data-action="pause-session"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: /Pause/ })).toBeVisible();
 
-    await page.click('[data-action="pause-session"]');
+    await pauseSession(page);
     const state = await getAppState(page);
     expect(state.isPaused).toBe(true);
   });
 
   // Edge case #13: Timer drift across pause/resume - track totalPausedMs
   test.skip("should maintain correct time after pause/resume cycle", async ({ page }) => {
-    await startCodingSession(page);
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Get initial time
-    const initialState = await getAppState(page);
-    const initialTime = initialState.remainingMs;
+    const initialTime = await page.evaluate(() => window.IDS.getAppState().remainingMs);
 
     // Wait 2 seconds
     await page.waitForTimeout(2000);
 
     // Pause for 3 seconds
-    await page.click('[data-action="pause-session"]');
+    await pauseSession(page);
     await page.waitForTimeout(3000);
 
     // Resume and wait 2 more seconds
-    await page.click('[data-action="resume-session"]');
+    await resumeSession(page);
     await page.waitForTimeout(2000);
 
     // Total elapsed should be ~4 seconds (2 + 2, not counting pause time)
     // Allow 1 second margin for timing variations
-    const finalState = await getAppState(page);
-    const elapsed = initialTime - finalState.remainingMs;
+    const finalTime = await page.evaluate(() => window.IDS.getAppState().remainingMs);
+    const elapsed = initialTime - finalTime;
 
     expect(elapsed).toBeGreaterThan(3000); // At least 3 seconds elapsed
     expect(elapsed).toBeLessThan(6000); // But not more than 6 (pause time excluded)
@@ -251,67 +186,57 @@ test.describe("Pause/Resume", () => {
 
   // Edge case #17: Rapid pause/resume - debounce 300ms
   test.skip("should debounce rapid pause/resume clicks", async ({ page }) => {
-    await startCodingSession(page);
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Rapidly click pause/resume
-    const pauseBtn = page.locator('[data-action="pause-session"]');
-    const resumeBtn = page.locator('[data-action="resume-session"]');
-
-    // Click rapidly
-    await pauseBtn.click();
-    await resumeBtn.click({ timeout: 100 }).catch(() => {}); // May not be visible yet
-    await pauseBtn.click({ timeout: 100 }).catch(() => {});
-    await resumeBtn.click({ timeout: 100 }).catch(() => {});
+    await page.click('button:has-text("Pause")');
+    await page.click('button:has-text("Resume")').catch(() => {});
+    await page.click('button:has-text("Pause")').catch(() => {});
+    await page.click('button:has-text("Resume")').catch(() => {});
 
     // Wait for debounce to settle
     await page.waitForTimeout(500);
 
     // Should be in a stable state (either paused or not, no crash)
     const state = await getAppState(page);
-
     expect(state.screen).toBe("coding");
     expect(typeof state.isPaused).toBe("boolean");
   });
 
   // Edge case #20: Dispatch event during pause - allow non-timer events
   test("should allow code editing while paused", async ({ page }) => {
-    await startCodingSession(page);
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Pause
-    await page.click('[data-action="pause-session"]');
-    await page.waitForFunction(
-      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isPaused === true,
-    );
+    await pauseSession(page);
 
     // Edit code while paused (banner is non-blocking)
-    await page.fill("#code", "function editedWhilePaused() { return true; }");
+    await updateCode(page, "function editedWhilePaused() { return true; }");
 
     // Code should be updated
     const state = await getAppState(page);
     expect(state.code).toContain("editedWhilePaused");
 
-    // Resume using the banner button and verify code is still there
-    await page.click('.paused-overlay button');
-    await page.waitForFunction(
-      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isPaused === false,
-    );
+    // Resume and verify code is still there
+    await resumeSession(page);
     const stateAfterResume = await getAppState(page);
     expect(stateAfterResume.code).toContain("editedWhilePaused");
   });
 
   // Edge case #20: Dispatch event during pause - allow non-timer events (PREP)
   test("should allow invariant editing while paused in PREP", async ({ page }) => {
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    await startSession(page);
 
     // Pause
-    await page.click('[data-action="pause-session"]');
-    await page.waitForFunction(
-      () => (window.IDS.getAppState() as unknown as AppStateWithPause).isPaused === true,
-    );
+    await pauseSession(page);
 
     // Edit invariants while paused
-    await page.fill("#invariants", "Edited while paused");
+    await updateInvariants(page, "Edited while paused");
 
     // Invariants should be updated
     const state = await getAppState(page);

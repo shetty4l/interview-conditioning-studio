@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "playwright/test";
+import { clearStorage, waitForSessionPersisted, getAppState } from "./_helpers";
 
 /**
  * Persistence E2E Tests
@@ -20,42 +21,12 @@ async function waitForSessionCount(page: Page, count: number, timeout = 5000) {
   );
 }
 
-// Helper to wait for session to be persisted
-async function waitForSessionPersisted(page: Page, sessionId: string, timeout = 5000) {
-  await page.waitForFunction(
-    (id) => {
-      return window.IDS.storage.getSession(id).then((session: unknown) => session !== null);
-    },
-    sessionId,
-    { timeout },
-  );
-}
-
-// Helper to clear storage and verify it's empty
-async function clearStorageAndVerify(page: Page) {
-  await page.waitForFunction(() => window.IDS?.storage?.clearAll);
-  await page.evaluate(() => window.IDS.storage.clearAll());
-
-  // Wait for storage to be empty
-  await page.waitForFunction(
-    () => {
-      return window.IDS.storage
-        .getStats()
-        .then(
-          (stats: { sessionCount: number; audioCount: number }) =>
-            stats.sessionCount === 0 && stats.audioCount === 0,
-        );
-    },
-    undefined,
-    { timeout: 5000 },
-  );
-}
-
 test.describe.serial("Session Persistence", () => {
   test.beforeEach(async ({ page }) => {
     // Navigate and clear storage before each test
     await page.goto("/?debug=1");
-    await clearStorageAndVerify(page);
+    await page.waitForFunction(() => window.IDS?.getAppState);
+    await clearStorage(page);
   });
 
   test("saves session to IndexedDB on state changes", async ({ page }) => {
@@ -106,17 +77,17 @@ test.describe.serial("Session Persistence", () => {
     // Wait for persist
     await waitForSessionPersisted(page, sessionId!);
 
-    // Reload the page with the session URL
-    await page.goto(`/?debug=1#/${sessionId}/coding`);
+    // Reload the page with the session URL (new routing: /#/{sessionId})
+    await page.goto(`/?debug=1#/${sessionId}`);
     await page.waitForFunction(() => window.IDS?.getAppState);
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
 
     // Verify state was restored
-    const state = await page.evaluate(() => window.IDS.getAppState());
+    const state = await getAppState(page);
     expect(state.sessionId).toBe(sessionId);
-    expect(state.sessionState?.phase).toBe("CODING");
-    expect(state.sessionState?.invariants).toBe("Test invariants");
-    expect(state.sessionState?.code).toBe("function test() {}");
+    expect(state.phase).toBe("CODING");
+    expect(state.invariants).toBe("Test invariants");
+    expect(state.code).toBe("function test() {}");
   });
 
   test("restores correct phase from stored session", async ({ page }) => {
@@ -137,14 +108,14 @@ test.describe.serial("Session Persistence", () => {
     // Wait for persist
     await waitForSessionPersisted(page, sessionId!);
 
-    // Reload page
-    await page.goto(`/?debug=1#/${sessionId}/summary`);
+    // Reload page (new routing: /#/{sessionId})
+    await page.goto(`/?debug=1#/${sessionId}`);
     await page.waitForFunction(() => window.IDS?.getAppState);
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
 
     // Verify phase
-    const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.sessionState?.phase).toBe("SUMMARY");
+    const state = await getAppState(page);
+    expect(state.phase).toBe("SUMMARY");
   });
 
   test("persists events across sessions", async ({ page }) => {
@@ -170,8 +141,8 @@ test.describe.serial("Session Persistence", () => {
     // Wait for persist
     await waitForSessionPersisted(page, sessionId!);
 
-    // Reload and verify events
-    await page.goto(`/?debug=1#/${sessionId}/coding`);
+    // Reload and verify events (new routing: /#/{sessionId})
+    await page.goto(`/?debug=1#/${sessionId}`);
     await page.waitForFunction(() => window.IDS?.getAppState);
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
 
@@ -206,8 +177,8 @@ test.describe.serial("Session Persistence", () => {
     // Wait for reset to complete
     await page.waitForFunction(() => window.IDS.getAppState().sessionId === null);
 
-    // Now navigate to home
-    await page.goto("/?debug=1#/");
+    // Now navigate to new session screen (new routing: /#/new)
+    await page.goto("/?debug=1#/new");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
     // Check that incomplete session was detected
@@ -359,7 +330,8 @@ test.describe.serial("Session Persistence", () => {
 test.describe.serial("Session Persistence - Phase 3 Edge Cases", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/?debug=1");
-    await clearStorageAndVerify(page);
+    await page.waitForFunction(() => window.IDS?.getAppState);
+    await clearStorage(page);
   });
 
   // Edge case #8: Browser back button - allow, session auto-saved
@@ -429,8 +401,8 @@ test.describe.serial("Session Persistence - Phase 3 Edge Cases", () => {
       }
     }, sessionId!);
 
-    // Reload the page to trigger restore
-    await page.goto(`/?debug=1#/${sessionId}/coding`);
+    // Reload the page to trigger restore (new routing: /#/{sessionId})
+    await page.goto(`/?debug=1#/${sessionId}`);
     await page.waitForFunction(() => window.IDS?.getAppState);
 
     // After restoration with expired timer, phase should auto-advance
@@ -499,16 +471,16 @@ test.describe.serial("Session Persistence - Phase 3 Edge Cases", () => {
     await page.reload();
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    // Navigate to the session URL to trigger restore
-    await page.goto(`/?debug=1#/${sessionId}/coding`);
+    // Navigate to the session URL to trigger restore (new routing: /#/{sessionId})
+    await page.goto(`/?debug=1#/${sessionId}`);
     await page.waitForFunction(() => window.IDS?.getAppState);
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
 
     // Verify state was restored
-    const state = await page.evaluate(() => window.IDS.getAppState());
+    const state = await getAppState(page);
     expect(state.sessionId).toBe(sessionId);
-    expect(state.sessionState?.invariants).toBe("Invariants before refresh");
-    expect(state.sessionState?.code).toBe("function beforeRefresh() { return true; }");
+    expect(state.invariants).toBe("Invariants before refresh");
+    expect(state.code).toBe("function beforeRefresh() { return true; }");
   });
 
   // Additional: Verify session persists across browser restart simulation

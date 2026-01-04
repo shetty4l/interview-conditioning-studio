@@ -4,14 +4,14 @@
  * Preparation phase screen where users read the problem and note invariants.
  */
 
-import { div, span, useStore, useActions, useRouter, Show } from "../framework";
+import { div, Show, span, useActions, useStore } from "../framework";
 import {
-  PhaseHeader,
-  ProblemCard,
-  InvariantsInput,
   Button,
   ConfirmButton,
+  InvariantsInput,
   PauseButton,
+  PhaseHeader,
+  ProblemCard,
 } from "../components";
 import { AppStore } from "../store";
 
@@ -22,7 +22,6 @@ import { AppStore } from "../store";
 export function PrepScreen(): HTMLElement {
   const state = useStore(AppStore);
   const actions = useActions(AppStore);
-  const router = useRouter();
 
   const handleInvariantsChange = (value: string) => {
     actions.updateInvariants(value);
@@ -34,7 +33,6 @@ export function PrepScreen(): HTMLElement {
 
   const handleAbandon = async () => {
     await actions.abandonSession();
-    router.navigate("/");
   };
 
   const handlePause = () => {

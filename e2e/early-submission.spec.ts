@@ -1,4 +1,16 @@
-import { test, expect, type Page } from "playwright/test";
+import { test, expect } from "playwright/test";
+import {
+  clearStorage,
+  goToNewSession,
+  startSession,
+  goToCoding,
+  submitSolution,
+  goToReflection,
+  completeReflection,
+  getAppState,
+  updateCode,
+  updateInvariants,
+} from "./_helpers";
 
 /**
  * Early Submission E2E Tests
@@ -7,69 +19,44 @@ import { test, expect, type Page } from "playwright/test";
  * skipping the Silent phase and going directly to Summary.
  */
 
-// Helper to clear storage and verify it's empty
-async function clearStorageAndVerify(page: Page) {
-  await page.waitForFunction(() => window.IDS?.storage?.clearAll);
-  await page.evaluate(() => window.IDS.storage.clearAll());
-
-  await page.waitForFunction(
-    () => {
-      return window.IDS.storage
-        .getStats()
-        .then(
-          (stats: { sessionCount: number; audioCount: number }) =>
-            stats.sessionCount === 0 && stats.audioCount === 0,
-        );
-    },
-    undefined,
-    { timeout: 5000 },
-  );
-}
-
 test.describe("Early Submission", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("Submit Solution button is visible in CODING phase", async ({ page }) => {
     // Start a session and go to coding
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Submit button should be visible
-    await expect(page.locator('[data-action="submit-solution"]')).toBeVisible();
+    await expect(page.getByRole("button", { name: "Submit Solution" })).toBeVisible();
   });
 
   test("Submit Solution skips Silent phase and goes to Summary", async ({ page }) => {
     // Start a session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    await startSession(page);
 
     // Write some invariants
-    await page.fill("#invariants", "Test invariants for early submission");
+    await updateInvariants(page, "Test invariants for early submission");
 
     // Go to coding
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToCoding(page);
 
     // Write some code
-    await page.fill("#code", "function solution() { return 42; }");
+    await updateCode(page, "function solution() { return 42; }");
 
     // Submit solution early
-    await page.click('[data-action="submit-solution"]');
+    await submitSolution(page);
 
     // Should go directly to Summary, skipping Silent
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
-
-    // Verify we're in Summary phase
-    const state = await page.evaluate(() => window.IDS.getAppState());
+    const state = await getAppState(page);
     expect(state.screen).toBe("summary");
-    expect(state.sessionState?.phase).toBe("SUMMARY");
+    expect(state.phase).toBe("SUMMARY");
   });
 
   test("Early submission preserves code and invariants", async ({ page }) => {
@@ -77,40 +64,35 @@ test.describe("Early Submission", () => {
     const codeText = "function dp(n) {\n  return n * 2;\n}";
 
     // Start a session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    await startSession(page);
 
     // Write invariants
-    await page.fill("#invariants", invariantsText);
+    await updateInvariants(page, invariantsText);
 
     // Go to coding
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToCoding(page);
 
     // Write code
-    await page.fill("#code", codeText);
+    await updateCode(page, codeText);
 
     // Submit solution
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
+    await submitSolution(page);
 
     // Verify state preserved
-    const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.sessionState?.invariants).toBe(invariantsText);
-    expect(state.sessionState?.code).toBe(codeText);
+    const state = await getAppState(page);
+    expect(state.invariants).toBe(invariantsText);
+    expect(state.code).toBe(codeText);
   });
 
   test("Early submission records correct event in log", async ({ page }) => {
     // Start session and go to coding
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Submit solution
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
+    await submitSolution(page);
 
     // Check event log
     const events = await page.evaluate(() =>
@@ -127,79 +109,64 @@ test.describe("Early Submission", () => {
 
   test("Can continue to Reflection after early submission", async ({ page }) => {
     // Start session and submit early
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
-
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
+    await submitSolution(page);
 
     // Continue to reflection
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
+    await goToReflection(page);
 
-    const state = await page.evaluate(() => window.IDS.getAppState());
+    const state = await getAppState(page);
     expect(state.screen).toBe("reflection");
-    expect(state.sessionState?.phase).toBe("REFLECTION");
+    expect(state.phase).toBe("REFLECTION");
   });
 
   test("Full early submission flow: Home → Prep → Coding → Summary → Reflection → Done", async ({
     page,
   }) => {
     // Start session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    await startSession(page);
 
-    // Prep phase
-    await page.fill("#invariants", "Early submission test");
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    // Prep phase - add invariants
+    await updateInvariants(page, "Early submission test");
+    await goToCoding(page);
 
     // Coding phase - submit early
-    await page.fill("#code", "console.log('done');");
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
+    await updateCode(page, "console.log('done');");
+    await submitSolution(page);
 
     // Summary - continue
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
+    await goToReflection(page);
 
     // Reflection - fill and submit
-    await page.click('input[name="clearApproach"][value="yes"]');
-    await page.click('input[name="prolongedStall"][value="no"]');
-    await page.click('input[name="recoveredFromStall"][value="n/a"]');
-    await page.click('input[name="timePressure"][value="comfortable"]');
-    await page.click('input[name="wouldChangeApproach"][value="no"]');
-    await page.click('[data-action="submit-reflection"]');
+    await completeReflection(page);
 
     // Should be at Done
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
-
-    const state = await page.evaluate(() => window.IDS.getAppState());
+    const state = await getAppState(page);
     expect(state.screen).toBe("done");
-    expect(state.sessionState?.phase).toBe("DONE");
-    expect(state.sessionState?.status).toBe("completed");
+    expect(state.phase).toBe("DONE");
   });
 
-  test("URL updates correctly on early submission", async ({ page }) => {
+  test("URL stays consistent through early submission", async ({ page }) => {
     // Start session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    const sessionId = await startSession(page);
 
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToCoding(page);
 
-    // Verify coding URL
-    expect(page.url()).toContain("/coding");
+    // Verify URL is session-based (no phase in URL)
+    expect(page.url()).toContain(`#/${sessionId}`);
 
     // Submit solution
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
+    await submitSolution(page);
 
-    // Verify summary URL (skipped silent)
-    expect(page.url()).toContain("/summary");
-    expect(page.url()).not.toContain("/silent");
+    // URL should still be session-based
+    expect(page.url()).toContain(`#/${sessionId}`);
+
+    // But state.screen should be summary
+    const state = await getAppState(page);
+    expect(state.screen).toBe("summary");
   });
 });

@@ -4,7 +4,7 @@ import { test, expect } from "playwright/test";
  * Routing E2E Tests
  *
  * Tests for hash-based routing with session ID support.
- * New routing model:
+ * Routing model:
  * - #/ → Dashboard
  * - #/new → New session screen
  * - #/:id → Session (phase determined by state.screen, not URL)
@@ -23,24 +23,24 @@ test.describe("Hash Routing", () => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    const route = await page.evaluate(() => window.IDS.router.getCurrentRoute());
-    expect(route.type).toBe("dashboard");
+    const path = await page.evaluate(() => window.IDS.router.getPath());
+    expect(path).toBe("/");
   });
 
   test("parses dashboard route from #/", async ({ page }) => {
     await page.goto("/#/");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    const route = await page.evaluate(() => window.IDS.router.getCurrentRoute());
-    expect(route.type).toBe("dashboard");
+    const path = await page.evaluate(() => window.IDS.router.getPath());
+    expect(path).toBe("/");
   });
 
   test("parses new session route from #/new", async ({ page }) => {
     await page.goto("/#/new");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    const route = await page.evaluate(() => window.IDS.router.getCurrentRoute());
-    expect(route.type).toBe("new");
+    const path = await page.evaluate(() => window.IDS.router.getPath());
+    expect(path).toBe("/new");
   });
 
   test("parses session route from hash", async ({ page }) => {
@@ -54,9 +54,13 @@ test.describe("Hash Routing", () => {
 
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
 
-    const route = await page.evaluate(() => window.IDS.router.getCurrentRoute());
-    expect(route.type).toBe("session");
-    expect(route.sessionId).toBe(sessionId);
+    // Wait for navigation to session URL
+    await page.waitForFunction((id) => window.location.hash.includes(id!), sessionId, {
+      timeout: 5000,
+    });
+
+    const path = await page.evaluate(() => window.IDS.router.getPath());
+    expect(path).toBe(`/${sessionId}`);
   });
 
   test("session URL stays constant during phase transitions", async ({ page }) => {
@@ -68,6 +72,11 @@ test.describe("Hash Routing", () => {
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
 
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
+
+    // Wait for navigation to session URL
+    await page.waitForFunction((id) => window.location.hash.includes(id!), sessionId, {
+      timeout: 5000,
+    });
 
     // URL should be #/:id (no phase in URL)
     expect(page.url()).toContain(`#/${sessionId}`);
@@ -112,13 +121,25 @@ test.describe("Hash Routing", () => {
 
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
 
+    // Wait for session to be saved to storage
+    await page.waitForFunction(
+      (id) => window.IDS.storage.getSession(id!).then((s: unknown) => s !== null),
+      sessionId,
+      { timeout: 5000 },
+    );
+
     // Go to dashboard
     await page.goto("/#/");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
+    // Wait for dashboard to load sessions (session list or session card appears)
+    await page.waitForSelector(".session-card, .dashboard__list", { timeout: 10000 });
+
     // Click Resume on the session
     await page.click('button:has-text("Resume")');
-    await page.waitForFunction(() => window.location.hash.includes(sessionId!));
+    await page.waitForFunction((id) => window.location.hash.includes(id!), sessionId, {
+      timeout: 5000,
+    });
 
     // Should be at session URL
     expect(page.url()).toContain(`#/${sessionId}`);
@@ -153,12 +174,25 @@ test.describe("Hash Routing", () => {
   });
 
   test("handles #/:id/view route", async ({ page }) => {
-    // Note: View route not fully implemented yet, should redirect
+    // View route is not fully implemented yet - it redirects to dashboard
     await page.goto("/#/abc123/view");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
-    const route = await page.evaluate(() => window.IDS.router.getCurrentRoute());
-    expect(route.type).toBe("view");
-    expect(route.sessionId).toBe("abc123");
+    // Wait for redirect to dashboard (ViewScreen redirects to "/" on mount)
+    await page.waitForFunction(
+      () => {
+        const hash = window.location.hash;
+        return hash === "" || hash === "#" || hash === "#/";
+      },
+      undefined,
+      { timeout: 5000 },
+    );
+
+    // Path should now be dashboard (after redirect)
+    const path = await page.evaluate(() => window.IDS.router.getPath());
+    expect(path).toBe("/");
+
+    // Toast should have been shown
+    await expect(page.locator(".toast")).toBeVisible();
   });
 });

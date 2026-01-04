@@ -75,6 +75,7 @@ export {
   useRouter,
   useRoute,
   Link,
+  _resetRouterContext,
   type RouteConfig,
   type RouterOptions,
   type RouterInstance,

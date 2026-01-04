@@ -5,16 +5,16 @@
  * Also handles SILENT phase (shows banner, disables nudges).
  */
 
-import { div, span, useStore, useActions, useRouter, Show, onMount, onCleanup, watch } from "../framework";
+import { div, onCleanup, onMount, Show, span, useActions, useStore, watch } from "../framework";
 import {
+  Button,
+  CodeEditor,
+  ConfirmButton,
+  NudgeButton,
+  PauseButton,
   PhaseHeader,
   ProblemCard,
-  CodeEditor,
-  NudgeButton,
-  Button,
-  ConfirmButton,
   RecordingIndicator,
-  PauseButton,
 } from "../components";
 import { AppStore, PhaseEnum } from "../store";
 
@@ -25,7 +25,6 @@ import { AppStore, PhaseEnum } from "../store";
 export function CodingScreen(): HTMLElement {
   const state = useStore(AppStore);
   const actions = useActions(AppStore);
-  const router = useRouter();
 
   const isSilentPhase = () => state.phase() === PhaseEnum.Silent;
   const isCodingPhase = () => state.phase() === PhaseEnum.Coding;
@@ -44,7 +43,6 @@ export function CodingScreen(): HTMLElement {
 
   const handleAbandon = async () => {
     await actions.abandonSession();
-    router.navigate("/");
   };
 
   const handlePause = () => {

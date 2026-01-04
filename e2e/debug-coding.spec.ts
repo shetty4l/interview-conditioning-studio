@@ -1,39 +1,37 @@
 import { test, expect } from "playwright/test";
+import { clearStorage, goToNewSession, startSession, goToCoding } from "./_helpers";
 
 test("debug coding screen buttons", async ({ page }) => {
-  await page.goto("/#/new");
-  await page.waitForFunction(() => window.IDS?.getAppState);
-  
+  await goToNewSession(page);
+
   // Clear storage
-  await page.evaluate(() => window.IDS.storage.clearAll());
-  
+  await clearStorage(page);
+
   // Start session
-  await page.click(".start-button");
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+  await startSession(page);
   console.log("In prep screen");
-  
+
   // Click start coding
-  await page.click(".start-coding-button");
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+  await goToCoding(page);
   console.log("In coding screen");
-  
+
   // Wait a moment for DOM to update
   await page.waitForTimeout(500);
-  
+
   // Debug: what buttons exist?
   const buttons = await page.evaluate(() => {
-    const btns = document.querySelectorAll('button');
-    return Array.from(btns).map(b => ({
+    const btns = document.querySelectorAll("button");
+    return Array.from(btns).map((b) => ({
       class: b.className,
       text: b.textContent,
-      dataAction: b.getAttribute('data-action')
+      dataAction: b.getAttribute("data-action"),
     }));
   });
-  console.log('Buttons found:', JSON.stringify(buttons, null, 2));
-  
-  // Check if submit-solution exists
-  const hasSubmit = await page.locator('[data-action="submit-solution"]').count();
-  console.log('submit-solution count:', hasSubmit);
-  
+  console.log("Buttons found:", JSON.stringify(buttons, null, 2));
+
+  // Check if Submit Solution button exists
+  const hasSubmit = await page.locator('button:has-text("Submit Solution")').count();
+  console.log("Submit Solution button count:", hasSubmit);
+
   expect(hasSubmit).toBeGreaterThan(0);
 });

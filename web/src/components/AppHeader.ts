@@ -27,9 +27,7 @@ export function AppHeader(props: AppHeaderProps = {}): HTMLElement {
   return div({ class: "app-header" }, [
     div(
       { class: "app-header__left" },
-      getShowBackLink()
-        ? [Link({ href: "/", class: "app-header__back" }, ["← Dashboard"])]
-        : [],
+      getShowBackLink() ? [Link({ href: "/", class: "app-header__back" }, ["← Dashboard"])] : [],
     ),
     // Clickable title
     Link({ href: "/", class: "app-header__title" }, ["Interview Conditioning Studio"]),

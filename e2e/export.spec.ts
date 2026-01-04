@@ -1,6 +1,19 @@
 import { test, expect, type Page } from "playwright/test";
 import * as fs from "fs";
 import * as zlib from "zlib";
+import {
+  clearStorage,
+  goToNewSession,
+  startSession,
+  goToCoding,
+  submitSolution,
+  goToReflection,
+  completeReflection,
+  waitForScreen,
+  getAppState,
+  updateCode,
+  updateInvariants,
+} from "./_helpers";
 
 /**
  * Export E2E Tests
@@ -33,6 +46,7 @@ function parseTar(tarData: Buffer): Record<string, string> {
     const name = header.subarray(0, nameEnd).toString("utf8");
 
     // File size: bytes 124-135, octal string null-terminated
+    // eslint-disable-next-line no-control-regex
     const sizeStr = header.subarray(124, 135).toString("utf8").replace(/\0/g, "").trim();
     const size = parseInt(sizeStr, 8) || 0;
 
@@ -67,66 +81,37 @@ function extractExport(downloadPath: string): Record<string, string> {
 // Test Helpers
 // ============================================================================
 
-// Helper to clear storage and verify it's empty
-async function clearStorageAndVerify(page: Page) {
-  await page.waitForFunction(() => window.IDS?.storage?.clearAll);
-  await page.evaluate(() => window.IDS.storage.clearAll());
-
-  await page.waitForFunction(
-    () => {
-      return window.IDS.storage
-        .getStats()
-        .then(
-          (stats: { sessionCount: number; audioCount: number }) =>
-            stats.sessionCount === 0 && stats.audioCount === 0,
-        );
-    },
-    undefined,
-    { timeout: 5000 },
-  );
-}
-
-// Helper to complete a session
+// Helper to complete a session (using the helpers pattern)
 async function completeSession(page: Page): Promise<void> {
+  await goToNewSession(page);
+
   // Start session
-  await page.click(".start-button");
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+  await startSession(page);
 
   // Prep - add invariants
-  await page.fill("#invariants", "Test invariants for export");
+  await updateInvariants(page, "Test invariants for export");
 
   // Start coding
-  await page.click(".start-coding-button");
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+  await goToCoding(page);
 
   // Add code
-  await page.fill("#code", "function solution() {\n  return 42;\n}");
+  await updateCode(page, "function solution() {\n  return 42;\n}");
 
   // Submit solution (early submission to skip silent)
-  await page.click('[data-action="submit-solution"]');
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
+  await submitSolution(page);
 
   // Continue to reflection
-  await page.click('[data-action="continue-to-reflection"]');
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
+  await goToReflection(page);
 
-  // Fill reflection
-  await page.click('input[name="clearApproach"][value="yes"]');
-  await page.click('input[name="prolongedStall"][value="no"]');
-  await page.click('input[name="recoveredFromStall"][value="n/a"]');
-  await page.click('input[name="timePressure"][value="comfortable"]');
-  await page.click('input[name="wouldChangeApproach"][value="no"]');
-  await page.click('[data-action="submit-reflection"]');
-
-  // Wait for done screen
-  await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+  // Complete reflection
+  await completeReflection(page);
 }
 
 test.describe("Export", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("Export button is visible on Done screen", async ({ page }) => {
@@ -217,12 +202,14 @@ test.describe("Export", () => {
 
     // Start new session
     await page.click('[data-action="new-session"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "home");
 
-    // Should be on home screen
-    const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.screen).toBe("home");
+    // Wait for HomeScreen to load (Start Session button visible)
+    await page.waitForSelector('button:has-text("Start Session")', { timeout: 10000 });
+
+    // Should be on home screen (URL is #/new, no session active)
+    const state = await getAppState(page);
     expect(state.sessionId).toBeNull();
+    expect(page.url()).toContain("#/new");
   });
 });
 
@@ -230,7 +217,7 @@ test.describe("Export File Contents", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("Exported file is a valid gzip archive", async ({ page }) => {
@@ -258,40 +245,29 @@ test.describe("Export File Contents", () => {
     const testInvariants = "My test invariants: edge cases, constraints";
     const testCode = "function myTestSolution() { return 'tested'; }";
 
+    await goToNewSession(page);
+
     // Start session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await startSession(page);
 
     // Add specific invariants
-    await page.fill("#invariants", testInvariants);
+    await updateInvariants(page, testInvariants);
 
     // Start coding
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToCoding(page);
 
     // Add specific code
-    await page.fill("#code", testCode);
+    await updateCode(page, testCode);
 
     // Complete session
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
-
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
-
-    await page.click('input[name="clearApproach"][value="yes"]');
-    await page.click('input[name="prolongedStall"][value="no"]');
-    await page.click('input[name="recoveredFromStall"][value="n/a"]');
-    await page.click('input[name="timePressure"][value="comfortable"]');
-    await page.click('input[name="wouldChangeApproach"][value="no"]');
-    await page.click('[data-action="submit-reflection"]');
-
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+    await submitSolution(page);
+    await goToReflection(page);
+    await completeReflection(page);
 
     // Verify the session state has our data
-    const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.sessionState?.invariants).toBe(testInvariants);
-    expect(state.sessionState?.code).toBe(testCode);
+    const state = await getAppState(page);
+    expect(state.invariants).toBe(testInvariants);
+    expect(state.code).toBe(testCode);
 
     // Export and verify actual file contents
     const downloadPromise = page.waitForEvent("download");
@@ -312,7 +288,7 @@ test.describe("Export Without Audio", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("Export works when no audio was recorded", async ({ page }) => {
@@ -346,34 +322,24 @@ test.describe("Export Contents Verification", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("code.txt contains the actual code written", async ({ page }) => {
     const testCode = "function solution(nums) {\n  return nums.reduce((a, b) => a + b, 0);\n}";
 
-    // Start session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-    await page.fill("#invariants", "test invariants");
+    await goToNewSession(page);
+    await startSession(page);
+    await updateInvariants(page, "test invariants");
 
     // Start coding and write specific code
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
-    await page.fill("#code", testCode);
+    await goToCoding(page);
+    await updateCode(page, testCode);
 
     // Complete session quickly
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
-    await page.click('input[name="clearApproach"][value="yes"]');
-    await page.click('input[name="prolongedStall"][value="no"]');
-    await page.click('input[name="recoveredFromStall"][value="n/a"]');
-    await page.click('input[name="timePressure"][value="comfortable"]');
-    await page.click('input[name="wouldChangeApproach"][value="no"]');
-    await page.click('[data-action="submit-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+    await submitSolution(page);
+    await goToReflection(page);
+    await completeReflection(page);
 
     // Export and verify
     const downloadPromise = page.waitForEvent("download");
@@ -387,28 +353,18 @@ test.describe("Export Contents Verification", () => {
   test("invariants.txt contains the actual invariants written", async ({ page }) => {
     const testInvariants = "Edge cases:\n- empty array\n- single element\n- negative numbers";
 
-    // Start session with specific invariants
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-    await page.fill("#invariants", testInvariants);
+    await goToNewSession(page);
+    await startSession(page);
+    await updateInvariants(page, testInvariants);
 
     // Start coding
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
-    await page.fill("#code", "// some code");
+    await goToCoding(page);
+    await updateCode(page, "// some code");
 
     // Complete session quickly
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
-    await page.click('input[name="clearApproach"][value="yes"]');
-    await page.click('input[name="prolongedStall"][value="no"]');
-    await page.click('input[name="recoveredFromStall"][value="n/a"]');
-    await page.click('input[name="timePressure"][value="comfortable"]');
-    await page.click('input[name="wouldChangeApproach"][value="no"]');
-    await page.click('[data-action="submit-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+    await submitSolution(page);
+    await goToReflection(page);
+    await completeReflection(page);
 
     // Export and verify
     const downloadPromise = page.waitForEvent("download");
@@ -420,24 +376,22 @@ test.describe("Export Contents Verification", () => {
   });
 
   test("session.json has correct structure and data", async ({ page }) => {
-    // Complete session with known reflection values
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-    await page.fill("#invariants", "test");
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
-    await page.fill("#code", "test code");
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
+    await goToNewSession(page);
+    await startSession(page);
+    await updateInvariants(page, "test");
+    await goToCoding(page);
+    await updateCode(page, "test code");
+    await submitSolution(page);
+    await goToReflection(page);
+
+    // Fill reflection with specific values
     await page.click('input[name="clearApproach"][value="partially"]');
     await page.click('input[name="prolongedStall"][value="yes"]');
     await page.click('input[name="recoveredFromStall"][value="yes"]');
     await page.click('input[name="timePressure"][value="manageable"]');
     await page.click('input[name="wouldChangeApproach"][value="yes"]');
-    await page.click('[data-action="submit-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+    await page.click('button:has-text("Submit Reflection")');
+    await waitForScreen(page, "done");
 
     // Export and verify session.json structure
     const downloadPromise = page.waitForEvent("download");
@@ -487,26 +441,24 @@ test.describe("Export Contents Verification", () => {
   });
 
   test("empty code exports as empty string", async ({ page }) => {
-    // Start session without writing code
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-    await page.fill("#invariants", "some invariants");
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToNewSession(page);
+    await startSession(page);
+    await updateInvariants(page, "some invariants");
+    await goToCoding(page);
     // Don't fill any code
 
     // Complete session
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
+    await submitSolution(page);
+    await goToReflection(page);
+
+    // Fill reflection with specific values
     await page.click('input[name="clearApproach"][value="no"]');
     await page.click('input[name="prolongedStall"][value="no"]');
     await page.click('input[name="recoveredFromStall"][value="n/a"]');
     await page.click('input[name="timePressure"][value="overwhelming"]');
     await page.click('input[name="wouldChangeApproach"][value="yes"]');
-    await page.click('[data-action="submit-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+    await page.click('button:has-text("Submit Reflection")');
+    await waitForScreen(page, "done");
 
     // Export and verify
     const downloadPromise = page.waitForEvent("download");
@@ -518,26 +470,16 @@ test.describe("Export Contents Verification", () => {
   });
 
   test("empty invariants exports as empty string", async ({ page }) => {
-    // Start session without writing invariants
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    await startSession(page);
     // Don't fill invariants
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
-    await page.fill("#code", "function test() {}");
+    await goToCoding(page);
+    await updateCode(page, "function test() {}");
 
     // Complete session
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
-    await page.click('input[name="clearApproach"][value="yes"]');
-    await page.click('input[name="prolongedStall"][value="no"]');
-    await page.click('input[name="recoveredFromStall"][value="n/a"]');
-    await page.click('input[name="timePressure"][value="comfortable"]');
-    await page.click('input[name="wouldChangeApproach"][value="no"]');
-    await page.click('[data-action="submit-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+    await submitSolution(page);
+    await goToReflection(page);
+    await completeReflection(page);
 
     // Export and verify
     const downloadPromise = page.waitForEvent("download");
@@ -557,7 +499,7 @@ test.describe("Export - Phase 3 Edge Cases", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   // Edge case #10: Export with no audio - omit audio file from export
@@ -585,15 +527,13 @@ test.describe("Export - Phase 3 Edge Cases", () => {
 
   // Edge case #11: Export abandoned session - allow
   test.skip("should allow export of abandoned session", async ({ page }) => {
-    // Start a session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    await startSession(page);
 
     // Add some content
-    await page.fill("#invariants", "Abandoned session invariants");
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
-    await page.fill("#code", "function abandonedCode() {}");
+    await updateInvariants(page, "Abandoned session invariants");
+    await goToCoding(page);
+    await updateCode(page, "function abandonedCode() {}");
 
     const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
 
@@ -621,42 +561,32 @@ test.describe("Export - Phase 3 Edge Cases", () => {
 
   // Edge case #12: Export in-progress session - disallow
   test.skip("should not show export button for in-progress session", async ({ page }) => {
-    // Start a session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+    await goToNewSession(page);
+    await startSession(page);
 
     // In PREP phase - no export button
     await expect(page.locator('[data-action="export-session"]')).toHaveCount(0);
 
     // Go to CODING phase
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToCoding(page);
 
     // In CODING phase - no export button
     await expect(page.locator('[data-action="export-session"]')).toHaveCount(0);
 
     // Go to SUMMARY phase
-    await page.click('[data-action="submit-solution"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
+    await submitSolution(page);
 
     // In SUMMARY phase - no export button
     await expect(page.locator('[data-action="export-session"]')).toHaveCount(0);
 
     // Go to REFLECTION phase
-    await page.click('[data-action="continue-to-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
+    await goToReflection(page);
 
     // In REFLECTION phase - no export button
     await expect(page.locator('[data-action="export-session"]')).toHaveCount(0);
 
     // Complete session
-    await page.click('input[name="clearApproach"][value="yes"]');
-    await page.click('input[name="prolongedStall"][value="no"]');
-    await page.click('input[name="recoveredFromStall"][value="n/a"]');
-    await page.click('input[name="timePressure"][value="comfortable"]');
-    await page.click('input[name="wouldChangeApproach"][value="no"]');
-    await page.click('[data-action="submit-reflection"]');
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+    await completeReflection(page);
 
     // In DONE phase - export button should be visible
     await expect(page.locator('[data-action="export-session"]')).toBeVisible();

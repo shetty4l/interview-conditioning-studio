@@ -11,8 +11,6 @@ test.describe("App loads", () => {
     await page.goto("/");
 
     // Dashboard is now the landing page, so we expect "Dashboard" heading
-    await expect(
-      page.getByRole("heading", { name: "Dashboard" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
   });
 });

@@ -5,8 +5,8 @@
  */
 
 import { signal } from "./reactive";
-import { createContext, onCleanup, createRoot } from "./component";
-import { h, type Child } from "./elements";
+import { createRoot, onCleanup } from "./component";
+import { type Child, h } from "./elements";
 
 // ============================================================================
 // Types
@@ -47,7 +47,16 @@ interface RouterContextValue {
 // Context
 // ============================================================================
 
-const _RouterContext = createContext<RouterContextValue | null>(null);
+// Store router context globally - safe since there's only one router per app
+let globalRouterContext: RouterContextValue | null = null;
+
+/**
+ * Reset the global router context.
+ * Used for testing to ensure clean state between tests.
+ */
+export function _resetRouterContext(): void {
+  globalRouterContext = null;
+}
 
 // ============================================================================
 // Path Matching
@@ -120,9 +129,6 @@ function matchRoute(pattern: string, path: string): Record<string, string> | nul
 // createRouter
 // ============================================================================
 
-// Store current router context for useRouter/useRoute
-let activeRouterContext: RouterContextValue | null = null;
-
 /**
  * Create a router component from route configurations.
  *
@@ -152,7 +158,7 @@ export function createRouter(
       history.back();
     };
 
-    // Context value
+    // Context value - set globally so nested components can access it
     const contextValue: RouterContextValue = {
       navigate,
       back,
@@ -160,28 +166,20 @@ export function createRouter(
       currentParams,
     };
 
-    // Set router context for the lifetime of this router
-    // This allows useRouter/useRoute to work in reactive updates (e.g., Switch re-renders)
-    activeRouterContext = contextValue;
-
-    // Clean up context when router unmounts
-    onCleanup(() => {
-      if (activeRouterContext === contextValue) {
-        activeRouterContext = null;
-      }
-    });
+    // Set global context so useRouter/useRoute work in nested components
+    globalRouterContext = contextValue;
 
     // Create container
     const container = h("div", { class: "router" }, []);
 
-    // Track current route's dispose function
+    // Track current component's dispose function for cleanup
     let currentDispose: (() => void) | null = null;
 
     // Render function - finds and renders matching route
     const renderRoute = (): void => {
       const path = currentPath();
 
-      // Dispose previous route component
+      // Dispose previous component before removing from DOM
       if (currentDispose) {
         currentDispose();
         currentDispose = null;
@@ -197,11 +195,11 @@ export function createRouter(
           // Update params
           setCurrentParams(params);
 
-          // Render matched component in its own scope
-          const { result: element, dispose } = createRoot(() => route.component());
+          // Render matched component in its own root scope for lifecycle hooks
+          const { result, dispose } = createRoot(() => route.component());
           currentDispose = dispose;
-          if (element) {
-            container.appendChild(element);
+          if (result) {
+            container.appendChild(result);
           }
           return;
         }
@@ -210,10 +208,10 @@ export function createRouter(
       // No match - render fallback if provided
       setCurrentParams({});
       if (options.fallback) {
-        const { result: element, dispose } = createRoot(() => options.fallback!());
+        const { result, dispose } = createRoot(() => options.fallback!());
         currentDispose = dispose;
-        if (element) {
-          container.appendChild(element);
+        if (result) {
+          container.appendChild(result);
         }
       }
     };
@@ -229,6 +227,11 @@ export function createRouter(
     window.addEventListener("hashchange", handleHashChange);
     onCleanup(() => {
       window.removeEventListener("hashchange", handleHashChange);
+      // Clean up current component when router is unmounted
+      if (currentDispose) {
+        currentDispose();
+        currentDispose = null;
+      }
     });
 
     // Initial render
@@ -251,12 +254,12 @@ export function createRouter(
  * navigate("/about");
  */
 export function useRouter(): RouterInstance {
-  if (!activeRouterContext) {
+  if (!globalRouterContext) {
     throw new Error("useRouter must be used within a Router component");
   }
   return {
-    navigate: activeRouterContext.navigate,
-    back: activeRouterContext.back,
+    navigate: globalRouterContext.navigate,
+    back: globalRouterContext.back,
   };
 }
 
@@ -273,12 +276,12 @@ export function useRouter(): RouterInstance {
  * console.log(params.id); // For /user/:id route
  */
 export function useRoute(): RouteInfo {
-  if (!activeRouterContext) {
+  if (!globalRouterContext) {
     throw new Error("useRoute must be used within a Router component");
   }
   return {
-    path: activeRouterContext.currentPath(),
-    params: activeRouterContext.currentParams(),
+    path: globalRouterContext.currentPath(),
+    params: globalRouterContext.currentParams(),
   };
 }
 

@@ -4,7 +4,7 @@
  * Displays problem title and description, collapsible.
  */
 
-import { div, h2, signal, Show } from "../framework";
+import { div, h2, Show, signal } from "../framework";
 import type { Problem } from "../problems";
 
 // ============================================================================

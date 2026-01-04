@@ -4,8 +4,8 @@
  * Final screen with export and new session options.
  */
 
-import { div, h1, p, useStore, useActions, useRouter } from "../framework";
-import { PhaseHeader, Button, showToast } from "../components";
+import { div, h1, p, useActions, useRouter, useStore } from "../framework";
+import { Button, PhaseHeader, showToast } from "../components";
 import { AppStore } from "../store";
 
 // ============================================================================
@@ -15,7 +15,7 @@ import { AppStore } from "../store";
 export function DoneScreen(): HTMLElement {
   const state = useStore(AppStore);
   const actions = useActions(AppStore);
-  const router = useRouter();
+  const { navigate } = useRouter();
 
   const handleExport = async () => {
     try {
@@ -28,7 +28,7 @@ export function DoneScreen(): HTMLElement {
 
   const handleNewSession = () => {
     actions.resetApp();
-    router.navigate("/new");
+    navigate("/new");
   };
 
   return div({ class: "screen done-screen", id: "done-screen" }, [

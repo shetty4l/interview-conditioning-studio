@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "playwright/test";
+import { test, expect } from "playwright/test";
+import { clearStorage, goToNewSession, startSession, goToCoding } from "./_helpers";
 
 /**
  * Audio Recording E2E Tests
@@ -8,30 +9,11 @@ import { test, expect, type Page } from "playwright/test";
  * MediaRecorder functionality, which may not be available in test environments.
  */
 
-// Helper to clear storage and verify it's empty
-async function clearStorageAndVerify(page: Page) {
-  await page.waitForFunction(() => window.IDS?.storage?.clearAll);
-  await page.evaluate(() => window.IDS.storage.clearAll());
-
-  await page.waitForFunction(
-    () => {
-      return window.IDS.storage
-        .getStats()
-        .then(
-          (stats: { sessionCount: number; audioCount: number }) =>
-            stats.sessionCount === 0 && stats.audioCount === 0,
-        );
-    },
-    undefined,
-    { timeout: 5000 },
-  );
-}
-
 test.describe("Audio Recording UI", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("audioSupported state is set on app init", async ({ page }) => {
@@ -54,11 +36,9 @@ test.describe("Audio Recording UI", () => {
 
   test("Recording indicator visibility depends on audioSupported", async ({ page }) => {
     // Start a session and go to coding
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Check if audio is supported
     const audioSupported = await page.evaluate(() => window.IDS.getAppState().audioSupported);
@@ -76,27 +56,25 @@ test.describe("Audio Recording UI", () => {
 
   test("Submit button is always visible in CODING phase", async ({ page }) => {
     // Start a session and go to coding
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Submit button should always be visible regardless of audio support
-    await expect(page.locator('[data-action="submit-solution"]')).toBeVisible();
+    await expect(page.locator('button:has-text("Submit Solution")')).toBeVisible();
   });
 
   test("isRecording is reset on session reset", async ({ page }) => {
     // Start a session
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Reset app
     await page.evaluate(() => window.IDS.resetApp());
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "home");
+
+    // Wait for reset to complete - store screen becomes "dashboard" after reset
+    await page.waitForFunction(() => window.IDS.getAppState().sessionId === null);
 
     // isRecording should be false after reset
     const isRecording = await page.evaluate(() => window.IDS.getAppState().isRecording);
@@ -108,7 +86,7 @@ test.describe("Audio Storage", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   test("audio storage functions are available", async ({ page }) => {
@@ -135,7 +113,7 @@ test.describe("Audio - Phase 3 Edge Cases", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForFunction(() => window.IDS?.getAppState);
-    await clearStorageAndVerify(page);
+    await clearStorage(page);
   });
 
   // Edge case #3: Auto-record permission denied - show MicStatusIndicator blocked state
@@ -145,11 +123,9 @@ test.describe("Audio - Phase 3 Edge Cases", () => {
     // For this test, we need to deny the microphone permission
 
     // Start a session and go to coding
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     // Check if audio is supported
     const audioSupported = await page.evaluate(() => window.IDS.getAppState().audioSupported);
@@ -174,11 +150,9 @@ test.describe("Audio - Phase 3 Edge Cases", () => {
 
   // Additional: Verify MicStatusIndicator shows correct states
   test.skip("should show correct mic status indicator states", async ({ page }) => {
-    await page.click(".start-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
-
-    await page.click(".start-coding-button");
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await goToNewSession(page);
+    await startSession(page);
+    await goToCoding(page);
 
     const audioSupported = await page.evaluate(() => window.IDS.getAppState().audioSupported);
 

@@ -4,7 +4,7 @@
  * Session row in list showing title, status, date, and actions.
  */
 
-import { div, span, button } from "../framework";
+import { button, div, span } from "../framework";
 import type { StoredSession } from "../types";
 
 // ============================================================================

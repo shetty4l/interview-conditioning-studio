@@ -4,8 +4,8 @@
  * Landing page with session list, stats, and "New Session" button.
  */
 
-import { div, h1, h2, p, useStore, useActions, useRouter, signal, onMount, Show, For } from "../framework";
-import { AppHeader, StatsCard, SessionCard, Button } from "../components";
+import { div, For, h1, h2, onMount, p, Show, signal, useActions, useRouter } from "../framework";
+import { AppHeader, Button, SessionCard, StatsCard } from "../components";
 import { AppStore } from "../store";
 import type { StoredSession } from "../types";
 import { exportSession as exportSessionFn } from "../export";
@@ -15,9 +15,8 @@ import { exportSession as exportSessionFn } from "../export";
 // ============================================================================
 
 export function DashboardScreen(): HTMLElement {
-  const _state = useStore(AppStore);
   const actions = useActions(AppStore);
-  const router = useRouter();
+  const { navigate } = useRouter();
 
   // Local state for sessions and stats
   const [sessions, setSessions] = signal<StoredSession[]>([]);
@@ -39,15 +38,15 @@ export function DashboardScreen(): HTMLElement {
   });
 
   const handleNewSession = () => {
-    router.navigate("/new");
+    navigate("/new");
   };
 
   const handleResumeSession = (sessionId: string) => {
-    router.navigate(`/${sessionId}`);
+    navigate(`/${sessionId}`);
   };
 
   const handleViewSession = (sessionId: string) => {
-    router.navigate(`/${sessionId}/view`);
+    navigate(`/${sessionId}/view`);
   };
 
   const handleExportSession = async (session: StoredSession) => {
@@ -100,15 +99,10 @@ export function DashboardScreen(): HTMLElement {
 
       // Sessions list
       div({ class: "dashboard__sessions" }, [
-        div({ class: "dashboard__sessions-header" }, [
-          h2({}, ["Recent Sessions"]),
-        ]),
+        div({ class: "dashboard__sessions-header" }, [h2({}, ["Recent Sessions"])]),
 
         // Loading state
-        Show(
-          loading,
-          () => div({ class: "loading" }, ["Loading sessions..."]),
-        ),
+        Show(loading, () => div({ class: "loading" }, ["Loading sessions..."])),
 
         // Empty state
         Show(

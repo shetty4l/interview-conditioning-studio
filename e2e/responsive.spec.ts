@@ -1,4 +1,5 @@
 import { test, expect } from "playwright/test";
+import { goToNewSession, startSession, goToCoding } from "./_helpers";
 
 /**
  * Responsive CSS E2E Tests
@@ -15,8 +16,7 @@ test.describe("Mobile Viewport (360px)", () => {
     await page.waitForFunction(() => window.IDS?.storage?.clearAll);
     await page.evaluate(() => window.IDS.storage.clearAll());
     await page.waitForTimeout(100);
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    await goToNewSession(page);
   });
 
   test("home screen renders without horizontal overflow", async ({ page }) => {
@@ -36,12 +36,8 @@ test.describe("Mobile Viewport (360px)", () => {
 
   test("phase header displays correctly on mobile", async ({ page }) => {
     // Start a session to get to coding phase
-    await page.getByRole("button", { name: /Standard/ }).click();
-    await page.getByRole("button", { name: "Start Session" }).click();
-    await page.waitForURL(/\/#\/[^/]+\/prep/);
-
-    await page.getByRole("button", { name: "Start Coding" }).click();
-    await page.waitForURL(/\/#\/[^/]+\/coding/);
+    await startSession(page);
+    await goToCoding(page);
 
     // Phase header should be visible
     const phaseHeader = page.locator(".phase-header");
@@ -62,12 +58,8 @@ test.describe("Mobile Viewport (360px)", () => {
   });
 
   test("code editor is usable on mobile", async ({ page }) => {
-    await page.getByRole("button", { name: /Standard/ }).click();
-    await page.getByRole("button", { name: "Start Session" }).click();
-    await page.waitForURL(/\/#\/[^/]+\/prep/);
-
-    await page.getByRole("button", { name: "Start Coding" }).click();
-    await page.waitForURL(/\/#\/[^/]+\/coding/);
+    await startSession(page);
+    await goToCoding(page);
 
     // Wait for coding screen to render
     await expect(page.getByText("CODING")).toBeVisible();
@@ -102,8 +94,7 @@ test.describe("Tablet Viewport (768px)", () => {
     await page.waitForFunction(() => window.IDS?.storage?.clearAll);
     await page.evaluate(() => window.IDS.storage.clearAll());
     await page.waitForTimeout(100);
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    await goToNewSession(page);
   });
 
   test("home screen layout is correct", async ({ page }) => {
@@ -121,12 +112,10 @@ test.describe("Tablet Viewport (768px)", () => {
   });
 
   test("prep screen renders correctly", async ({ page }) => {
-    await page.getByRole("button", { name: /Standard/ }).click();
-    await page.getByRole("button", { name: "Start Session" }).click();
-    await page.waitForURL(/\/#\/[^/]+\/prep/);
+    await startSession(page);
 
-    // Wait for prep screen to render
-    await expect(page.getByText("PREP")).toBeVisible();
+    // Wait for prep screen to render (PREP badge in header)
+    await expect(page.getByText("PREP", { exact: true })).toBeVisible();
 
     // Problem title should be visible (h2 element)
     const problemTitle = page.getByRole("heading", { level: 2 });
@@ -146,8 +135,7 @@ test.describe("Desktop Viewport (1200px)", () => {
     await page.waitForFunction(() => window.IDS?.storage?.clearAll);
     await page.evaluate(() => window.IDS.storage.clearAll());
     await page.waitForTimeout(100);
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    await goToNewSession(page);
   });
 
   test("app container is centered with max-width", async ({ page }) => {
@@ -164,25 +152,8 @@ test.describe("Desktop Viewport (1200px)", () => {
   });
 
   test("phase header elements align horizontally", async ({ page }) => {
-    // Select preset
-    const standardBtn = page.getByRole("button", { name: /Standard/ });
-    await expect(standardBtn).toBeVisible();
-    await standardBtn.click();
-
-    // Start session
-    const startBtn = page.getByRole("button", { name: "Start Session" });
-    await expect(startBtn).toBeVisible();
-    await startBtn.click();
-    await page.waitForURL(/\/#\/[^/]+\/prep/);
-
-    // Verify we're on prep screen
-    await expect(page.getByText("PREP")).toBeVisible();
-
-    // Start coding
-    const startCodingBtn = page.getByRole("button", { name: "Start Coding" });
-    await expect(startCodingBtn).toBeVisible();
-    await startCodingBtn.click();
-    await page.waitForURL(/\/#\/[^/]+\/coding/);
+    await startSession(page);
+    await goToCoding(page);
 
     // Wait for coding screen elements - use correct class name
     const phaseBadge = page.locator(".phase-header__badge");
@@ -201,12 +172,8 @@ test.describe("Desktop Viewport (1200px)", () => {
   });
 
   test("code editor has full height on desktop", async ({ page }) => {
-    await page.getByRole("button", { name: /Standard/ }).click();
-    await page.getByRole("button", { name: "Start Session" }).click();
-    await page.waitForURL(/\/#\/[^/]+\/prep/);
-
-    await page.getByRole("button", { name: "Start Coding" }).click();
-    await page.waitForURL(/\/#\/[^/]+\/coding/);
+    await startSession(page);
+    await goToCoding(page);
 
     // Wait for coding screen
     await expect(page.getByText("CODING")).toBeVisible();
@@ -230,8 +197,7 @@ test.describe("Touch Target Size", () => {
     await page.waitForFunction(() => window.IDS?.storage?.clearAll);
     await page.evaluate(() => window.IDS.storage.clearAll());
     await page.waitForTimeout(100);
-    await page.goto("/");
-    await page.waitForFunction(() => window.IDS?.getAppState);
+    await goToNewSession(page);
   });
 
   test("buttons meet minimum touch target size (44px)", async ({ page }) => {

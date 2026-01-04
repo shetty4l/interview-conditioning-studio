@@ -4,7 +4,7 @@
  * Textarea for invariants input during prep phase.
  */
 
-import { div, textarea, h3, p } from "../framework";
+import { div, h3, p, textarea } from "../framework";
 
 // ============================================================================
 // Types

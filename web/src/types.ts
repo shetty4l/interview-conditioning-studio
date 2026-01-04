@@ -4,14 +4,23 @@
  * Type definitions for the web layer including screens, components, and app state.
  */
 
-import type { Session, SessionState, Preset, Phase, Event } from "../../core/src/index";
+import type { Event, Phase, Preset, Session, SessionState } from "../../core/src/index";
 import type { Problem } from "./problems";
 
 // ============================================================================
 // App State
 // ============================================================================
 
-export type ScreenName = "dashboard" | "home" | "prep" | "coding" | "silent" | "summary" | "reflection" | "done" | "view";
+export type ScreenName =
+  | "dashboard"
+  | "home"
+  | "prep"
+  | "coding"
+  | "silent"
+  | "summary"
+  | "reflection"
+  | "done"
+  | "view";
 
 export interface AppState {
   /** Current screen being displayed */

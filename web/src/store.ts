@@ -8,17 +8,17 @@
 import { createStore } from "./framework";
 import {
   createSession,
-  type Session,
-  type Preset,
-  Preset as PresetEnum,
   Phase,
+  Preset as PresetEnum,
+  type Preset,
+  type Session,
 } from "../../core/src/index";
 import { createTimer, type Timer } from "./helpers/timer";
 import { createStorage, type Storage } from "./storage";
-import { createAudioRecorder, isAudioSupported, type AudioRecorder } from "./audio";
+import { type AudioRecorder, createAudioRecorder, isAudioSupported } from "./audio";
 import { getRandomProblem, type Problem } from "./problems";
 import { exportSession } from "./export";
-import type { ScreenName, StoredSession, ReflectionFormData } from "./types";
+import type { ReflectionFormData, ScreenName, StoredSession } from "./types";
 
 // ============================================================================
 // Types
@@ -629,7 +629,7 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
 
       async getSessionStats(): Promise<{ total: number; completed: number; avgNudges: number }> {
         if (!storage) return { total: 0, completed: 0, avgNudges: 0 };
-        
+
         try {
           const sessions = await storage.getAllSessions();
           if (sessions.length === 0) {
@@ -651,7 +651,8 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
             totalNudges += nudgeCount;
           }
 
-          const avgNudges = sessions.length > 0 ? Math.round((totalNudges / sessions.length) * 10) / 10 : 0;
+          const avgNudges =
+            sessions.length > 0 ? Math.round((totalNudges / sessions.length) * 10) / 10 : 0;
 
           return { total: sessions.length, completed, avgNudges };
         } catch (error) {
@@ -662,7 +663,7 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
 
       async softDeleteSession(sessionId: string): Promise<void> {
         if (!storage) return;
-        
+
         try {
           await storage.softDeleteSession(sessionId);
         } catch (error) {
