@@ -133,11 +133,11 @@ function extractSessionData(events: Event[]): { code: string; invariants: string
   let invariants = "";
 
   for (const event of events) {
-    if (event.type === "coding.code_changed" && "code" in event) {
-      code = event.code as string;
+    if (event.type === "coding.code_changed" && event.data && "code" in event.data) {
+      code = (event.data as { code: string }).code;
     }
-    if (event.type === "prep.invariants_changed" && "invariants" in event) {
-      invariants = event.invariants as string;
+    if (event.type === "prep.invariants_changed" && event.data && "invariants" in event.data) {
+      invariants = (event.data as { invariants: string }).invariants;
     }
   }
 
@@ -156,8 +156,8 @@ function buildExportData(
   const reflectionEvent = session.events.find((e) => e.type === "reflection.submitted");
   let reflection: ReflectionData | null = null;
 
-  if (reflectionEvent && "responses" in reflectionEvent) {
-    const responses = reflectionEvent.responses as ReflectionData;
+  if (reflectionEvent && reflectionEvent.data && "responses" in reflectionEvent.data) {
+    const responses = (reflectionEvent.data as { responses: ReflectionData }).responses;
     reflection = {
       clearApproach: responses.clearApproach,
       prolongedStall: responses.prolongedStall,
