@@ -10,3 +10,4 @@ export { CodingScreen } from "./CodingScreen";
 export { SummaryScreen } from "./SummaryScreen";
 export { ReflectionScreen } from "./ReflectionScreen";
 export { DoneScreen } from "./DoneScreen";
+export { DashboardScreen } from "./DashboardScreen";

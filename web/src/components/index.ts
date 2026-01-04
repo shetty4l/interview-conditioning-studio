@@ -22,3 +22,6 @@ export { InvariantsInput, type InvariantsInputProps } from "./InvariantsInput";
 export { NudgeButton, type NudgeButtonProps } from "./NudgeButton";
 export { RecordingIndicator, type RecordingIndicatorProps } from "./RecordingIndicator";
 export { PauseButton, type PauseButtonProps } from "./PauseButton";
+export { AppHeader, type AppHeaderProps } from "./AppHeader";
+export { StatsCard, type StatsCardProps } from "./StatsCard";
+export { SessionCard, type SessionCardProps } from "./SessionCard";

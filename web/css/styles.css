@@ -1000,6 +1000,210 @@ input[type="radio"] {
 }
 
 /* ============================================================================
+   App Header
+   ============================================================================ */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) 0;
+  margin-bottom: var(--space-lg);
+  border-bottom: var(--border-width) solid var(--border);
+}
+
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.app-header__back {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-bold);
+  transition: color var(--transition-fast);
+}
+
+.app-header__back:hover {
+  color: var(--primary);
+}
+
+.app-header__title {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-black);
+  letter-spacing: -0.02em;
+}
+
+.app-header__title:hover {
+  color: var(--primary);
+}
+
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* ============================================================================
+   Stats Card
+   ============================================================================ */
+
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-lg);
+  background-color: var(--bg-secondary);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--shadow);
+  min-width: 120px;
+}
+
+.stats-card__value {
+  font-size: 2rem;
+  font-weight: var(--font-weight-black);
+  color: var(--text);
+  line-height: 1;
+}
+
+.stats-card--success .stats-card__value {
+  color: var(--success);
+}
+
+.stats-card--warning .stats-card__value {
+  color: var(--warning);
+}
+
+.stats-card__label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: var(--space-xs);
+}
+
+/* ============================================================================
+   Session Card
+   ============================================================================ */
+
+.session-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  background-color: var(--bg-secondary);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--shadow);
+  margin-bottom: var(--space-md);
+}
+
+.session-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.session-card__title {
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+
+.session-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: 0.875rem;
+}
+
+.session-card__status {
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.session-card__status--completed {
+  color: var(--success);
+}
+
+.session-card__status--abandoned {
+  color: var(--danger);
+}
+
+.session-card__status--in_progress {
+  color: var(--warning);
+}
+
+.session-card__date {
+  color: var(--text-muted);
+}
+
+.session-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* ============================================================================
+   Dashboard
+   ============================================================================ */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.dashboard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard__stats {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.dashboard__sessions {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard__sessions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.dashboard__empty {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-muted);
+  background-color: var(--bg-secondary);
+  border: var(--border-width) dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.dashboard__empty-title {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-sm);
+  color: var(--text);
+}
+
+.dashboard__empty-text {
+  margin-bottom: var(--space-lg);
+}
+
+/* ============================================================================
    Loading State
    ============================================================================ */
 

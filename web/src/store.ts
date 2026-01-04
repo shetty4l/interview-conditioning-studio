@@ -100,6 +100,11 @@ export interface AppStoreActions {
   // Export
   exportSession(): Promise<void>;
 
+  // Dashboard
+  getAllSessions(): Promise<StoredSession[]>;
+  getSessionStats(): Promise<{ total: number; completed: number; avgNudges: number }>;
+  softDeleteSession(sessionId: string): Promise<void>;
+
   // Internal
   _syncSessionState(): Promise<void>;
   _handlePhaseExpiry(): void;
@@ -606,6 +611,62 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
           await exportSession(stored);
         } catch (error) {
           console.error("Failed to export session:", error);
+        }
+      },
+
+      // ----------------------------------------------------------------------
+      // Dashboard
+      // ----------------------------------------------------------------------
+      async getAllSessions(): Promise<StoredSession[]> {
+        if (!storage) return [];
+        try {
+          return await storage.getAllSessions();
+        } catch (error) {
+          console.error("Failed to get all sessions:", error);
+          return [];
+        }
+      },
+
+      async getSessionStats(): Promise<{ total: number; completed: number; avgNudges: number }> {
+        if (!storage) return { total: 0, completed: 0, avgNudges: 0 };
+        
+        try {
+          const sessions = await storage.getAllSessions();
+          if (sessions.length === 0) {
+            return { total: 0, completed: 0, avgNudges: 0 };
+          }
+
+          let completed = 0;
+          let totalNudges = 0;
+
+          for (const session of sessions) {
+            // Check if completed (has reflection.submitted event)
+            const hasReflection = session.events.some((e) => e.type === "reflection.submitted");
+            if (hasReflection) {
+              completed++;
+            }
+
+            // Count nudges
+            const nudgeCount = session.events.filter((e) => e.type === "nudge.requested").length;
+            totalNudges += nudgeCount;
+          }
+
+          const avgNudges = sessions.length > 0 ? Math.round((totalNudges / sessions.length) * 10) / 10 : 0;
+
+          return { total: sessions.length, completed, avgNudges };
+        } catch (error) {
+          console.error("Failed to get session stats:", error);
+          return { total: 0, completed: 0, avgNudges: 0 };
+        }
+      },
+
+      async softDeleteSession(sessionId: string): Promise<void> {
+        if (!storage) return;
+        
+        try {
+          await storage.softDeleteSession(sessionId);
+        } catch (error) {
+          console.error("Failed to soft delete session:", error);
         }
       },
 
