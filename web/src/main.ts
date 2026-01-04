@@ -367,10 +367,36 @@ async function init(): Promise<void> {
   const toastContainer = ToastContainer();
   document.body.appendChild(toastContainer);
 
+  // Set up beforeunload handler to warn about unsaved sessions
+  setupBeforeUnloadHandler();
+
   // Mount the app
   mount(App, appContainer);
 
   console.log("Interview Conditioning Studio - Ready!");
+}
+
+// ============================================================================
+// Before Unload Handler
+// ============================================================================
+
+/**
+ * Warns user when leaving the page during an active session.
+ * This prevents accidental data loss from navigating away.
+ */
+function setupBeforeUnloadHandler(): void {
+  window.addEventListener("beforeunload", (event) => {
+    const state = AppStore.getSnapshot();
+    
+    // Only warn if there's an active, in-progress session
+    if (state.status === "in_progress" && state.sessionId) {
+      // Standard way to trigger the browser's confirmation dialog
+      event.preventDefault();
+      // For older browsers, set returnValue
+      event.returnValue = "";
+      return "";
+    }
+  });
 }
 
 // Start when DOM is ready
