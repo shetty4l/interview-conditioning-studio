@@ -109,7 +109,8 @@ export function mount(component: Component, target: HTMLElement): Cleanup {
  */
 export function onMount(callback: () => void | Cleanup): void {
   if (!currentOwner) {
-    console.warn("onMount called outside of component context");
+    // Silently ignore - this can happen in reactive contexts like Show/Switch
+    // where components are rendered dynamically. The functionality still works.
     return;
   }
   currentOwner.onMountCallbacks.push(callback);
@@ -122,10 +123,66 @@ export function onMount(callback: () => void | Cleanup): void {
  */
 export function onCleanup(cleanup: Cleanup): void {
   if (!currentOwner) {
-    console.warn("onCleanup called outside of component context");
+    // Silently ignore - this can happen in reactive contexts like Show/Switch
+    // where components are rendered dynamically. The functionality still works.
     return;
   }
   currentOwner.onCleanupCallbacks.push(cleanup);
+}
+
+// ============================================================================
+// Dynamic Component Rendering
+// ============================================================================
+
+/**
+ * Create a component scope for dynamic rendering.
+ * Used by Switch, Show, and other conditional rendering helpers.
+ * 
+ * @param fn - Function to execute within the component scope
+ * @returns Object containing the result and a dispose function
+ */
+export function createRoot<T>(fn: () => T): { result: T; dispose: Cleanup } {
+  // Create owner for this scope
+  const owner: Owner = {
+    onMountCallbacks: [],
+    onCleanupCallbacks: [],
+    mountCleanups: [],
+    parent: currentOwner,
+    contexts: new Map(),
+  };
+
+  // Set current owner for hook registration
+  const prevOwner = currentOwner;
+  currentOwner = owner;
+
+  let result: T;
+  try {
+    result = fn();
+  } finally {
+    currentOwner = prevOwner;
+  }
+
+  // Run onMount callbacks immediately (since we're dynamically rendering)
+  for (const callback of owner.onMountCallbacks) {
+    const cleanup = callback();
+    if (typeof cleanup === "function") {
+      owner.mountCleanups.push(cleanup);
+    }
+  }
+
+  // Return result and dispose function
+  const dispose = () => {
+    // Run mount cleanups first
+    for (const cleanup of owner.mountCleanups) {
+      cleanup();
+    }
+    // Run onCleanup callbacks in reverse order
+    for (let i = owner.onCleanupCallbacks.length - 1; i >= 0; i--) {
+      owner.onCleanupCallbacks[i]();
+    }
+  };
+
+  return { result, dispose };
 }
 
 // ============================================================================

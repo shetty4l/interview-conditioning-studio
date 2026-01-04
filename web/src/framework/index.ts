@@ -48,15 +48,17 @@ export {
   text,
   Show,
   For,
+  Switch,
   type Child,
   type Children,
+  type SwitchCase,
 } from "./elements";
 
 // ============================================================================
 // Component Lifecycle
 // ============================================================================
 
-export { mount, onMount, onCleanup, createContext, useContext } from "./component";
+export { mount, onMount, onCleanup, createContext, useContext, createRoot } from "./component";
 
 // ============================================================================
 // Store

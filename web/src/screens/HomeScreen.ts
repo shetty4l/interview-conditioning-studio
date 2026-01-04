@@ -5,7 +5,7 @@
  * Shows resume banner if there's an incomplete session.
  */
 
-import { div, h1, h2, p, span, Show, useStore, useActions } from "../framework";
+import { div, h1, h2, p, span, Show, useStore, useActions, useRouter } from "../framework";
 import { Button, PresetCard, ConfirmButton, showToast } from "../components";
 import { AppStore, PresetEnum } from "../store";
 import type { Preset } from "../../../core/src/index";
@@ -43,6 +43,7 @@ const PRESETS: Array<{
 export function HomeScreen(): HTMLElement {
   const state = useStore(AppStore);
   const actions = useActions(AppStore);
+  const router = useRouter();
 
   const handleSelectPreset = (preset: Preset) => {
     actions.selectPreset(preset);
@@ -50,10 +51,20 @@ export function HomeScreen(): HTMLElement {
 
   const handleStartSession = async () => {
     await actions.startSession();
+    // Navigate to the session route
+    const sessionId = AppStore.getSnapshot().sessionId;
+    if (sessionId) {
+      router.navigate(`/${sessionId}`);
+    }
   };
 
   const handleResume = async () => {
     await actions.resumeSession();
+    // Navigate to the session route
+    const sessionId = AppStore.getSnapshot().sessionId;
+    if (sessionId) {
+      router.navigate(`/${sessionId}`);
+    }
     showToast("Session resumed", "success");
   };
 

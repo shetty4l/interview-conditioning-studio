@@ -5,6 +5,7 @@
  */
 
 import { watch } from "./reactive";
+import { createRoot } from "./component";
 
 // ============================================================================
 // Types
@@ -189,9 +190,16 @@ export function Show(
   container.style.display = "contents";
 
   let currentContent: Node | null = null;
+  let currentDispose: (() => void) | null = null;
 
   watch(() => {
     const shouldShow = condition();
+
+    // Dispose previous component
+    if (currentDispose) {
+      currentDispose();
+      currentDispose = null;
+    }
 
     // Remove current content
     if (currentContent) {
@@ -201,10 +209,14 @@ export function Show(
 
     // Render appropriate content
     if (shouldShow) {
-      currentContent = whenTrue();
+      const { result, dispose } = createRoot(() => whenTrue());
+      currentContent = result;
+      currentDispose = dispose;
       container.appendChild(currentContent);
     } else if (whenFalse) {
-      currentContent = whenFalse();
+      const { result, dispose } = createRoot(() => whenFalse());
+      currentContent = result;
+      currentDispose = dispose;
       container.appendChild(currentContent);
     }
   });
@@ -250,6 +262,89 @@ export function For<T>(
     // Append all new nodes
     for (const node of currentNodes) {
       container.appendChild(node);
+    }
+  });
+
+  return container;
+}
+
+// ============================================================================
+// Switch (Multi-case Conditional Rendering)
+// ============================================================================
+
+/** Case definition for Switch component */
+export interface SwitchCase<T> {
+  match: T | ((value: T) => boolean);
+  render: () => Node;
+}
+
+/**
+ * Render content based on matching a value against multiple cases.
+ * Similar to a switch statement but reactive.
+ *
+ * @param value - Reactive value getter
+ * @param cases - Array of cases with match condition and render function
+ * @param fallback - Optional render function when no case matches
+ * @returns Container element that swaps content reactively
+ *
+ * @example
+ * Switch(
+ *   () => state.screen(),
+ *   [
+ *     { match: "prep", render: PrepScreen },
+ *     { match: "coding", render: CodingScreen },
+ *     { match: (v) => v === "silent", render: CodingScreen },
+ *   ],
+ *   () => div({}, ["Unknown screen"])
+ * )
+ */
+export function Switch<T>(
+  value: () => T,
+  cases: SwitchCase<T>[],
+  fallback?: () => Node,
+): HTMLElement {
+  const container = document.createElement("span");
+  container.style.display = "contents";
+
+  let currentContent: Node | null = null;
+  let currentDispose: (() => void) | null = null;
+
+  watch(() => {
+    const v = value();
+
+    // Dispose previous component
+    if (currentDispose) {
+      currentDispose();
+      currentDispose = null;
+    }
+
+    // Remove current content
+    if (currentContent) {
+      container.removeChild(currentContent);
+      currentContent = null;
+    }
+
+    // Find matching case
+    for (const c of cases) {
+      const matches =
+        typeof c.match === "function" ? (c.match as (value: T) => boolean)(v) : c.match === v;
+
+      if (matches) {
+        // Create component in its own root scope for lifecycle hooks
+        const { result, dispose } = createRoot(() => c.render());
+        currentContent = result;
+        currentDispose = dispose;
+        container.appendChild(currentContent);
+        return;
+      }
+    }
+
+    // No match - render fallback if provided
+    if (fallback) {
+      const { result, dispose } = createRoot(() => fallback());
+      currentContent = result;
+      currentDispose = dispose;
+      container.appendChild(currentContent);
     }
   });
 

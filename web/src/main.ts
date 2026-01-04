@@ -5,8 +5,8 @@
  * Sets up router, initializes store, and exposes window.IDS API for E2E tests.
  */
 
-import { mount, useStore, watch } from "./framework";
-import { ToastContainer } from "./components";
+import { mount, createRouter, useRoute, useRouter, useStore, Show, Switch, div, onMount } from "./framework";
+import { ToastContainer, showToast } from "./components";
 import { AppStore } from "./store";
 import { createStorage } from "./storage";
 import type { ReflectionFormData } from "./types";
@@ -19,87 +19,121 @@ import {
   SummaryScreen,
   ReflectionScreen,
   DoneScreen,
+  DashboardScreen,
 } from "./screens";
+
+// ============================================================================
+// Route Components
+// ============================================================================
+
+/**
+ * Session route component - loads session and renders appropriate phase reactively.
+ */
+function SessionRoute(): HTMLElement {
+  const { params } = useRoute();
+  const router = useRouter();
+  const state = useStore(AppStore);
+  const sessionId = params.id;
+
+  // Handle missing session ID
+  if (!sessionId) {
+    router.navigate("/");
+    return div({ class: "loading" }, ["Redirecting..."]);
+  }
+
+  // Load session on mount if needed
+  onMount(() => {
+    const currentSessionId = state.sessionId();
+    if (currentSessionId !== sessionId) {
+      AppStore.getActions()._loadSession(sessionId).then((loaded) => {
+        if (!loaded) {
+          showToast("Session not found", "error");
+          router.navigate("/");
+        }
+      });
+    }
+  });
+
+  // Reactive rendering based on store state
+  return Show(
+    () => state.sessionId() === sessionId,
+    () =>
+      Switch(
+        state.screen,
+        [
+          { match: "prep", render: PrepScreen },
+          { match: "coding", render: CodingScreen },
+          { match: "silent", render: CodingScreen },
+          { match: "summary", render: SummaryScreen },
+          { match: "reflection", render: ReflectionScreen },
+          { match: "done", render: DoneScreen },
+        ],
+        () => div({ class: "error" }, ["Unknown screen state"]),
+      ),
+    () => div({ class: "loading" }, ["Loading session..."]),
+  );
+}
+
+/**
+ * View route component - read-only view of completed session.
+ */
+function ViewRoute(): HTMLElement {
+  const { params } = useRoute();
+  const router = useRouter();
+  const sessionId = params.id;
+
+  if (!sessionId) {
+    router.navigate("/");
+    return div({ class: "loading" }, ["Redirecting..."]);
+  }
+
+  // TODO: Implement read-only session view
+  // For now, redirect to dashboard with message
+  onMount(() => {
+    showToast("Session view coming soon", "info");
+    router.navigate("/");
+  });
+
+  return div({ class: "loading" }, ["Loading session view..."]);
+}
+
+/**
+ * Not found screen for invalid routes.
+ */
+function NotFoundScreen(): HTMLElement {
+  const router = useRouter();
+
+  onMount(() => {
+    // Auto-redirect to dashboard after a moment
+    const timeout = setTimeout(() => {
+      router.navigate("/");
+    }, 2000);
+    return () => clearTimeout(timeout);
+  });
+
+  return div({ class: "not-found-screen" }, [
+    div({ class: "not-found-content" }, [
+      div({ class: "not-found-title" }, ["Page Not Found"]),
+      div({ class: "not-found-message" }, ["Redirecting to dashboard..."]),
+    ]),
+  ]);
+}
 
 // ============================================================================
 // Router Setup
 // ============================================================================
 
-// Screen routing is driven by AppStore.state.screen
-// The router watches the store and renders the appropriate screen
-function App(): HTMLElement {
-  const state = useStore(AppStore);
-
-  // Create a container that switches screens based on state
-  const container = document.createElement("div");
-  container.id = "app-container";
-  container.className = "app-container";
-
-  // Track current screen element
-  let currentScreen: HTMLElement | null = null;
-
-  // Render screen based on state
-  const renderScreen = () => {
-    const screen = state.screen();
-
-    // Clear and render new screen
-    container.innerHTML = "";
-
-    switch (screen) {
-      case "home":
-        currentScreen = HomeScreen();
-        break;
-      case "prep":
-        currentScreen = PrepScreen();
-        break;
-      case "coding":
-      case "silent":
-        currentScreen = CodingScreen();
-        break;
-      case "summary":
-        currentScreen = SummaryScreen();
-        break;
-      case "reflection":
-        currentScreen = ReflectionScreen();
-        break;
-      case "done":
-        currentScreen = DoneScreen();
-        break;
-      default:
-        currentScreen = HomeScreen();
-    }
-
-    if (currentScreen) {
-      container.appendChild(currentScreen);
-    }
-
-    // Update URL hash to match screen and session
-    const sessionId = state.sessionId();
-    let hash: string;
-    if (screen === "home" || !sessionId) {
-      hash = "/";
-    } else {
-      hash = `/${sessionId}/${screen}`;
-    }
-    if (window.location.hash !== `#${hash}`) {
-      window.history.replaceState(null, "", `#${hash}`);
-    }
-  };
-
-  // Watch for screen changes
-  watch(() => {
-    // Access signals to register dependencies
-    state.screen();
-    state.sessionId();
-    // Then re-render
-    renderScreen();
-  });
-
-  // Initial render
-  renderScreen();
-
-  return container;
-}
+const Router = createRouter(
+  [
+    { path: "/", component: DashboardScreen },
+    { path: "/new", component: HomeScreen },
+    { path: "/:id", component: SessionRoute },
+    { path: "/:id/view", component: ViewRoute },
+  ],
+  {
+    fallback: NotFoundScreen,
+  },
+);
 
 // ============================================================================
 // IDS API for E2E Testing
@@ -113,7 +147,7 @@ interface IDSAPI {
     > | null;
   };
 
-  // Session lifecycle
+  // Session lifecycle (actions only - no navigation)
   startSession: () => Promise<void>;
   abandonSession: () => Promise<void>;
   resetApp: () => void;
@@ -142,8 +176,8 @@ interface IDSAPI {
     getCurrentRoute: () => {
       type: string;
       sessionId?: string;
-      phase?: string;
     };
+    navigate: (path: string) => void;
   };
 }
 
@@ -166,6 +200,8 @@ function setupIDSAPI(): void {
       };
     },
 
+    // Session lifecycle - actions only, no navigation
+    // Tests should use router.navigate() or click buttons for navigation
     startSession: async () => {
       await actions.startSession();
     },
@@ -243,78 +279,31 @@ function setupIDSAPI(): void {
         const hash = window.location.hash;
         const path = hash.startsWith("#") ? hash.slice(1) : "/";
 
-        // Parse path to determine route type
         if (path === "/" || path === "") {
-          return { type: "home" };
+          return { type: "dashboard" };
         }
 
-        // Check for session route: /{sessionId}/{phase}
         const parts = path.split("/").filter(Boolean);
-        if (parts.length === 2) {
-          const [sessionId, phase] = parts;
-          return {
-            type: "session",
-            sessionId,
-            phase: phase.toUpperCase(),
-          };
+        
+        if (parts.length === 1 && parts[0] === "new") {
+          return { type: "new" };
         }
 
-        // Simple phase route: /prep, /coding, etc.
         if (parts.length === 1) {
-          return { type: parts[0] };
+          return { type: "session", sessionId: parts[0] };
+        }
+
+        if (parts.length === 2 && parts[1] === "view") {
+          return { type: "view", sessionId: parts[0] };
         }
 
         return { type: "not_found" };
       },
+      navigate: (path: string) => {
+        window.location.hash = "#" + path;
+      },
     },
   };
-}
-
-// ============================================================================
-// URL Parsing
-// ============================================================================
-
-interface ParsedRoute {
-  type: "home" | "session" | "invalid";
-  sessionId?: string;
-  phase?: string;
-}
-
-/**
- * Parse the URL hash to extract route information.
- */
-function parseUrlHash(): ParsedRoute {
-  const hash = window.location.hash;
-  const path = hash.startsWith("#") ? hash.slice(1) : "/";
-
-  // Home route
-  if (path === "/" || path === "") {
-    return { type: "home" };
-  }
-
-  // Check for session route: /{sessionId}/{phase}
-  const parts = path.split("/").filter(Boolean);
-  if (parts.length === 2) {
-    const [sessionId, phase] = parts;
-    // Validate phase is a known phase
-    const validPhases = ["prep", "coding", "silent", "summary", "reflection", "done"];
-    if (validPhases.includes(phase.toLowerCase())) {
-      return {
-        type: "session",
-        sessionId,
-        phase: phase.toLowerCase(),
-      };
-    }
-    // Invalid phase
-    return { type: "invalid" };
-  }
-
-  // Simple route like /prep or /invalid
-  if (parts.length === 1) {
-    return { type: "invalid" };
-  }
-
-  return { type: "invalid" };
 }
 
 // ============================================================================
@@ -331,23 +320,6 @@ async function init(): Promise<void> {
   const actions = AppStore.getActions();
   await actions.init();
 
-  // Handle URL-based session restoration
-  const route = parseUrlHash();
-  if (route.type === "session" && route.sessionId) {
-    // Try to load the session from storage
-    const loaded = await actions._loadSession(route.sessionId);
-    if (!loaded) {
-      // Session not found, redirect to home
-      console.log(`Session ${route.sessionId} not found, redirecting to home`);
-      window.history.replaceState(null, "", "#/");
-    }
-    // If loaded, the session's actual phase will be used (URL auto-updates via renderScreen)
-  } else if (route.type === "invalid") {
-    // Invalid route, redirect to home
-    console.log("Invalid route, redirecting to home");
-    window.history.replaceState(null, "", "#/");
-  }
-
   // Get app container
   const appContainer = document.getElementById("app");
   if (!appContainer) {
@@ -359,7 +331,6 @@ async function init(): Promise<void> {
   appContainer.innerHTML = "";
 
   // Initialize toast container
-  // Replace static HTML container with reactive one, or create if missing
   const existingToastContainer = document.getElementById("toast-container");
   if (existingToastContainer) {
     existingToastContainer.remove();
@@ -370,8 +341,8 @@ async function init(): Promise<void> {
   // Set up beforeunload handler to warn about unsaved sessions
   setupBeforeUnloadHandler();
 
-  // Mount the app
-  mount(App, appContainer);
+  // Mount the router
+  mount(Router, appContainer);
 
   console.log("Interview Conditioning Studio - Ready!");
 }
@@ -382,17 +353,13 @@ async function init(): Promise<void> {
 
 /**
  * Warns user when leaving the page during an active session.
- * This prevents accidental data loss from navigating away.
  */
 function setupBeforeUnloadHandler(): void {
   window.addEventListener("beforeunload", (event) => {
     const state = AppStore.getSnapshot();
 
-    // Only warn if there's an active, in-progress session
     if (state.status === "in_progress" && state.sessionId) {
-      // Standard way to trigger the browser's confirmation dialog
       event.preventDefault();
-      // For older browsers, set returnValue
       event.returnValue = "";
       return "";
     }

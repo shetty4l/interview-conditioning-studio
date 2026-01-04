@@ -125,7 +125,7 @@ let audioRecorder: AudioRecorder | null = null;
 // ============================================================================
 
 const initialState: AppStoreState = {
-  screen: "home",
+  screen: "dashboard",
   session: null,
   sessionId: null,
   problem: null,

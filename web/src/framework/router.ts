@@ -5,7 +5,7 @@
  */
 
 import { signal } from "./reactive";
-import { createContext, onCleanup } from "./component";
+import { createContext, onCleanup, createRoot } from "./component";
 import { h, type Child } from "./elements";
 
 // ============================================================================
@@ -160,47 +160,61 @@ export function createRouter(
       currentParams,
     };
 
+    // Set router context for the lifetime of this router
+    // This allows useRouter/useRoute to work in reactive updates (e.g., Switch re-renders)
+    activeRouterContext = contextValue;
+
+    // Clean up context when router unmounts
+    onCleanup(() => {
+      if (activeRouterContext === contextValue) {
+        activeRouterContext = null;
+      }
+    });
+
     // Create container
     const container = h("div", { class: "router" }, []);
+
+    // Track current route's dispose function
+    let currentDispose: (() => void) | null = null;
 
     // Render function - finds and renders matching route
     const renderRoute = (): void => {
       const path = currentPath();
 
+      // Dispose previous route component
+      if (currentDispose) {
+        currentDispose();
+        currentDispose = null;
+      }
+
       // Clear container
       container.innerHTML = "";
 
-      // Set active context for useRouter/useRoute
-      const prevContext = activeRouterContext;
-      activeRouterContext = contextValue;
+      // Find matching route
+      for (const route of routes) {
+        const params = matchRoute(route.path, path);
+        if (params !== null) {
+          // Update params
+          setCurrentParams(params);
 
-      try {
-        // Find matching route
-        for (const route of routes) {
-          const params = matchRoute(route.path, path);
-          if (params !== null) {
-            // Update params
-            setCurrentParams(params);
-
-            // Render matched component
-            const element = route.component();
-            if (element) {
-              container.appendChild(element);
-            }
-            return;
-          }
-        }
-
-        // No match - render fallback if provided
-        setCurrentParams({});
-        if (options.fallback) {
-          const element = options.fallback();
+          // Render matched component in its own scope
+          const { result: element, dispose } = createRoot(() => route.component());
+          currentDispose = dispose;
           if (element) {
             container.appendChild(element);
           }
+          return;
         }
-      } finally {
-        activeRouterContext = prevContext;
+      }
+
+      // No match - render fallback if provided
+      setCurrentParams({});
+      if (options.fallback) {
+        const { result: element, dispose } = createRoot(() => options.fallback!());
+        currentDispose = dispose;
+        if (element) {
+          container.appendChild(element);
+        }
       }
     };
 

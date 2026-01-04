@@ -38,7 +38,7 @@ async function waitForSessionPersisted(page: Page, sessionId: string, timeout = 
 
 test.describe("Abandon Session", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/#/new");
     await page.waitForFunction(() => window.IDS?.getAppState);
     await clearStorageAndVerify(page);
   });
@@ -60,7 +60,7 @@ test.describe("Abandon Session", () => {
     const state = await page.evaluate(() => window.IDS.getAppState());
     expect(state.sessionId).toBeNull();
     expect(state.session).toBeNull();
-    expect(state.screen).toBe("home");
+    expect(state.screen).toBe("dashboard");
   });
 
   test("abandonSession deletes session from storage", async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe("Abandon Session", () => {
     expect(storedSession).toBeNull();
   });
 
-  test("abandonSession navigates to home", async ({ page }) => {
+  test("abandonSession navigates to dashboard", async ({ page }) => {
     // Start a session and go to coding
     await page.click(".start-button");
     await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
@@ -92,18 +92,12 @@ test.describe("Abandon Session", () => {
     await page.click(".start-coding-button");
     await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
 
-    // Verify we're not at home
-    expect(page.url()).toContain("/coding");
-
     // Abandon
     await page.evaluate(() => window.IDS.abandonSession());
-    await page.waitForFunction(() => window.IDS.getAppState().screen === "home");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "dashboard");
 
-    // Should be at home
-    expect(page.url()).toContain("#/");
-    // Shouldn't have any session in URL
-    expect(page.url()).not.toContain("/coding");
-    expect(page.url()).not.toContain("/prep");
+    // Should be at dashboard
+    expect(page.url()).toMatch(/#\/?$/);
   });
 
   test("can abandon from PREP phase", async ({ page }) => {
@@ -120,7 +114,7 @@ test.describe("Abandon Session", () => {
 
     // Verify cleanup
     const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.screen).toBe("home");
+    expect(state.screen).toBe("dashboard");
 
     const storedSession = await page.evaluate(
       (id) => window.IDS.storage.getSession(id),
@@ -146,7 +140,7 @@ test.describe("Abandon Session", () => {
 
     // Verify cleanup
     const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.screen).toBe("home");
+    expect(state.screen).toBe("dashboard");
   });
 
   test("can abandon from SUMMARY phase", async ({ page }) => {
@@ -169,7 +163,7 @@ test.describe("Abandon Session", () => {
 
     // Verify cleanup
     const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.screen).toBe("home");
+    expect(state.screen).toBe("dashboard");
   });
 
   test("can abandon from REFLECTION phase", async ({ page }) => {
@@ -195,7 +189,7 @@ test.describe("Abandon Session", () => {
 
     // Verify cleanup
     const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.screen).toBe("home");
+    expect(state.screen).toBe("dashboard");
   });
 
   test("abandoned session does not show in resume banner", async ({ page }) => {
@@ -210,8 +204,8 @@ test.describe("Abandon Session", () => {
     await page.evaluate(() => window.IDS.abandonSession());
     await page.waitForFunction(() => window.IDS.getAppState().sessionId === null);
 
-    // Refresh page
-    await page.goto("/");
+    // Navigate to new session screen
+    await page.goto("/#/new");
     await page.waitForFunction(() => window.IDS?.getAppState);
 
     // Should not show resume banner
@@ -229,7 +223,9 @@ test.describe("Abandon Session", () => {
     await page.evaluate(() => window.IDS.abandonSession());
     await page.waitForFunction(() => window.IDS.getAppState().sessionId === null);
 
-    // Start new session
+    // Navigate back to new session screen and start new session
+    await page.goto("/#/new");
+    await page.waitForFunction(() => window.IDS?.getAppState);
     await page.click(".start-button");
     await page.waitForFunction(() => window.IDS.getAppState().sessionId !== null);
 
@@ -268,7 +264,7 @@ test.describe("Abandon Session", () => {
     await page.waitForFunction(() => window.IDS.getAppState().sessionId === null);
 
     const state = await page.evaluate(() => window.IDS.getAppState());
-    expect(state.screen).toBe("home");
+    expect(state.screen).toBe("dashboard");
     expect(state.session).toBeNull();
   });
 });

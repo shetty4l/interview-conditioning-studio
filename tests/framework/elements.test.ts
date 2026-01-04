@@ -23,6 +23,7 @@ import {
   label,
   Show,
   For,
+  Switch,
   text,
 } from "../../web/src/framework/elements";
 
@@ -378,5 +379,171 @@ describe("For", () => {
 
     container.appendChild(el);
     expect(container.textContent).toBe("AliceBob");
+  });
+});
+
+// ============================================================================
+// Switch
+// ============================================================================
+
+describe("Switch", () => {
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    container.remove();
+  });
+
+  test("renders matching case by value", () => {
+    const [screen] = signal("home");
+
+    const el = Switch(screen, [
+      { match: "home", render: () => div({}, ["Home"]) },
+      { match: "about", render: () => div({}, ["About"]) },
+    ]);
+
+    container.appendChild(el);
+    expect(container.textContent).toBe("Home");
+  });
+
+  test("renders matching case by function predicate", () => {
+    const [count] = signal(5);
+
+    const el = Switch(count, [
+      { match: (v) => v < 3, render: () => span({}, ["Small"]) },
+      { match: (v) => v >= 3 && v < 10, render: () => span({}, ["Medium"]) },
+      { match: (v) => v >= 10, render: () => span({}, ["Large"]) },
+    ]);
+
+    container.appendChild(el);
+    expect(container.textContent).toBe("Medium");
+  });
+
+  test("updates when value changes", () => {
+    const [screen, setScreen] = signal("home");
+
+    const el = Switch(screen, [
+      { match: "home", render: () => div({}, ["Home"]) },
+      { match: "about", render: () => div({}, ["About"]) },
+      { match: "contact", render: () => div({}, ["Contact"]) },
+    ]);
+
+    container.appendChild(el);
+    expect(container.textContent).toBe("Home");
+
+    setScreen("about");
+    expect(container.textContent).toBe("About");
+
+    setScreen("contact");
+    expect(container.textContent).toBe("Contact");
+  });
+
+  test("renders fallback when no case matches", () => {
+    const [screen] = signal("unknown");
+
+    const el = Switch(
+      screen,
+      [
+        { match: "home", render: () => div({}, ["Home"]) },
+        { match: "about", render: () => div({}, ["About"]) },
+      ],
+      () => div({}, ["Not Found"]),
+    );
+
+    container.appendChild(el);
+    expect(container.textContent).toBe("Not Found");
+  });
+
+  test("renders nothing when no case matches and no fallback", () => {
+    const [screen] = signal("unknown");
+
+    const el = Switch(screen, [
+      { match: "home", render: () => div({}, ["Home"]) },
+      { match: "about", render: () => div({}, ["About"]) },
+    ]);
+
+    container.appendChild(el);
+    expect(container.textContent).toBe("");
+  });
+
+  test("switches from fallback to matching case", () => {
+    const [screen, setScreen] = signal("unknown");
+
+    const el = Switch(
+      screen,
+      [
+        { match: "home", render: () => div({}, ["Home"]) },
+        { match: "about", render: () => div({}, ["About"]) },
+      ],
+      () => div({}, ["Not Found"]),
+    );
+
+    container.appendChild(el);
+    expect(container.textContent).toBe("Not Found");
+
+    setScreen("home");
+    expect(container.textContent).toBe("Home");
+  });
+
+  test("first matching case wins", () => {
+    const [value] = signal(5);
+
+    const el = Switch(value, [
+      { match: (v) => v > 0, render: () => span({}, ["Positive"]) },
+      { match: (v) => v > 3, render: () => span({}, ["Greater than 3"]) },
+      { match: 5, render: () => span({}, ["Exactly 5"]) },
+    ]);
+
+    container.appendChild(el);
+    expect(container.textContent).toBe("Positive");
+  });
+
+  test("works with mixed match types", () => {
+    const [screen, setScreen] = signal("home");
+
+    const el = Switch(screen, [
+      { match: "home", render: () => div({}, ["Home"]) },
+      { match: (v) => v.startsWith("user-"), render: () => div({}, ["User Page"]) },
+      { match: "about", render: () => div({}, ["About"]) },
+    ]);
+
+    container.appendChild(el);
+    expect(container.textContent).toBe("Home");
+
+    setScreen("user-123");
+    expect(container.textContent).toBe("User Page");
+
+    setScreen("about");
+    expect(container.textContent).toBe("About");
+  });
+
+  test("uses display: contents for container", () => {
+    const [screen] = signal("home");
+
+    const el = Switch(screen, [{ match: "home", render: () => div({}, ["Home"]) }]);
+
+    container.appendChild(el);
+    expect(el.style.display).toBe("contents");
+  });
+
+  test("properly removes previous content on switch", () => {
+    const [screen, setScreen] = signal("home");
+
+    const el = Switch(screen, [
+      { match: "home", render: () => div({ class: "home" }, ["Home"]) },
+      { match: "about", render: () => div({ class: "about" }, ["About"]) },
+    ]);
+
+    container.appendChild(el);
+    expect(container.querySelector(".home")).not.toBeNull();
+    expect(container.querySelector(".about")).toBeNull();
+
+    setScreen("about");
+    expect(container.querySelector(".home")).toBeNull();
+    expect(container.querySelector(".about")).not.toBeNull();
   });
 });

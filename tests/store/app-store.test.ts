@@ -18,7 +18,7 @@ describe("AppStore", () => {
   describe("initial state", () => {
     it("should have correct initial screen", () => {
       const state = AppStore.getSnapshot();
-      expect(state.screen).toBe("home");
+      expect(state.screen).toBe("dashboard");
     });
 
     it("should have null session initially", () => {
@@ -124,7 +124,7 @@ describe("AppStore", () => {
       actions.resetApp();
 
       const state = AppStore.getSnapshot();
-      expect(state.screen).toBe("home");
+      expect(state.screen).toBe("dashboard");
       expect(state.session).toBe(null);
       expect(state.sessionId).toBe(null);
       // Note: selectedPreset is reset to Standard in resetApp

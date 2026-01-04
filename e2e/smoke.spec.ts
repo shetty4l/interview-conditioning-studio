@@ -7,11 +7,12 @@ test.describe("App loads", () => {
     await expect(page).toHaveTitle("Interview Conditioning Studio");
   });
 
-  test("should show the main heading", async ({ page }) => {
+  test("should show the dashboard heading", async ({ page }) => {
     await page.goto("/");
 
+    // Dashboard is now the landing page, so we expect "Dashboard" heading
     await expect(
-      page.getByRole("heading", { name: "Interview Conditioning Studio" }),
+      page.getByRole("heading", { name: "Dashboard" }),
     ).toBeVisible();
   });
 });

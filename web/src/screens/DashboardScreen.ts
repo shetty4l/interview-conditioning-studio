@@ -4,7 +4,7 @@
  * Landing page with session list, stats, and "New Session" button.
  */
 
-import { div, h1, h2, p, span, useStore, useActions, signal, onMount, Show, For } from "../framework";
+import { div, h1, h2, p, useStore, useActions, useRouter, signal, onMount, Show, For } from "../framework";
 import { AppHeader, StatsCard, SessionCard, Button } from "../components";
 import { AppStore } from "../store";
 import type { StoredSession } from "../types";
@@ -15,8 +15,9 @@ import { exportSession as exportSessionFn } from "../export";
 // ============================================================================
 
 export function DashboardScreen(): HTMLElement {
-  const state = useStore(AppStore);
+  const _state = useStore(AppStore);
   const actions = useActions(AppStore);
+  const router = useRouter();
 
   // Local state for sessions and stats
   const [sessions, setSessions] = signal<StoredSession[]>([]);
@@ -38,15 +39,15 @@ export function DashboardScreen(): HTMLElement {
   });
 
   const handleNewSession = () => {
-    window.location.hash = "#/new";
+    router.navigate("/new");
   };
 
   const handleResumeSession = (sessionId: string) => {
-    window.location.hash = `#/${sessionId}`;
+    router.navigate(`/${sessionId}`);
   };
 
   const handleViewSession = (sessionId: string) => {
-    window.location.hash = `#/${sessionId}/view`;
+    router.navigate(`/${sessionId}/view`);
   };
 
   const handleExportSession = async (session: StoredSession) => {

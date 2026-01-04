@@ -136,7 +136,7 @@ test.describe("Dashboard", () => {
     await page.click(".start-button");
     await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
 
-    const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
+    const _sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
 
     // Click dashboard link (back navigation)
     await page.click('[data-action="go-to-dashboard"]');
@@ -190,7 +190,7 @@ test.describe("Dashboard", () => {
 
     // Soft delete the session (will need to expose softDeleteSession on IDS API)
     // For now, we simulate by going through the store action
-    await page.evaluate(async (id) => {
+    await page.evaluate(async (_id) => {
       // TODO: Once softDeleteSession is implemented, call it here
       // await window.IDS.softDeleteSession(id);
       // For now, this test will need the API to be exposed

@@ -11,7 +11,7 @@ import type { Problem } from "./problems";
 // App State
 // ============================================================================
 
-export type ScreenName = "home" | "prep" | "coding" | "silent" | "summary" | "reflection" | "done";
+export type ScreenName = "dashboard" | "home" | "prep" | "coding" | "silent" | "summary" | "reflection" | "done" | "view";
 
 export interface AppState {
   /** Current screen being displayed */
