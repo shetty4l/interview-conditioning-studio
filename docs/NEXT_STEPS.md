@@ -30,7 +30,9 @@ Work planned in priority order:
 | Session routes         | `/#/:id` renders current phase  | Phase is state, not route                         |
 | Recording              | **Auto-start/stop**             | Reduces friction, PRD says "audio recorded"       |
 | Pause                  | Available on all timed phases   | Handle technical issues gracefully                |
+| Pause behavior         | **Pauses timer + recording**    | Least surprise; privacy; consistent mental model  |
 | Soft delete            | `deletedAt` timestamp           | Enable future eviction policy                     |
+| Abandon behavior       | **Soft delete** (not hard)      | Future analytics; consistent with completed       |
 | Global nav             | Clickable title + back link     | Easy return to Dashboard from anywhere            |
 
 ## Two-Click Inline Pattern (Replaces Modals)
@@ -309,8 +311,71 @@ interface StoredSession {
   - Completed/Abandoned: View, Export, Delete
 - Educational empty state for new users
 
-### 3.9 Checkpoint
+### 3.9 Edge Cases & Decisions
 
+#### Must Handle (20 items)
+
+| # | Edge Case | Decision | E2E Test File |
+|---|-----------|----------|---------------|
+| 1 | Pause behavior | Pauses timer AND recording | `pause.spec.ts` |
+| 2 | Pause in Silent phase | Allow | `pause.spec.ts` |
+| 3 | Auto-record permission denied | Show `MicStatusIndicator` blocked state | `audio.spec.ts` |
+| 4 | Resume session + recording | Auto-restart recording | `pause.spec.ts` |
+| 5 | Dashboard nav with active session | Warn but allow, auto-save | `dashboard.spec.ts` |
+| 6 | Abandoned sessions | Soft delete, hidden from UI | `dashboard.spec.ts` |
+| 7 | New session while one active | Block with message | `dashboard.spec.ts` |
+| 8 | Browser back button | Allow, session auto-saved | `persistence.spec.ts` |
+| 9 | Empty stats calculation | Return zeros (no division error) | `dashboard.spec.ts` |
+| 10 | Export with no audio | Omit audio file from export | `export.spec.ts` |
+| 11 | Export abandoned session | Allow | `export.spec.ts` |
+| 12 | Export in-progress session | Disallow | `export.spec.ts` |
+| 13 | Timer drift across pause/resume | Track `totalPausedMs` from timestamps | `pause.spec.ts` |
+| 14 | Session restore with expired timer | Auto-advance phase | `persistence.spec.ts` |
+| 15 | Direct URL to non-existent session | Redirect to Dashboard + toast | `dashboard.spec.ts` |
+| 16 | Direct URL to deleted session | Redirect to Dashboard + toast | `dashboard.spec.ts` |
+| 17 | Rapid pause/resume | Debounce 300ms | `pause.spec.ts` |
+| 18 | Rapid code changes | Debounce storage saves (500ms) | `persistence.spec.ts` |
+| 19 | Refresh during session | Restore from storage | `persistence.spec.ts` |
+| 20 | Dispatch event during pause | Allow non-timer events | `pause.spec.ts` |
+
+#### Deferred (15 items)
+
+| # | Edge Case | Decision | Reason Deferred |
+|---|-----------|----------|-----------------|
+| 21 | Multiple browser tabs | Defer | Complex, rare use case |
+| 22 | Session deleted while viewing | Defer | Complex, rare use case |
+| 23 | Very long recordings (50MB+) | Defer | Already compressed |
+| 24 | IndexedDB unavailable | Toast + continue | Rare (private browsing) |
+| 25 | Recording fails mid-session | Toast + indicator | Hard to simulate in E2E |
+| 26 | System sleep / laptop lid | Recalculate on visibility | Hard to test in E2E |
+| 27 | Pause at phase expiry | Pause takes precedence | Timing-sensitive |
+| 28 | Storage quota exceeded | Toast, don't crash | Hard to test |
+| 29 | Export download blocked | Toast on failure | Browser-specific |
+| 30 | Same problem twice | Defer | UX annoyance only |
+| 31 | Mobile keyboard covers input | Defer | Browser handles |
+| 32 | Screen reader timer | Defer | a11y enhancement |
+| 33 | System clock change | Defer | Very rare |
+| 34 | Orphaned audio data | Best effort | Future cleanup |
+| 35 | Reflection form autofill | `autocomplete="off"` | Minor UX |
+
+### 3.10 E2E Test Plan
+
+| Test File | New Tests | Edge Cases Covered |
+|-----------|-----------|-------------------|
+| `e2e/dashboard.spec.ts` (new) | 8 | #5, #6, #7, #9, #15, #16 |
+| `e2e/pause.spec.ts` (new) | 11 | #1, #2, #4, #13, #17, #20 |
+| `e2e/persistence.spec.ts` (update) | 5 | #8, #14, #18, #19 |
+| `e2e/export.spec.ts` (update) | 3 | #10, #11, #12 |
+| `e2e/audio.spec.ts` (update) | 2 | #3 |
+| **Total** | **~29** | |
+
+### 3.11 Checkpoint
+
+- [ ] E2E: Create `dashboard.spec.ts` (8 tests, `.skip`)
+- [ ] E2E: Create `pause.spec.ts` (11 tests, `.skip`)
+- [ ] E2E: Update `persistence.spec.ts` (5 tests, `.skip`)
+- [ ] E2E: Update `export.spec.ts` (3 tests, `.skip`)
+- [ ] E2E: Update `audio.spec.ts` (2 tests, `.skip`)
 - [ ] Storage: Add `deletedAt`, soft delete, filter logic
 - [ ] Store: Add `isPaused`, pause/resume actions
 - [ ] Store: Add auto-recording in `startCoding()`, auto-stop
@@ -323,8 +388,7 @@ interface StoredSession {
 - [ ] Router: Update `main.ts` for new routes
 - [ ] CSS: Add all new styles
 - [ ] Delete old screen files, `RecordingIndicator.ts`
-- [ ] E2E: Update existing tests
-- [ ] E2E: Create `dashboard.spec.ts`, `pause.spec.ts`
+- [ ] E2E: Unskip all tests, verify passing
 - [ ] Commit: `feat(web): add dashboard, simplified routing, UI polish`
 
 ---

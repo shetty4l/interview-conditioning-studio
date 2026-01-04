@@ -124,3 +124,84 @@ test.describe("Audio Storage", () => {
     expect(stats.audioCount).toBe(0);
   });
 });
+
+// ============================================================================
+// Phase 3 Edge Cases - Audio Tests
+// ============================================================================
+
+test.describe("Audio - Phase 3 Edge Cases", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => window.IDS?.getAppState);
+    await clearStorageAndVerify(page);
+  });
+
+  // Edge case #3: Auto-record permission denied - show MicStatusIndicator blocked state
+  test.skip("should show blocked indicator when audio permission is denied", async ({ page }) => {
+    // Mock permission denied by setting up a context with denied permissions
+    // Note: Playwright can control permissions via context.grantPermissions()
+    // For this test, we need to deny the microphone permission
+
+    // Start a session and go to coding
+    await page.click(".start-button");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+
+    await page.click(".start-coding-button");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+
+    // Check if audio is supported
+    const audioSupported = await page.evaluate(() => window.IDS.getAppState().audioSupported);
+
+    if (audioSupported) {
+      // With auto-recording in Phase 3, recording should attempt to start
+      // If permission is denied, MicStatusIndicator should show "blocked" state
+      // This test documents the expected behavior
+
+      // The indicator should show permission denied state
+      await expect(
+        page.locator('.mic-status-indicator[data-state="blocked"], .mic-status--blocked'),
+      ).toBeVisible();
+
+      // State should reflect permission denied
+      const permissionDenied = await page.evaluate(
+        () => window.IDS.getAppState().audioPermissionDenied,
+      );
+      expect(permissionDenied).toBe(true);
+    }
+  });
+
+  // Additional: Verify MicStatusIndicator shows correct states
+  test.skip("should show correct mic status indicator states", async ({ page }) => {
+    await page.click(".start-button");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+
+    await page.click(".start-coding-button");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+
+    const audioSupported = await page.evaluate(() => window.IDS.getAppState().audioSupported);
+
+    if (audioSupported) {
+      // With auto-recording, should show "recording" state when active
+      const isRecording = await page.evaluate(() => window.IDS.getAppState().isRecording);
+
+      if (isRecording) {
+        // Should show recording indicator
+        await expect(
+          page.locator('.mic-status-indicator[data-state="recording"], .mic-status--recording'),
+        ).toBeVisible();
+      } else {
+        // Should show ready or blocked state
+        await expect(
+          page.locator(
+            '.mic-status-indicator[data-state="ready"], .mic-status-indicator[data-state="blocked"], .mic-status--ready, .mic-status--blocked',
+          ),
+        ).toBeVisible();
+      }
+    } else {
+      // Should show unsupported state
+      await expect(
+        page.locator('.mic-status-indicator[data-state="unsupported"], .mic-status--unsupported'),
+      ).toBeVisible();
+    }
+  });
+});

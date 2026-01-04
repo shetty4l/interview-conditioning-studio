@@ -548,3 +548,117 @@ test.describe("Export Contents Verification", () => {
     expect(files["invariants.txt"]).toBe("");
   });
 });
+
+// ============================================================================
+// Phase 3 Edge Cases - Export Tests
+// ============================================================================
+
+test.describe("Export - Phase 3 Edge Cases", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => window.IDS?.getAppState);
+    await clearStorageAndVerify(page);
+  });
+
+  // Edge case #10: Export with no audio - omit audio file from export
+  test("should omit audio file from export when no recording exists", async ({ page }) => {
+    await completeSession(page);
+
+    // Verify no audio was recorded
+    const audioStats = await page.evaluate(() => window.IDS.storage.getStats());
+    expect(audioStats.audioCount).toBe(0);
+
+    // Export
+    const downloadPromise = page.waitForEvent("download");
+    await page.click('[data-action="export-session"]');
+    const download = await downloadPromise;
+    const files = extractExport((await download.path())!);
+
+    // Should have exactly 3 files, no audio
+    const fileNames = Object.keys(files).sort();
+    expect(fileNames).toEqual(["code.txt", "invariants.txt", "session.json"]);
+
+    // Specifically verify no audio file exists
+    expect(files["audio.webm"]).toBeUndefined();
+    expect(files["audio.mp3"]).toBeUndefined();
+  });
+
+  // Edge case #11: Export abandoned session - allow
+  test.skip("should allow export of abandoned session", async ({ page }) => {
+    // Start a session
+    await page.click(".start-button");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+
+    // Add some content
+    await page.fill("#invariants", "Abandoned session invariants");
+    await page.click(".start-coding-button");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+    await page.fill("#code", "function abandonedCode() {}");
+
+    const sessionId = await page.evaluate(() => window.IDS.getAppState().sessionId);
+
+    // Abandon the session (soft delete in Phase 3)
+    await page.evaluate(() => window.IDS.abandonSession());
+
+    // Navigate to view the abandoned session (requires SessionViewScreen)
+    // Note: This test depends on Phase 3 implementation of view screen
+    await page.goto(`/#/${sessionId}/view`);
+    await page.waitForFunction(() => window.IDS?.getAppState);
+
+    // Export button should be available
+    await expect(page.locator('[data-action="export-session"]')).toBeVisible();
+
+    // Export should work
+    const downloadPromise = page.waitForEvent("download");
+    await page.click('[data-action="export-session"]');
+    const download = await downloadPromise;
+    const files = extractExport((await download.path())!);
+
+    // Should contain the content we added
+    expect(files["invariants.txt"]).toBe("Abandoned session invariants");
+    expect(files["code.txt"]).toBe("function abandonedCode() {}");
+  });
+
+  // Edge case #12: Export in-progress session - disallow
+  test.skip("should not show export button for in-progress session", async ({ page }) => {
+    // Start a session
+    await page.click(".start-button");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "prep");
+
+    // In PREP phase - no export button
+    await expect(page.locator('[data-action="export-session"]')).toHaveCount(0);
+
+    // Go to CODING phase
+    await page.click(".start-coding-button");
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "coding");
+
+    // In CODING phase - no export button
+    await expect(page.locator('[data-action="export-session"]')).toHaveCount(0);
+
+    // Go to SUMMARY phase
+    await page.click('[data-action="submit-solution"]');
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "summary");
+
+    // In SUMMARY phase - no export button
+    await expect(page.locator('[data-action="export-session"]')).toHaveCount(0);
+
+    // Go to REFLECTION phase
+    await page.click('[data-action="continue-to-reflection"]');
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "reflection");
+
+    // In REFLECTION phase - no export button
+    await expect(page.locator('[data-action="export-session"]')).toHaveCount(0);
+
+    // Complete session
+    await page.click('input[name="clearApproach"][value="yes"]');
+    await page.click('input[name="prolongedStall"][value="no"]');
+    await page.click('input[name="recoveredFromStall"][value="n/a"]');
+    await page.click('input[name="timePressure"][value="comfortable"]');
+    await page.click('input[name="wouldChangeApproach"][value="no"]');
+    await page.click('[data-action="submit-reflection"]');
+    await page.waitForFunction(() => window.IDS.getAppState().screen === "done");
+
+    // In DONE phase - export button should be visible
+    await expect(page.locator('[data-action="export-session"]')).toBeVisible();
+  });
+});
