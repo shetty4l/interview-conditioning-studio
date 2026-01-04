@@ -58,8 +58,18 @@ export function SessionScreen(): HTMLElement {
   });
 
   // Reactive rendering based on store state
+  // DEBUG: Log when sessionId comparison changes
+  const sessionIdMatches = () => {
+    const storeSessionId = state.sessionId();
+    const matches = storeSessionId === sessionId;
+    if (!matches) {
+      console.warn(`[SessionScreen] sessionId mismatch: store=${storeSessionId}, url=${sessionId}`);
+    }
+    return matches;
+  };
+
   return Show(
-    () => state.sessionId() === sessionId,
+    sessionIdMatches,
     () =>
       Switch(
         state.screen,

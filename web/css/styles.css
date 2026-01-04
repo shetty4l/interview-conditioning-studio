@@ -396,6 +396,12 @@ input[type="radio"] {
   min-width: 200px;
 }
 
+.start-section {
+  margin-top: var(--space-lg);
+  display: flex;
+  justify-content: center;
+}
+
 /* Resume Banner */
 .resume-banner {
   background-color: var(--bg-secondary);

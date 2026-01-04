@@ -101,7 +101,7 @@ export function SessionCard(props: SessionCardProps): HTMLElement {
         ? [
             button(
               {
-                class: "btn btn--secondary btn--small",
+                class: "btn btn--ghost btn--small",
                 onClick: onView,
               },
               ["View"],
@@ -114,7 +114,7 @@ export function SessionCard(props: SessionCardProps): HTMLElement {
         ? [
             button(
               {
-                class: "btn btn--secondary btn--small",
+                class: "btn btn--ghost btn--small",
                 onClick: onExport,
               },
               ["Export"],

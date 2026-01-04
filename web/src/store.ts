@@ -215,6 +215,15 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
       const screen = phaseToScreen(sessionState.phase);
       const remainingMs = calculateRemainingMs();
 
+      // DEBUG: Log sessionId changes
+      const currentSessionId = get().sessionId;
+      const newSessionId = sessionState.id ?? null;
+      if (currentSessionId !== newSessionId) {
+        console.warn(
+          `[syncSessionState] sessionId changing: ${currentSessionId} -> ${newSessionId}`,
+        );
+      }
+
       set({
         screen,
         sessionId: sessionState.id ?? null,

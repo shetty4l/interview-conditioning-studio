@@ -272,34 +272,34 @@ Full session flow tested and working:
 
 ### 3.1 What Was Completed
 
-| Item | Status |
-|------|--------|
-| `DashboardScreen.ts` | ✅ Created |
-| `SessionScreen.ts` | ✅ Created |
-| `ViewScreen.ts` | ✅ Created (placeholder) |
-| `HomeScreen.ts` (serves as NewSessionScreen) | ✅ Created |
-| `AppHeader.ts` component | ✅ Created |
-| `StatsCard.ts` component | ✅ Created |
-| `SessionCard.ts` component | ✅ Created |
-| `PauseButton.ts` component | ✅ Created |
-| `isPaused` state + `pauseSession()`/`resumeFromPause()` | ✅ Implemented |
-| `softDeleteSession()` + `deletedAt` field | ✅ Implemented |
-| `getSessionStats()` | ✅ Implemented |
-| `dashboard.spec.ts` E2E tests | ✅ Passing |
-| `pause.spec.ts` E2E tests | ✅ Passing |
-| Routes updated in `main.ts` | ✅ Done |
-| Timer paused styling | ✅ Done |
-| Button ghost variant | ✅ Done |
+| Item                                                    | Status                   |
+| ------------------------------------------------------- | ------------------------ |
+| `DashboardScreen.ts`                                    | ✅ Created               |
+| `SessionScreen.ts`                                      | ✅ Created               |
+| `ViewScreen.ts`                                         | ✅ Created (placeholder) |
+| `HomeScreen.ts` (serves as NewSessionScreen)            | ✅ Created               |
+| `AppHeader.ts` component                                | ✅ Created               |
+| `StatsCard.ts` component                                | ✅ Created               |
+| `SessionCard.ts` component                              | ✅ Created               |
+| `PauseButton.ts` component                              | ✅ Created               |
+| `isPaused` state + `pauseSession()`/`resumeFromPause()` | ✅ Implemented           |
+| `softDeleteSession()` + `deletedAt` field               | ✅ Implemented           |
+| `getSessionStats()`                                     | ✅ Implemented           |
+| `dashboard.spec.ts` E2E tests                           | ✅ Passing               |
+| `pause.spec.ts` E2E tests                               | ✅ Passing               |
+| Routes updated in `main.ts`                             | ✅ Done                  |
+| Timer paused styling                                    | ✅ Done                  |
+| Button ghost variant                                    | ✅ Done                  |
 
 ### 3.2 Remaining Work (After Bug Fix)
 
-| Item | Status |
-|------|--------|
+| Item                              | Status                      |
+| --------------------------------- | --------------------------- |
 | Fix audio recording feedback loop | 🔴 BLOCKING (see Phase 3.1) |
-| `MicStatusIndicator` component | ⏳ Not started |
-| `CollapsibleSection` component | ⏳ Not started |
-| Two-column coding layout | ⏳ Not started |
-| `ViewScreen` full implementation | ⏳ Placeholder exists |
+| `MicStatusIndicator` component    | ⏳ Not started              |
+| `CollapsibleSection` component    | ⏳ Not started              |
+| Two-column coding layout          | ⏳ Not started              |
+| `ViewScreen` full implementation  | ⏳ Placeholder exists       |
 
 ### 3.3 E2E Test Status
 
@@ -310,12 +310,12 @@ Full session flow tested and working:
 
 ### 3.4 Route Structure
 
-| Route         | Screen            | Description                                       |
-| ------------- | ----------------- | ------------------------------------------------- |
-| `/#/`         | DashboardScreen   | Session list, stats, "New Session" button         |
-| `/#/new`      | HomeScreen        | Preset selection                                  |
-| `/#/:id`      | SessionScreen     | Active session (renders current phase internally) |
-| `/#/:id/view` | ViewScreen        | Read-only view of completed session               |
+| Route         | Screen          | Description                                       |
+| ------------- | --------------- | ------------------------------------------------- |
+| `/#/`         | DashboardScreen | Session list, stats, "New Session" button         |
+| `/#/new`      | HomeScreen      | Preset selection                                  |
+| `/#/:id`      | SessionScreen   | Active session (renders current phase internally) |
+| `/#/:id/view` | ViewScreen      | Read-only view of completed session               |
 
 **Key Principle**: Each route must be directly navigable. Phase is state, not route.
 
@@ -324,7 +324,7 @@ Full session flow tested and working:
 See sections 3.9 in git history for full edge case tables. Key decisions:
 
 - Pause: Pauses timer AND recording
-- Abandoned sessions: Soft delete with `deletedAt` timestamp  
+- Abandoned sessions: Soft delete with `deletedAt` timestamp
 - Recording: Auto-start on Coding, auto-stop on Summary or abandon
 
 ---
@@ -338,14 +338,16 @@ See sections 3.9 in git history for full edge case tables. Key decisions:
 ### Problem Summary
 
 When entering the Coding phase with audio recording enabled:
+
 - REC indicator flickers on/off rapidly (~37ms cycles instead of stable)
-- Code textarea becomes unresponsive  
+- Code textarea becomes unresponsive
 - Buttons can't be clicked
 - Playwright reports "element was detached from the DOM"
 
 **Root Cause** (confirmed via Chrome DevTools trace analysis):
 
 A reactive feedback loop where:
+
 1. `mediaRecorder.onstop` updates `isRecording` signal → `notifyStateChange()`
 2. Signal change triggers component re-render (via Show/Switch disposing and recreating)
 3. Component disposal calls `onCleanup` → `stopRecording()`
@@ -353,6 +355,7 @@ A reactive feedback loop where:
 5. Cycle repeats ~262 times in 7 seconds (should be 0-1)
 
 **Evidence from trace:**
+
 - 262 `onstop` events (should be 0-1 in a normal session)
 - 35µs gap between `ondataavailable` and `onstop` proves `stop()` called synchronously
 - 92-102ms duration for each `onstop` handler (component disposal + recreation + IndexedDB)
@@ -364,11 +367,13 @@ Move audio lifecycle from component lifecycle (CodingScreen) to store-managed ph
 **Recording runs during**: Coding + Silent phases
 
 **Start triggers**:
+
 - `startCoding()` - Transition from Prep to Coding
 - `resumeFromPause()` - When unpausing during Coding/Silent (already exists)
 - `_loadSession()` - When resuming a session in Coding/Silent phase
 
 **Stop triggers**:
+
 - `submitSolution()` - Early submission (skips to Summary)
 - `handlePhaseExpiry()` for Silent→Summary - Natural timer expiry
 - `pauseSession()` - Pausing (already exists)
@@ -376,21 +381,21 @@ Move audio lifecycle from component lifecycle (CodingScreen) to store-managed ph
 
 ### Changes Required
 
-| File | Change |
-|------|--------|
-| `web/src/screens/CodingScreen.ts` | Remove `onMount`, `watch`, `onCleanup` for audio (~45 lines) |
-| `web/src/store.ts` | Add `startRecording()` in `startCoding()` |
-| `web/src/store.ts` | Add `stopRecording()` in `submitSolution()` |
-| `web/src/store.ts` | Add `stopRecording()` in `handlePhaseExpiry()` for Silent→Summary |
-| `web/src/store.ts` | Add `stopRecording()` in `abandonSession()` |
-| `web/src/store.ts` | Add recording resume in `_loadSession()` if phase is Coding/Silent |
-| `web/src/audio.ts` | Add guard in `onstop` to prevent redundant state notifications |
+| File                              | Change                                                             |
+| --------------------------------- | ------------------------------------------------------------------ |
+| `web/src/screens/CodingScreen.ts` | Remove `onMount`, `watch`, `onCleanup` for audio (~45 lines)       |
+| `web/src/store.ts`                | Add `startRecording()` in `startCoding()`                          |
+| `web/src/store.ts`                | Add `stopRecording()` in `submitSolution()`                        |
+| `web/src/store.ts`                | Add `stopRecording()` in `handlePhaseExpiry()` for Silent→Summary  |
+| `web/src/store.ts`                | Add `stopRecording()` in `abandonSession()`                        |
+| `web/src/store.ts`                | Add recording resume in `_loadSession()` if phase is Coding/Silent |
+| `web/src/audio.ts`                | Add guard in `onstop` to prevent redundant state notifications     |
 
 ### Checkpoint
 
 - [ ] Remove audio lifecycle from CodingScreen.ts
 - [ ] Add `startRecording()` to `startCoding()` action
-- [ ] Add `stopRecording()` to `submitSolution()` action  
+- [ ] Add `stopRecording()` to `submitSolution()` action
 - [ ] Add `stopRecording()` to `handlePhaseExpiry()` for Silent→Summary
 - [ ] Add `stopRecording()` to `abandonSession()` action
 - [ ] Add recording resume to `_loadSession()` for Coding/Silent phases
