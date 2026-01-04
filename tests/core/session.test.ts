@@ -6,7 +6,7 @@ import {
   Phase,
   Preset,
   VALID_REFLECTION_RESPONSES,
-} from "./_helpers";
+} from "../_helpers";
 
 /**
  * Session Tests

@@ -12,9 +12,10 @@ import {
   type Event,
   type DispatchResult,
   type DispatchError,
+  type DispatchErrorCode,
   Preset,
   Phase,
-} from "../src/index";
+} from "../core/src/index";
 
 // ============================================================================
 // Test Fixtures
@@ -95,7 +96,7 @@ export function expectSuccess(result: DispatchResult): Event {
  * Optionally verify the error code.
  * Throws if the result is successful.
  */
-export function expectError(result: DispatchResult, code?: string): DispatchError {
+export function expectError(result: DispatchResult, code?: DispatchErrorCode): DispatchError {
   expect(result.ok).toBe(false);
   if (result.ok) {
     throw new Error(`Expected error but got success: ${result.value.type}`);
@@ -184,4 +185,4 @@ export const VALID_REFLECTION_RESPONSES = {
 };
 
 // Re-export types and enums for convenience
-export { Phase, Preset, type Session, type Event, type DispatchResult, type DispatchError };
+export { Phase, Preset, type Session, type Event, type DispatchResult, type DispatchError, type DispatchErrorCode };

@@ -7,8 +7,8 @@ import {
   advanceToCoding,
   Preset,
   TEST_PROBLEM,
-} from "./_helpers";
-import { createSession } from "../src/index";
+} from "../_helpers";
+import { createSession } from "../../core/src/index";
 
 /**
  * Recovery Tests

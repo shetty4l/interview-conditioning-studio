@@ -5,8 +5,8 @@
 Work planned in priority order:
 
 1. **Phase 0: Bug Fixes** - Fix export bug ✅ DONE
-2. **Phase 1: Reactive Framework** - Build minimal reactive UI framework (~400 lines)
-3. **Phase 2: Migrate App** - Rewrite screens using new framework (big-bang)
+2. **Phase 1: Reactive Framework** - Build minimal reactive UI framework ✅ DONE (131 tests)
+3. **Phase 2: Migrate App** - Rewrite screens using new framework
 4. **Phase 3: Dashboard** - Session management landing page with pagination and stats
 5. **Phase 4: Mic Check** - Pre-session microphone check (deferred, requires framework)
 6. **Phase 5: Core Engine** - Add missing behavioral metrics + complete todo tests
@@ -20,8 +20,9 @@ Work planned in priority order:
 | Signal API | Tuple: `[get, set] = signal(0)` | Familiar, explicit read/write |
 | Modals | **Removed entirely** | Use two-click inline pattern instead |
 | Debug view | **Removed** | Use `window.IDS` API for debugging |
-| CSS location | Keep in `web/css/styles.css` | No runtime style injection |
+| CSS location | Keep in `web/css/styles.css` | No runtime style injection (defer component styles) |
 | Timer logic | Lives in AppStore | Global behavior, not component-specific |
+| Helpers | Module-scoped, no OOP | Timer, audio, storage as factory functions coordinated by store |
 | Utilities | Shared `web/src/utils.ts` | Reduce duplication of `escapeHtml` etc. |
 | `getAppState()` return | Live session object | E2E tests depend on `session.dispatch()` |
 | Router | Replace entirely | New framework router replaces `web/src/router.ts` |
@@ -63,377 +64,80 @@ This eliminates:
 
 ---
 
-## Phase 1: Reactive Framework Core
+## Phase 1: Reactive Framework Core ✅ DONE
 
-**Goal**: Build a minimal (~400 line) reactive UI framework to replace string templates
+**Goal**: Build a minimal reactive UI framework to replace string templates
 
-**Why**: The current `app.ts` is 1007 lines of intertwined state management. The modal system destroys/recreates handlers on every state change, making features like mic check impossible to implement correctly. A proper reactive framework with lifecycle management is needed first.
+**Status**: Complete - 131 unit tests passing
 
-### 1.1 Files to Create
+### 1.1 Files Created
 
 ```
 web/src/framework/
-├── reactive.ts     # signal, derived, watch, batch (~100 lines)
-├── elements.ts     # h, div, span, Show, For, css (~100 lines)
-├── component.ts    # mount, onMount, onCleanup, context (~80 lines)
-├── store.ts        # createStore, useStore, useActions (~50 lines)
-├── router.ts       # createRouter, useRouter, useRoute, Link (~80 lines)
-└── index.ts        # public exports (~10 lines)
+├── reactive.ts     # signal, derived, watch, batch (70 lines)
+├── elements.ts     # h, div, span, Show, For (150 lines)
+├── component.ts    # mount, onMount, onCleanup, context (100 lines)
+├── store.ts        # createStore, useStore, useActions (55 lines)
+├── router.ts       # createRouter, useRouter, useRoute, Link (170 lines)
+└── index.ts        # public exports (75 lines)
+
+tests/framework/
+├── reactive.test.ts   # 13 tests
+├── elements.test.ts   # 51 tests
+├── component.test.ts  # 19 tests
+├── store.test.ts      # 13 tests
+└── router.test.ts     # 35 tests
 ```
 
-### 1.2 Reactive Primitives (`reactive.ts`)
-
-**API:**
-
-```typescript
-// Signal - reactive state container (tuple API)
-const [count, setCount] = signal(0);
-count();              // read: 0
-setCount(1);          // write
-setCount(n => n + 1); // update function
-
-// Derived - computed values that auto-update
-const doubled = derived(() => count() * 2);
-doubled(); // always 2x count
-
-// Watch - side effects that run when dependencies change
-const cleanup = watch(() => {
-  console.log("Count is:", count());
-});
-cleanup(); // stop watching
-
-// Batch - coalesce multiple updates into single re-render
-batch(() => {
-  setCount(1);
-  setName("foo");
-  // Only one notification after batch completes
-});
-```
-
-**Implementation details:**
-
-- Dependency tracking via global `currentSubscriber` during signal reads
-- Signals store `Set<Subscriber>`, notify all on write
-- Derived values are lazy (compute on read) with dirty-checking
-- Batch queues notifications, flushes via microtask
-- Circular dependency detection (throw error)
-
-**Unit tests** (`web/tests/framework/reactive.test.ts`):
-
-- Signal read/write works
-- Derived recomputes when dependency changes
-- Derived caches value when dependencies unchanged
-- Watch fires immediately and on change
-- Watch cleanup stops notifications
-- Batch coalesces multiple updates
-- Nested derived values work
-- Circular dependency throws error
-
-### 1.3 Element Helpers (`elements.ts`)
-
-**API:**
-
-```typescript
-// Base element creator
-h("div", { class: "container", onClick: handler }, [child1, child2]);
-
-// Convenience helpers (less verbose)
-div({ class: "container", onClick: handler }, [
-  h1("Title"),
-  p({ class: "text-muted" }, "Description"),
-]);
-
-// Reactive props - functions are auto-tracked
-button({ 
-  class: () => isActive() ? "btn active" : "btn",
-  disabled: () => count() <= 0 
-}, "Click");
-
-// Conditional rendering
-Show(
-  () => isVisible(),           // condition (reactive)
-  () => span("Visible!"),      // render when true
-  () => span("Hidden")         // fallback (optional)
-);
-
-// List rendering with keyed updates
-For(
-  () => items(),               // items array (reactive)
-  (item, index) => div(item.name),  // render function
-  item => item.id              // key function (optional)
-);
-
-// Type-safe CSS with auto-generated classes object
-const { styles, classes } = css`
-  .container { padding: 1rem; }
-  .container--active { background: blue; }
-`;
-// styles = ".container { padding: 1rem; } ..."
-// classes = { container: "container", containerActive: "container--active" }
-```
-
-**Implementation details:**
-
-- `h(tag, props, children)` creates real DOM elements
-- String children become text nodes
-- Function children are treated as reactive (wrapped in watch)
-- Reactive props create internal watch, update DOM on change
-- `Show` uses placeholder comment node, swaps content reactively
-- `For` does keyed reconciliation: remove missing, append new, reorder existing
-- `css` parses class names via regex, converts kebab to camelCase for classes object
-
-**Unit tests** (`web/tests/framework/elements.test.ts`):
-
-- Creates correct DOM elements with tag, props, children
-- Handles string, number, element, and array children
-- Static props applied correctly
-- Reactive props update DOM when signal changes
-- Event handlers attached and work
-- Show renders correct branch based on condition
-- Show swaps content when condition changes
-- For renders list of items
-- For adds/removes items when array changes
-- For reorders items efficiently with keys
-- css extracts class names correctly
-- css converts kebab-case to camelCase
-
-### 1.4 Component Lifecycle (`component.ts`)
-
-**API:**
-
-```typescript
-// Mount component to DOM, returns cleanup function
-const unmount = mount(App, document.getElementById("app")!);
-unmount(); // removes component, runs all cleanups
-
-// Lifecycle hooks - must be called during component execution
-function MyComponent() {
-  const [count, setCount] = signal(0);
-
-  // Runs after DOM insertion, return value is cleanup
-  onMount(() => {
-    const interval = setInterval(() => setCount(n => n + 1), 1000);
-    return () => clearInterval(interval);  // cleanup on unmount
-  });
-
-  // Register additional cleanup (for non-mount resources)
-  onCleanup(() => {
-    console.log("Component unmounting");
-  });
-
-  return div([
-    span(() => `Count: ${count()}`),
-  ]);
-}
-
-// Context for dependency injection
-const ThemeContext = createContext("light");
-
-function App() {
-  return ThemeContext.Provider({ value: "dark" }, [
-    ChildComponent(),
-  ]);
-}
-
-function ChildComponent() {
-  const theme = useContext(ThemeContext);  // "dark"
-  return div(`Theme: ${theme}`);
-}
-```
-
-**Implementation details:**
-
-- Component execution sets global `currentOwner` for hook registration
-- `onMount` callbacks stored in owner, run after DOM insertion
-- `onMount` return values (cleanups) stored separately
-- `onCleanup` adds to cleanup list directly
-- `mount()` creates owner, runs component, appends to target, runs onMount
-- Unmount runs all cleanups in reverse order, removes from DOM
-- Context uses owner chain lookup (walk up to find provider)
-
-**Unit tests** (`web/tests/framework/component.test.ts`):
-
-- mount appends component result to target
-- unmount removes from DOM
-- onMount callback runs after mount
-- onMount cleanup runs on unmount
-- onCleanup runs on unmount
-- Multiple cleanups run in reverse order
-- Context provides value to children
-- Context uses default when no provider
-- Nested context providers work (closest wins)
-
-### 1.5 Store (`store.ts`)
-
-**API:**
-
-```typescript
-// Create global store
-const AppStore = createStore({
-  state: {
-    screen: "home" as ScreenName,
-    selectedPreset: Preset.Standard,
-    session: null as Session | null,
-  },
-  actions: (set, get) => ({
-    selectPreset: (preset: Preset) => set({ selectedPreset: preset }),
-    startSession: async () => {
-      const session = await createNewSession();
-      set({ session, screen: "prep" });
-    },
-  }),
-});
-
-// In components - returns reactive getters
-function HomeScreen() {
-  const { screen, selectedPreset } = useStore(AppStore);
-  const { selectPreset, startSession } = useActions(AppStore);
-
-  return div([
-    span(() => `Screen: ${screen()}`),          // reactive
-    span(() => `Preset: ${selectedPreset()}`),  // reactive
-    button({ onClick: () => selectPreset(Preset.Relaxed) }, "Relaxed"),
-    button({ onClick: startSession }, "Start"),
-  ]);
-}
-
-// For window.IDS - returns plain snapshot
-const snapshot = AppStore.getSnapshot();  // { screen: "home", ... }
-```
-
-**Implementation details:**
-
-- Store wraps each state property in a signal internally
-- `set()` does shallow merge, updates affected signals
-- `useStore()` returns object with getter functions (reactive reads)
-- `useActions()` returns actions object (stable reference)
-- `getSnapshot()` returns plain object (for window.IDS)
-- Actions can be sync or async, call set() any number of times
-
-**Unit tests** (`web/tests/framework/store.test.ts`):
-
-- createStore initializes with state
-- useStore returns reactive getters
-- Actions can update state via set()
-- Partial set() merges with existing state
-- getSnapshot() returns plain object
-- Async actions work correctly
-- Components re-render when used state changes
-
-### 1.6 Router (`router.ts`)
-
-**API:**
-
-```typescript
-// Define routes with path patterns
-const App = createRouter({
-  "/": HomePage,
-  "/:id/prep": PrepScreen,
-  "/:id/coding": CodingScreen,
-  "/:id/silent": CodingScreen,
-  "/:id/summary": SummaryScreen,
-  "/:id/reflection": ReflectionScreen,
-  "/:id/done": DoneScreen,
-});
-
-// Navigation
-function SomeComponent() {
-  const { navigate, back } = useRouter();
-  
-  return div([
-    button({ onClick: () => navigate("/") }, "Home"),
-    button({ onClick: back }, "Back"),
-  ]);
-}
-
-// Route params (reactive)
-function PrepScreen() {
-  const { params, path } = useRoute();
-  
-  return div([
-    span(() => `Session: ${params().id}`),   // reactive
-    span(() => `Path: ${path()}`),           // reactive
-  ]);
-}
-
-// Declarative links
-Link({ href: "/", class: "nav-link" }, "Home");
-```
-
-**Implementation details:**
-
-- Parses `window.location.hash` (strips leading `#`)
-- Route matching with path params (`:id` captures segment)
-- Current route stored in signal, components react to changes
-- `navigate()` sets `window.location.hash`
-- `back()` calls `window.history.back()`
-- `Link` renders `<a>` with href and click handler
-- Listens to `hashchange` event for external navigation
-- Unmatched routes render first route (fallback)
-
-**Unit tests** (`web/tests/framework/router.test.ts`):
-
-- Parses simple path correctly
-- Extracts path params from pattern
-- navigate() updates hash
-- Components re-render on route change
-- Link renders anchor element
-- Link click navigates without page reload
-- Handles hashchange from external source
-- Unmatched route falls back to first route
-
-### 1.7 Public Exports (`index.ts`)
+### 1.2 API Summary
 
 ```typescript
 // Reactive primitives
-export { signal, derived, watch, batch } from "./reactive";
+const [count, setCount] = signal(0);
+const doubled = derived(() => count() * 2);
+const cleanup = watch(() => console.log(count()));
+batch(() => { setCount(1); setCount(2); });
 
-// Element creation
-export { h, div, span, button, input, textarea, form, label, 
-         h1, h2, h3, p, pre, a, Show, For, css } from "./elements";
+// Elements
+div({ class: "foo", onClick: handler }, [children]);
+Show(() => condition(), () => whenTrue(), () => whenFalse());
+For(() => items(), (item, index) => div({}, [item.name]));
 
-// Component lifecycle
-export { mount, onMount, onCleanup, createContext, useContext } from "./component";
+// Components
+const unmount = mount(Component, container);
+onMount(() => { /* setup */ return () => { /* cleanup */ }; });
+onCleanup(() => { /* cleanup */ });
+const ThemeCtx = createContext("light");
+const theme = useContext(ThemeCtx);
 
-// State management
-export { createStore, useStore, useActions } from "./store";
+// Store
+const Store = createStore({
+  state: { count: 0 },
+  actions: (set, get) => ({
+    increment: () => set({ count: get().count + 1 })
+  })
+});
+const { count } = useStore(Store);
+const { increment } = useActions(Store);
+Store.getSnapshot();
 
-// Routing
-export { createRouter, useRouter, useRoute, Link } from "./router";
+// Router
+const Router = createRouter([
+  { path: "/", component: Home },
+  { path: "/user/:id", component: UserDetail },
+], { fallback: NotFound });
+const { navigate, back } = useRouter();
+const { path, params } = useRoute();
+Link({ href: "/about" }, ["About"]);
 ```
 
-### 1.8 Design Decisions
+### 1.3 Checkpoint ✅
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Signal API | Tuple: `[get, set] = signal(0)` | Familiar, explicit read/write |
-| Naming | `signal`, `derived`, `watch` | Clear, matches reactive literature |
-| Element helpers | `div()`, `span()`, etc. | Less verbose than `h('div', ...)` |
-| Reactive props | Functions auto-tracked | Declarative, no manual subscriptions |
-| CSS helper | Returns `{ styles, classes }` | Type-safe class name access |
-| Routing | Hash-based (`#/path`) | Works without server config |
-| Store | Single store with typed actions | Simple, predictable |
-| Lifecycle | `onMount` returns cleanup | Flexible cleanup patterns |
-| Context | Owner chain lookup | Simple, no explicit threading |
-
-### 1.9 Naming Conventions (Unified)
-
-| Context | Convention | Example |
-|---------|------------|---------|
-| Action strings | kebab-case | `"start-session"` |
-| data-action attrs | kebab-case | `data-action="start-session"` |
-| Function names | camelCase | `startSession()` |
-| CSS classes | BEM kebab-case | `.phase-header__badge--coding` |
-| Component names | PascalCase | `HomeScreen` |
-| File names | PascalCase for components | `HomeScreen.ts` |
-
-### 1.10 Checkpoint
-
-- [ ] All framework modules implemented
-- [ ] Unit tests pass for each module
-- [ ] Can mount a simple component with reactive state
-- [ ] Router navigates between test components
-- [ ] Commit: `feat(web): add reactive UI framework core`
+- [x] All framework modules implemented
+- [x] Unit tests pass for each module (131 total)
+- [x] Can mount a simple component with reactive state
+- [x] Router navigates between test components
+- [x] Commit: `feat(web): add reactive UI framework core`
 
 ---
 
@@ -441,9 +145,104 @@ export { createRouter, useRouter, useRoute, Link } from "./router";
 
 **Goal**: Rewrite all screens/components using the new framework, delete old code
 
-**Strategy**: Big-bang migration (both systems don't coexist)
+**Strategy**: Screen-by-screen migration with E2E validation checkpoints. Use Playwright MCP for interactive testing during migration.
 
-### 2.1 E2E Test Contract
+### 2.1 Architecture: Module-Scoped Helpers
+
+Timer, audio, and storage follow the same pattern - factory functions that return control objects, coordinated by the store:
+
+```typescript
+// web/src/timer.ts
+export function createTimer(callbacks: {
+  onTick: () => void;
+  onExpire: () => void;
+}): Timer {
+  return { start, stop, pause, resume };
+}
+
+// web/src/audio.ts (refactored)
+export function createRecorder(callbacks: {
+  onChunk: (chunk: Blob) => void;
+  onError: (error: Error) => void;
+}): Recorder {
+  return { start, stop, isSupported };
+}
+
+// web/src/storage.ts (refactored)
+export function createStorage(): Storage {
+  return { saveSession, loadSession, deleteSession, getIncompleteSessions };
+}
+```
+
+Store coordinates these at module level (no OOP, just closures):
+
+```typescript
+// web/src/store.ts
+const timer = createTimer({
+  onTick: () => set({ remainingTime: calculateRemaining() }),
+  onExpire: () => actions.handlePhaseExpiry(),
+});
+
+const recorder = createRecorder({
+  onChunk: (chunk) => { /* save to storage */ },
+  onError: (err) => set({ audioError: err.message }),
+});
+
+const storage = createStorage();
+
+export const AppStore = createStore({
+  state: { /* ... */ },
+  actions: (set, get) => ({
+    startCoding: () => {
+      timer.start(get().config.codingDuration);
+      recorder.start();
+      storage.saveSession(get().session);
+    },
+    // ...
+  }),
+});
+```
+
+### 2.2 E2E Validation Strategy
+
+Validate each screen incrementally using subset of E2E tests:
+
+| Screen | E2E Tests to Run | Key Validations |
+|--------|------------------|-----------------|
+| HomeScreen | `smoke.spec.ts`, `modals.spec.ts` | Title, presets, resume banner |
+| PrepScreen | `responsive.spec.ts` (subset) | Problem display, invariants input |
+| CodingScreen | `audio.spec.ts` | Editor, nudge, submit, recording UI |
+| SilentScreen | **New: `silent.spec.ts`** | Silent banner, no nudge button |
+| SummaryScreen | `early-submission.spec.ts` (subset) | Stats display, continue button |
+| ReflectionScreen | **New: `reflection.spec.ts`** | Radio buttons, form submission |
+| DoneScreen | `export.spec.ts` | Export button, download, new session |
+
+**New E2E tests to create during migration:**
+- `e2e/silent.spec.ts` - Silent phase specific tests
+- `e2e/reflection.spec.ts` - Reflection form tests
+
+After all screens: Run full E2E suite (88 tests)
+
+### 2.3 Two-Click Confirmation UX
+
+Replaces modals for destructive actions (e.g., "Discard Session"):
+
+```
+[Discard]  →  click  →  [Confirm?]  →  click  →  action executes
+                            ↓
+                     (3s timeout or click elsewhere)
+                            ↓
+                        [Discard] (resets)
+```
+
+Implementation:
+- Button has local `confirming` state
+- First click: set `confirming = true`, change text/style
+- Second click: execute action, reset state
+- `setTimeout(3000)` or blur: reset state
+- CSS: `.btn--confirming { background: var(--color-danger); }`
+
+### 2.4 E2E Test Contract
 
 The following must be maintained for E2E tests to pass:
 
@@ -472,59 +271,30 @@ window.IDS = {
 };
 ```
 
-### 2.2 Create App Store (`web/src/store.ts`)
+### 2.5 Migration Order with Checkpoints
 
-```typescript
-export const AppStore = createStore({
-  state: {
-    screen: "home" as ScreenName,
-    selectedPreset: Preset.Standard,
-    session: null as Session | null,
-    sessionState: null as SessionState | null,
-    problem: null as Problem | null,
-    sessionId: null as string | null,
-    audioSupported: false,
-    audioPermissionDenied: false,
-    isRecording: false,
-    incompleteSession: null as IncompleteSessionInfo | null,
-  },
-  actions: (set, get) => ({
-    // Preset selection
-    selectPreset: (preset: Preset) => set({ selectedPreset: preset }),
-    
-    // Session lifecycle
-    startSession: async () => { /* ... */ },
-    abandonSession: async () => { /* ... */ },
-    resetApp: () => { /* ... */ },
-    
-    // Prep phase
-    updateInvariants: async (text: string) => { /* ... */ },
-    startCoding: async () => { /* ... */ },
-    
-    // Coding phase
-    updateCode: async (code: string) => { /* ... */ },
-    requestNudge: async () => { /* ... */ },
-    submitSolution: async () => { /* ... */ },
-    
-    // Transitions
-    startSilentPhase: () => { /* ... */ },
-    endSilentPhase: () => { /* ... */ },
-    continuePastSummary: () => { /* ... */ },
-    submitReflection: async (responses: ReflectionFormData) => { /* ... */ },
-    
-    // Audio
-    startRecording: async () => { /* ... */ },
-    stopRecording: async () => { /* ... */ },
-    
-    // Export
-    exportSession: async () => { /* ... */ },
-  }),
-});
-```
+| Step | Task | Test Checkpoint |
+|------|------|-----------------|
+| 1 | Create `timer.ts` helper | Unit tests |
+| 2 | Refactor `audio.ts` to factory pattern | Unit tests |
+| 3 | Refactor `storage.ts` to factory pattern | Unit tests |
+| 4 | Create `AppStore` | Unit tests |
+| 5 | Migrate shared components (Button, Timer, Toast, etc.) | Manual |
+| 6 | Migrate HomeScreen | `smoke.spec.ts`, `modals.spec.ts` |
+| 7 | Migrate PrepScreen | `responsive.spec.ts` |
+| 8 | Migrate CodingScreen | `audio.spec.ts` |
+| 9 | Create `silent.spec.ts`, migrate SilentScreen | `silent.spec.ts` |
+| 10 | Migrate SummaryScreen | `early-submission.spec.ts` |
+| 11 | Create `reflection.spec.ts`, migrate ReflectionScreen | `reflection.spec.ts` |
+| 12 | Migrate DoneScreen | `export.spec.ts` |
+| 13 | Wire router + window.IDS | `routing.spec.ts` |
+| 14 | Rewrite `modals.spec.ts` for two-click pattern | `modals.spec.ts` |
+| 15 | Full validation | All 88+ E2E tests |
+| 16 | Delete old files | - |
 
-### 2.3 Component Migration Order
+### 2.6 Component Migration Order
 
-**Shared components first (simplest to most complex):**
+**Shared components (simplest to most complex):**
 
 1. `Button` - stateless, just props
 2. `Timer` - reactive `remainingMs` prop
@@ -548,52 +318,7 @@ export const AppStore = createStore({
 5. `ReflectionScreen` - form with radio buttons
 6. `CodingScreen` - timer, editor, recording, nudges
 
-### 2.4 Wire window.IDS from Store
-
-```typescript
-// web/src/main.ts
-import { AppStore } from "./store";
-import * as storage from "./storage";
-import { getCurrentRoute } from "./framework/router";
-
-const actions = AppStore.getActions();
-
-window.IDS = {
-  // State (snapshot for testing)
-  getAppState: () => AppStore.getSnapshot(),
-  
-  // Actions (directly from store)
-  selectPreset: actions.selectPreset,
-  startSession: actions.startSession,
-  abandonSession: actions.abandonSession,
-  resetApp: actions.resetApp,
-  updateInvariants: actions.updateInvariants,
-  startCoding: actions.startCoding,
-  updateCode: actions.updateCode,
-  requestNudge: actions.requestNudge,
-  submitSolution: actions.submitSolution,
-  continuePastSummary: actions.continuePastSummary,
-  submitReflection: actions.submitReflection,
-  
-  // Storage (pass-through)
-  storage: {
-    init: storage.init,
-    getSession: storage.getSession,
-    getAllSessions: storage.getAllSessions,
-    getIncompleteSession: storage.getIncompleteSession,
-    deleteSession: storage.deleteSession,
-    clearAll: storage.clearAll,
-    getStats: storage.getStats,
-  },
-  
-  // Router
-  router: {
-    getCurrentRoute,
-  },
-};
-```
-
-### 2.5 Files to Delete After Migration
+### 2.7 Files to Delete After Migration
 
 | File | Reason |
 |------|--------|
@@ -604,21 +329,7 @@ window.IDS = {
 | `web/src/screens/*.ts` (old) | Replaced by new implementations |
 | `web/src/components/*.ts` (old) | Replaced by new implementations |
 
-### 2.6 E2E Test Changes
-
-| File | Change |
-|------|--------|
-| `e2e/modals.spec.ts` | **Rewrite** - Test two-click inline pattern instead of modal interactions |
-| Other spec files | Should pass unchanged |
-
-The `modals.spec.ts` rewrite will test:
-- Discard requires two clicks
-- First click shows confirmation state
-- Second click executes action
-- Clicking elsewhere resets state
-- Toast appears after discard
-
-### 2.7 Example Migration: Button
+### 2.8 Example Migration: Button
 
 **Before (string template):**
 
@@ -646,68 +357,17 @@ export function Button(props: ButtonProps) {
     "data-action": action,
     disabled,
     onClick,
-  }, label);
-}
-```
-
-### 2.8 Example Migration: CodingScreen
-
-**Before (1000+ lines across files):**
-
-- String template rendering
-- Manual event delegation with `target.closest()`
-- Module-level cleanup variable
-- Manual `update()` for timer/nudge button
-
-**After (framework component):**
-
-```typescript
-export function CodingScreen() {
-  const { sessionState, problem, screen, isRecording } = useStore(AppStore);
-  const { updateCode, requestNudge, submitSolution, startRecording, stopRecording } = useActions(AppStore);
-  const { params } = useRoute();
-  
-  const isSilent = () => screen() === "silent";
-  
-  return div({ class: () => `coding-screen ${isSilent() ? "silent-mode" : ""}` }, [
-    PhaseHeader({
-      phase: () => isSilent() ? Phase.Silent : Phase.Coding,
-      remainingMs: () => sessionState()?.remainingTime ?? 0,
-      actions: () => div({ class: "phase-header-actions" }, [
-        Show(() => !isSilent(), () => NudgeButton({
-          remaining: () => sessionState()?.nudgesRemaining ?? 0,
-          total: () => (sessionState()?.nudgesRemaining ?? 0) + (sessionState()?.nudgesUsed ?? 0),
-          onClick: requestNudge,
-        })),
-        Button({ label: "Submit Solution", action: "submit-solution", onClick: submitSolution }),
-      ]),
-    }),
-    
-    Show(isSilent, () => div({ class: "silent-banner" }, "Silent Phase - No assistance available")),
-    
-    div({ class: "problem-summary" }, [
-      span(() => problem()?.title ?? ""),
-      Show(
-        () => (sessionState()?.invariants?.length ?? 0) > 0,
-        () => InvariantsDisplay({ value: () => sessionState()?.invariants ?? "" })
-      ),
-    ]),
-    
-    div({ class: "code-section" }, [
-      CodeEditor({
-        value: () => sessionState()?.code ?? "",
-        onChange: updateCode,
-      }),
-    ]),
-  ]);
+  }, [label]);
 }
 ```
 
 ### 2.9 Checkpoint
 
+- [ ] Helper modules created (timer, audio, storage)
 - [ ] App store created with all state/actions
 - [ ] All shared components migrated
 - [ ] All screens migrated
+- [ ] New E2E tests created (`silent.spec.ts`, `reflection.spec.ts`)
 - [ ] Router wired up
 - [ ] window.IDS API works
 - [ ] `e2e/modals.spec.ts` rewritten for two-click pattern
@@ -926,19 +586,22 @@ nudgeTiming: NudgeTiming[];    // When each nudge was used ('early' | 'mid' | 'l
 |----------|--------|-----------|
 | Development approach | TDD | Write tests first, then implementation |
 | Framework first | Build before mic check | Can't fix lifecycle issues without it |
-| Migration strategy | Big-bang | Simpler than maintaining two systems |
+| Migration strategy | Screen-by-screen with E2E checkpoints | Validate incrementally, catch issues early |
+| Helpers pattern | Module-scoped factories, no OOP | Simple closures, store coordinates |
 | Modals | Removed entirely | Two-click inline pattern is simpler |
 | Debug view | Removed | Use `window.IDS` for debugging |
 | Naming convention | Unified kebab/camelCase | Consistency across codebase |
-| CSS approach | Keep in `styles.css` | No runtime style injection complexity |
-| Timer logic | In AppStore | Global behavior, not component-specific |
+| CSS approach | Keep in `styles.css` for now | Defer component-scoped styles to later phase |
+| Timer logic | In AppStore via helper | Global behavior, store coordinates |
 | `getAppState()` | Returns live session | E2E tests use `session.dispatch()` |
+| Two-click confirmation | Button text change + 3s timeout | Clear, no complex modal lifecycle |
 | Soft delete expiry | None (keep indefinitely) | Wait to see if it becomes an issue |
 | Dashboard stats | 4 metrics | Total, avg nudges, avg prep, this week |
 | Pagination | 10 per page | Reasonable default |
 | Route for new session | `/#/new` | Clear separation from dashboard |
 | Theme | Light (default) | Standard for neobrutalism, high contrast |
 | Fonts | System fonts | Zero load time, local-first philosophy |
+| Test directory | Consolidated `tests/` | Simpler `bun test` without path args |
 
 ---
 

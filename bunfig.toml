@@ -1,3 +1,3 @@
 [test]
-# Only run unit tests from core/tests, exclude e2e tests
-root = "core/tests"
+root = "tests"
+preload = ["./tests/setup.ts"]

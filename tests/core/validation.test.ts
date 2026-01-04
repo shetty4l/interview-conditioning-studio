@@ -9,7 +9,7 @@ import {
   completeSession,
   Phase,
   VALID_REFLECTION_RESPONSES,
-} from "./_helpers";
+} from "../_helpers";
 
 /**
  * Validation Tests
