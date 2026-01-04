@@ -204,6 +204,93 @@ describe("createTimer", () => {
       expect(timer.getRemaining()).toBe(0);
     });
   });
+
+  describe("totalPausedMs tracking", () => {
+    it("should start with 0 total paused time", () => {
+      timer.start(5000);
+      expect(timer.getTotalPausedMs()).toBe(0);
+    });
+
+    it("should track time spent paused", async () => {
+      timer.start(5000);
+      timer.pause();
+      await sleep(500);
+      timer.resume();
+
+      // Should have tracked approximately 500ms of pause time
+      const pausedMs = timer.getTotalPausedMs();
+      expect(pausedMs).toBeGreaterThanOrEqual(450);
+      expect(pausedMs).toBeLessThanOrEqual(600);
+    });
+
+    it("should accumulate multiple pause durations", async () => {
+      timer.start(10000);
+
+      // First pause
+      timer.pause();
+      await sleep(300);
+      timer.resume();
+
+      // Second pause
+      timer.pause();
+      await sleep(300);
+      timer.resume();
+
+      // Should have accumulated approximately 600ms
+      const pausedMs = timer.getTotalPausedMs();
+      expect(pausedMs).toBeGreaterThanOrEqual(500);
+      expect(pausedMs).toBeLessThanOrEqual(750);
+    });
+
+    it("should include current pause duration when queried while paused", async () => {
+      timer.start(5000);
+      timer.pause();
+      await sleep(300);
+
+      // While still paused, getTotalPausedMs should include current pause
+      const pausedMs = timer.getTotalPausedMs();
+      expect(pausedMs).toBeGreaterThanOrEqual(250);
+      expect(pausedMs).toBeLessThanOrEqual(400);
+    });
+
+    it("should reset total paused time on start", async () => {
+      timer.start(5000);
+      timer.pause();
+      await sleep(300);
+      timer.resume();
+
+      expect(timer.getTotalPausedMs()).toBeGreaterThan(0);
+
+      // Start again should reset
+      timer.start(5000);
+      expect(timer.getTotalPausedMs()).toBe(0);
+    });
+
+    it("should preserve total paused time after stop", async () => {
+      timer.start(5000);
+      timer.pause();
+      await sleep(300);
+      timer.resume();
+
+      const pausedBefore = timer.getTotalPausedMs();
+      timer.stop();
+
+      // Total paused time should still be accessible
+      expect(timer.getTotalPausedMs()).toBe(pausedBefore);
+    });
+
+    it("resetTotalPausedMs should clear accumulated time", async () => {
+      timer.start(5000);
+      timer.pause();
+      await sleep(300);
+      timer.resume();
+
+      expect(timer.getTotalPausedMs()).toBeGreaterThan(0);
+
+      timer.resetTotalPausedMs();
+      expect(timer.getTotalPausedMs()).toBe(0);
+    });
+  });
 });
 
 // Helper to wait for a given time
