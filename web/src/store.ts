@@ -227,6 +227,7 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
             preset: sessionState.preset,
             createdAt: sessionState.sessionStartedAt ?? Date.now(),
             updatedAt: Date.now(),
+            deletedAt: null,
           };
           await storage.saveSession(storedSession);
         } catch (error) {

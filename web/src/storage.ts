@@ -37,6 +37,8 @@ export interface Storage {
   getAllSessions(): Promise<StoredSession[]>;
   getIncompleteSession(): Promise<StoredSession | null>;
   deleteSession(id: string): Promise<void>;
+  /** Soft delete a session (sets deletedAt timestamp, doesn't remove from DB) */
+  softDeleteSession(id: string): Promise<void>;
   clearAll(): Promise<void>;
 
   // Audio operations
@@ -167,9 +169,10 @@ export function createStorage(): Storage {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
         const sessions = request.result as StoredSession[];
-        // Sort by updatedAt descending (most recent first)
-        sessions.sort((a, b) => b.updatedAt - a.updatedAt);
-        resolve(sessions);
+        // Filter out soft-deleted sessions and sort by updatedAt descending
+        const activeSessions = sessions.filter((s) => s.deletedAt === null || s.deletedAt === undefined);
+        activeSessions.sort((a, b) => b.updatedAt - a.updatedAt);
+        resolve(activeSessions);
       };
     });
   };
@@ -207,6 +210,16 @@ export function createStorage(): Storage {
 
     // Delete associated audio
     await deleteAudio(id);
+  };
+
+  const softDeleteSession = async (id: string): Promise<void> => {
+    const session = await getSession(id);
+    if (session) {
+      await saveSession({
+        ...session,
+        deletedAt: Date.now(),
+      });
+    }
   };
 
   const clearAll = async (): Promise<void> => {
@@ -334,6 +347,7 @@ export function createStorage(): Storage {
     getAllSessions,
     getIncompleteSession,
     deleteSession,
+    softDeleteSession,
     clearAll,
     saveAudioChunk,
     getAudioBlob,
@@ -361,6 +375,7 @@ export const getSession = (id: string) => _storage.getSession(id);
 export const getAllSessions = () => _storage.getAllSessions();
 export const getIncompleteSession = () => _storage.getIncompleteSession();
 export const deleteSession = (id: string) => _storage.deleteSession(id);
+export const softDeleteSession = (id: string) => _storage.softDeleteSession(id);
 export const clearAllStorage = () => _storage.clearAll();
 export const saveAudioChunk = (sessionId: string, chunk: Blob, mimeType: string) =>
   _storage.saveAudioChunk(sessionId, chunk, mimeType);

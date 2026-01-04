@@ -134,6 +134,7 @@ interface IDSAPI {
     getSession: (id: string) => Promise<unknown>;
     getIncompleteSession: () => Promise<unknown>;
     getAllSessions: () => Promise<unknown[]>;
+    softDeleteSession: (id: string) => Promise<void>;
   };
 
   // Router access
@@ -229,6 +230,11 @@ function setupIDSAPI(): void {
       getAllSessions: async () => {
         await storage.init();
         return storage.getAllSessions();
+      },
+
+      softDeleteSession: async (id: string) => {
+        await storage.init();
+        return storage.softDeleteSession(id);
       },
     },
 

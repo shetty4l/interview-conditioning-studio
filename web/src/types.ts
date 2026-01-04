@@ -217,6 +217,8 @@ export interface StoredSession {
   preset: Preset;
   createdAt: number;
   updatedAt: number;
+  /** Soft delete timestamp. Null if not deleted. */
+  deletedAt: number | null;
 }
 
 export interface StoredAudio {
