@@ -68,6 +68,32 @@
   padding: 0;
 }
 
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) var(--bg-tertiary);
+}
+
 html {
   font-size: 16px;
 }
@@ -685,10 +711,65 @@ input[type="radio"] {
   margin-bottom: var(--space-sm);
 }
 
+/* Invariants reference in coding screen */
+.invariants-reference {
+  background-color: var(--bg-secondary);
+  padding: var(--space-md);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--shadow);
+}
+
+.invariants-reference__label {
+  display: block;
+  font-weight: var(--font-weight-bold);
+  color: var(--primary);
+  margin-bottom: var(--space-sm);
+  font-size: 0.875rem;
+}
+
+.invariants-reference__text {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .code-input {
   flex: 1;
   min-height: 350px;
   font-size: 0.875rem;
+}
+
+/* Coding area layout */
+.coding-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Coding actions row */
+.coding-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+}
+
+/* Screen content general */
+.screen-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Screen footer */
+.screen-footer {
+  margin-top: auto;
+  padding-top: var(--space-xl);
 }
 
 /* ============================================================================
@@ -700,6 +781,89 @@ input[type="radio"] {
   margin: 0 auto;
 }
 
+.summary-screen .screen-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.summary-screen h1 {
+  text-align: center;
+  color: var(--success);
+  margin-bottom: var(--space-md);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+
+.stat-card {
+  background-color: var(--bg-secondary);
+  padding: var(--space-lg);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--shadow);
+}
+
+.stat-card--wide {
+  grid-column: span 2;
+}
+
+.stat-card .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-xs);
+}
+
+.stat-card .stat-value {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-black);
+  font-family: var(--font-mono);
+  color: var(--primary);
+}
+
+.code-preview {
+  background-color: var(--bg-secondary);
+  padding: var(--space-lg);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--shadow);
+}
+
+.code-preview h2 {
+  margin-bottom: var(--space-md);
+}
+
+.code-preview__content {
+  background-color: var(--bg-tertiary);
+  padding: var(--space-md);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.summary-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.summary-actions .btn {
+  min-width: 250px;
+}
+
+/* Legacy summary styles for backwards compatibility */
 .summary-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -798,7 +962,7 @@ input[type="radio"] {
 
 .options {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-sm);
 }
 
@@ -814,6 +978,7 @@ input[type="radio"] {
   transition:
     background-color var(--transition-fast),
     border-color var(--transition-fast);
+  width: fit-content;
 }
 
 .option:hover {
