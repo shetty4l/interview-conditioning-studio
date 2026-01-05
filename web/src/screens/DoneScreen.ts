@@ -32,10 +32,10 @@ export function DoneScreen(): HTMLElement {
   };
 
   return div({ class: "screen done-screen", id: "done-screen" }, [
-    // Header
+    // Header with frozen timer
     PhaseHeader({
       phase: "done",
-      remainingMs: 0,
+      remainingMs: state.remainingMs,
     }),
 
     // Main content

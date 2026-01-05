@@ -4,7 +4,7 @@
  * Quick reflection form after session completion.
  */
 
-import { div, form, h1, input, label, signal, span, useActions } from "../framework";
+import { div, form, h1, input, label, signal, span, useActions, useStore } from "../framework";
 import { Button, PhaseHeader } from "../components";
 import { AppStore } from "../store";
 import type { ReflectionFormData } from "../types";
@@ -75,6 +75,7 @@ const QUESTIONS: QuestionConfig[] = [
 // ============================================================================
 
 export function ReflectionScreen(): HTMLElement {
+  const state = useStore(AppStore);
   const actions = useActions(AppStore);
 
   // Form state
@@ -102,10 +103,10 @@ export function ReflectionScreen(): HTMLElement {
   };
 
   return div({ class: "screen reflection-screen", id: "reflection-screen" }, [
-    // Header (no timer)
+    // Header with frozen timer
     PhaseHeader({
       phase: "reflection",
-      remainingMs: 0,
+      remainingMs: state.remainingMs,
     }),
 
     // Main content

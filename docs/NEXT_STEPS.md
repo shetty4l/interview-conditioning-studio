@@ -7,10 +7,10 @@ Work planned in priority order:
 1. **Phase 0: Bug Fixes** - Fix export bug ✅ DONE
 2. **Phase 1: Reactive Framework** - Build minimal reactive UI framework ✅ DONE (131 tests)
 3. **Phase 2: Fresh UI + Neobrutalism** - Delete old UI, write fresh reactive components with neobrutalism design ✅ DONE
-4. **Phase 3: Dashboard + UI Polish** - Dashboard, simplified routing, pause/resume ✅ ~90% DONE
+4. **Phase 3: Dashboard + UI Polish** - Dashboard, simplified routing, pause/resume ✅ DONE
 5. **Phase 3.1: Audio Recording Bug** - Fix reactive feedback loop causing UI flicker ✅ DONE
-6. **Phase 3.2: UX Improvements** - Two-column layouts, better button placement, summary redesign 🔜 NEXT
-7. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization
+6. **Phase 3.2: UX Improvements** - Two-column layouts, better button placement, summary redesign ✅ DONE
+7. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization 🔜 NEXT
 8. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests
 
 ## Key Design Decisions
@@ -408,33 +408,52 @@ Move audio lifecycle from component lifecycle (CodingScreen) to store-managed ph
 
 ---
 
-## Phase 3.2: UX Improvements 🔜 NEXT
+## Phase 3.2: UX Improvements ✅ DONE
 
 **Goal**: Improve Prep, Coding, and Summary screen layouts for better UX
 
-**Status**: Planned, ready to implement in chunks
+**Status**: Complete
 
-### 3.2.1 Issues Identified
+### 3.2.1 What Was Done
 
-| Screen  | Issue                                                                 |
-| ------- | --------------------------------------------------------------------- |
-| Coding  | Single-column layout cramped; problem/invariants compete with editor  |
-| Coding  | Button placement confusing (REC, Nudge, Submit, Pause, Abandon)       |
-| Prep    | Similar button placement issues                                       |
-| Summary | Card pattern doesn't fit heavy content (metrics, problem, invariants) |
-| Timer   | Shows 00:00 on submit instead of actual time remaining                |
+| Item                            | Description                                                  |
+| ------------------------------- | ------------------------------------------------------------ |
+| `CollapsibleSection` component  | Reusable collapsible with chevron toggle                     |
+| Coding screen two-column layout | Editor (60%) + sidebar (40%) with Problem, Invariants, Nudge |
+| Coding screen footer            | REC indicator (left), Abandon Session (right)                |
+| Prep screen two-column layout   | Invariants (60%) + Problem sidebar (40%)                     |
+| Summary screen redesign         | Metrics row + collapsible sections                           |
+| Timer freeze on submit          | Header timer preserves value when entering Summary           |
+| Actual time spent               | Summary shows prep + coding time actually used               |
+| Flex-based constraints          | Removed max-width/max-height, use flex ratios                |
+| Responsive design               | Layouts stack on mobile (< 768px)                            |
 
-### 3.2.2 Proposed Layouts
+### 3.2.2 Files Changed
 
-**Coding Screen (Two-Column):**
+| File                                       | Change                                    |
+| ------------------------------------------ | ----------------------------------------- |
+| `web/src/components/CollapsibleSection.ts` | New component                             |
+| `web/src/components/index.ts`              | Export CollapsibleSection                 |
+| `web/src/screens/CodingScreen.ts`          | Two-column layout with footer             |
+| `web/src/screens/PrepScreen.ts`            | Two-column layout                         |
+| `web/src/screens/SummaryScreen.ts`         | Metrics row + collapsible sections        |
+| `web/src/store.ts`                         | Preserve remainingMs for non-timed phases |
+| `web/css/styles.css`                       | Collapsible, layout, and metric styles    |
+| `e2e/responsive.spec.ts`                   | Updated max-width assertion (900→1100)    |
+| `e2e/session-flow.spec.ts`                 | Updated selector for new Summary format   |
+
+### 3.2.3 Layout Summary
+
+**Coding Screen:**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  [CODING] 28:15        [⏸ Pause] [Submit Solution]                  │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                    │                                │
-│                                    │  ▼ Problem: Two Sum            │
-│      CODE EDITOR                   │    Given an array of...        │
-│      (~60% width)                  ├────────────────────────────────│
+│      CODE EDITOR                   │  ▼ Problem: Two Sum            │
+│      (~60% width)                  │    Given an array of...        │
+│                                    ├────────────────────────────────│
 │                                    │  ▼ Your Invariants             │
 │                                    │    - Array not sorted          │
 │                                    ├────────────────────────────────│
@@ -444,59 +463,38 @@ Move audio lifecycle from component lifecycle (CodingScreen) to store-managed ph
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Prep Screen (Two-Column):**
+**Prep Screen:**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  [PREP] 04:32                      [⏸ Pause] [Start Coding →]       │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                    │                                │
-│      INVARIANTS TEXTAREA           │  Problem: Two Sum              │
-│      (primary focus, ~60%)         │  Given an array of integers... │
-│                                    │                                │
+│      INVARIANTS TEXTAREA           │  ▼ Problem: Two Sum            │
+│      (primary focus, ~60%)         │    Given an array of integers..│
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                   [Abandon Session] │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Summary Screen (Sections, not cards):**
+**Summary Screen:**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  [SUMMARY]                                                          │
+│  [SUMMARY] 12:34                                                    │
 ├─────────────────────────────────────────────────────────────────────┤
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐                             │
-│  │  28:15  │  │   2/3   │  │ Two Sum │                             │
-│  │  TIME   │  │ NUDGES  │  │ PROBLEM │                             │
-│  └─────────┘  └─────────┘  └─────────┘                             │
+│  ┌─────────┐  ┌─────────┐  ┌─────────────────────┐                 │
+│  │  05:23  │  │   1/3   │  │      Two Sum        │                 │
+│  │TIME SPENT│ │ NUDGES  │  │      PROBLEM        │                 │
+│  └─────────┘  └─────────┘  └─────────────────────┘                 │
 │                                                                     │
-│  ▼ Problem Description                                              │
+│  ▼ Problem Description (collapsed by default)                       │
 │  ▼ Your Invariants                                                  │
 │  ▼ Your Solution                                                    │
 │                                                                     │
 │                    [Continue to Reflection]                         │
 └─────────────────────────────────────────────────────────────────────┘
 ```
-
-### 3.2.3 Implementation Chunks
-
-| Chunk | Scope                              | Estimate |
-| ----- | ---------------------------------- | -------- |
-| 1     | `CollapsibleSection` component     | ~30 min  |
-| 2     | Coding screen two-column + footer  | ~1.5 hrs |
-| 3     | Prep screen layout update          | ~45 min  |
-| 4     | Summary screen sections layout     | ~1 hr    |
-| 5     | Timer behavior on submit           | ~15 min  |
-| 6     | Polish & E2E review                | ~30 min  |
-| **Total** |                              | **~5 hrs** |
-
-### 3.2.4 Checkpoint
-
-- [ ] Chunk 1: `CollapsibleSection` component
-- [ ] Chunk 2: Coding screen two-column layout
-- [ ] Chunk 3: Prep screen layout update
-- [ ] Chunk 4: Summary screen sections layout
-- [ ] Chunk 5: Timer shows actual time remaining on submit
-- [ ] Chunk 6: E2E tests pass, responsive breakpoints work
-- [ ] Commit after each chunk for incremental review
 
 ---
 
@@ -557,15 +555,15 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 
 ## Estimated Time
 
-| Phase                             | Estimate    | Status       |
-| --------------------------------- | ----------- | ------------ |
-| Phase 0 (Bug Fixes)               | -           | ✅ Done      |
-| Phase 1 (Framework)               | ~4-6 hours  | ✅ Done      |
-| Phase 2 (Fresh UI + Neobrutalism) | ~8-13 hours | ✅ Done      |
-| Phase 3 (Dashboard + UI Polish)   | ~15 hours   | ✅ ~90% Done |
-| Phase 3.1 (Audio Bug Fix)         | ~2 hours    | ✅ Done      |
-| Phase 3.2 (UX Improvements)       | ~5 hours    | 🔜 Next      |
-| Phase 4 (Mic Check)               | ~2-3 hours  | Pending      |
-| Phase 5 (Core Engine)             | ~2-3 hours  | Pending      |
+| Phase                             | Estimate    | Status  |
+| --------------------------------- | ----------- | ------- |
+| Phase 0 (Bug Fixes)               | -           | ✅ Done |
+| Phase 1 (Framework)               | ~4-6 hours  | ✅ Done |
+| Phase 2 (Fresh UI + Neobrutalism) | ~8-13 hours | ✅ Done |
+| Phase 3 (Dashboard + UI Polish)   | ~15 hours   | ✅ Done |
+| Phase 3.1 (Audio Bug Fix)         | ~2 hours    | ✅ Done |
+| Phase 3.2 (UX Improvements)       | ~5 hours    | ✅ Done |
+| Phase 4 (Mic Check)               | ~2-3 hours  | 🔜 Next |
+| Phase 5 (Core Engine)             | ~2-3 hours  | Pending |
 
-**Total Remaining: ~10-11 hours** (Phase 3.2 + Phase 4 + Phase 5)
+**Total Remaining: ~4-6 hours** (Phase 4 + Phase 5)

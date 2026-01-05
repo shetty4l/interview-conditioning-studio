@@ -46,7 +46,7 @@ test.describe("Session Flow", () => {
     let state = await getAppState(page);
     expect(state.screen).toBe("prep");
     await expect(page.getByText("PREP")).toBeVisible();
-    await expect(page.getByRole("heading", { level: 2 })).toBeVisible(); // Problem title
+    await expect(page.locator(".collapsible__title").filter({ hasText: "Problem:" })).toBeVisible();
 
     // Enter some invariants
     await page.getByRole("textbox").first().fill("- Check for null inputs\n- Handle empty lists");
@@ -77,8 +77,8 @@ test.describe("Session Flow", () => {
     expect(state.screen).toBe("summary");
     await expect(page.getByText("SUMMARY")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Session Complete" })).toBeVisible();
-    await expect(page.getByText("Nudges Used")).toBeVisible();
-    await expect(page.getByText("1 / 3")).toBeVisible(); // Used 1 nudge
+    await expect(page.getByText("Nudges")).toBeVisible();
+    await expect(page.getByText("1/3")).toBeVisible(); // Used 1 nudge
 
     // Continue to reflection
     await goToReflection(page);

@@ -1,7 +1,13 @@
 /**
  * CodingScreen Component
  *
- * Coding phase screen with code editor, nudges, and recording.
+ * Coding phase screen with two-column layout:
+ * - Left (~60%): Code editor
+ * - Right (~40%): Collapsible Problem, Collapsible Invariants, Nudge button
+ *
+ * Header: Phase badge, Timer, Pause, Submit Solution
+ * Footer: REC indicator (left), Abandon Session (right)
+ *
  * Also handles SILENT phase (shows banner, disables nudges).
  */
 
@@ -9,11 +15,11 @@ import { div, Show, span, useActions, useStore } from "../framework";
 import {
   Button,
   CodeEditor,
+  CollapsibleSection,
   ConfirmButton,
   NudgeButton,
   PauseButton,
   PhaseHeader,
-  ProblemCard,
   RecordingIndicator,
 } from "../components";
 import { AppStore, PhaseEnum } from "../store";
@@ -60,120 +66,141 @@ export function CodingScreen(): HTMLElement {
   // - stopRecording() called in submitSolution(), handlePhaseExpiry(), abandonSession()
   // - pauseSession()/resumeFromPause() handle pause/resume recording
 
-  return div({ class: "screen coding-screen", id: "coding-screen" }, [
-    // Header with timer and pause button
-    PhaseHeader({
-      phase: currentPhase,
-      remainingMs: state.remainingMs,
-      isPaused: state.isPaused,
-      actions: [
-        PauseButton({
-          isPaused: state.isPaused,
-          onPause: handlePause,
-          onResume: handleResume,
-        }),
-        Button({
-          label: "Submit Solution",
-          variant: "primary",
-          action: "submit-solution",
-          onClick: handleSubmitSolution,
-        }),
-      ],
-    }),
-
-    // Silent phase banner
-    Show(isSilentPhase, () =>
-      div({ class: "silent-banner" }, [
-        span({ class: "silent-banner__icon" }, ["🤫"]),
-        span({ class: "silent-banner__text" }, ["Silent Phase - No assistance available"]),
-      ]),
-    ),
-
-    // Paused banner (non-blocking)
-    Show(
-      () => state.isPaused(),
-      () =>
-        div({ class: "paused-overlay" }, [
-          span({ class: "paused-overlay__icon" }, ["⏸"]),
-          span({ class: "paused-overlay__text" }, ["Session Paused"]),
-          Button({
-            label: "Resume",
-            variant: "primary",
-            size: "small",
-            onClick: handleResume,
+  return div(
+    {
+      class: () => `screen coding-screen${isSilentPhase() ? " coding-screen--silent" : ""}`,
+      id: "coding-screen",
+    },
+    [
+      // Header with timer and pause button
+      PhaseHeader({
+        phase: currentPhase,
+        remainingMs: state.remainingMs,
+        isPaused: state.isPaused,
+        actions: [
+          PauseButton({
+            isPaused: state.isPaused,
+            onPause: handlePause,
+            onResume: handleResume,
           }),
-        ]),
-    ),
+          Button({
+            label: "Submit Solution",
+            variant: "primary",
+            action: "submit-solution",
+            onClick: handleSubmitSolution,
+          }),
+        ],
+      }),
 
-    // Main content
-    div({ class: "screen-content" }, [
-      // Problem display (collapsible in coding)
-      Show(
-        () => state.problem() !== null,
-        () => ProblemCard({ problem: state.problem()!, collapsible: true }),
+      // Silent phase banner
+      Show(isSilentPhase, () =>
+        div({ class: "silent-banner" }, [
+          span({ class: "silent-banner__icon" }, ["🤫"]),
+          span({ class: "silent-banner__text" }, ["Silent Phase - No assistance available"]),
+        ]),
       ),
 
-      // Coding area
-      div({ class: "coding-area" }, [
-        // Invariants reference (read-only, collapsed)
-        Show(
-          () => state.invariants().length > 0,
-          () =>
-            div({ class: "invariants-reference" }, [
-              span({ class: "invariants-reference__label" }, ["Your invariants:"]),
-              span({ class: "invariants-reference__text" }, [state.invariants]),
-            ]),
-        ),
+      // Paused banner (non-blocking)
+      Show(
+        () => state.isPaused(),
+        () =>
+          div({ class: "paused-overlay" }, [
+            span({ class: "paused-overlay__icon" }, ["⏸"]),
+            span({ class: "paused-overlay__text" }, ["Session Paused"]),
+            Button({
+              label: "Resume",
+              variant: "primary",
+              size: "small",
+              onClick: handleResume,
+            }),
+          ]),
+      ),
 
-        // Code editor
-        CodeEditor({
-          value: state.code,
-          onChange: handleCodeChange,
-        }),
+      // Two-column main content
+      div({ class: "coding-layout" }, [
+        // Left column: Code editor
+        div({ class: "coding-layout__editor" }, [
+          CodeEditor({
+            value: state.code,
+            onChange: handleCodeChange,
+          }),
+        ]),
+
+        // Right column: Problem, Invariants, Nudge
+        div({ class: "coding-layout__sidebar" }, [
+          // Problem (collapsible)
+          Show(
+            () => state.problem() !== null,
+            () =>
+              CollapsibleSection({
+                title: `Problem: ${state.problem()!.title}`,
+                children: div({ class: "problem-description" }, [state.problem()!.description]),
+                defaultCollapsed: false,
+                variant: "compact",
+              }),
+          ),
+
+          // Invariants (collapsible)
+          Show(
+            () => state.invariants().length > 0,
+            () =>
+              CollapsibleSection({
+                title: "Your Invariants",
+                children: state.invariants(),
+                defaultCollapsed: false,
+                variant: "compact",
+              }),
+          ),
+
+          // Nudge button (disabled in silent phase)
+          Show(
+            () => !isSilentPhase() && !state.isPaused(),
+            () =>
+              div({ class: "coding-layout__nudge" }, [
+                NudgeButton({
+                  nudgesUsed: state.nudgesUsed,
+                  nudgesAllowed: state.nudgesAllowed,
+                  onClick: handleRequestNudge,
+                }),
+              ]),
+          ),
+        ]),
       ]),
 
-      // Actions row
-      div({ class: "coding-actions" }, [
-        // Nudge button (disabled in silent phase)
-        Show(
-          () => !isSilentPhase() && !state.isPaused(),
-          () =>
-            NudgeButton({
-              nudgesUsed: state.nudgesUsed,
-              nudgesAllowed: state.nudgesAllowed,
-              onClick: handleRequestNudge,
-            }),
-        ),
+      // Footer: REC indicator (left) | Abandon Session (right)
+      div({ class: "coding-footer" }, [
+        // Left side: Recording indicator
+        div({ class: "coding-footer__left" }, [
+          // Recording indicator (when recording and not paused)
+          Show(
+            () => state.isRecording() && !state.isPaused(),
+            () =>
+              RecordingIndicator({
+                isRecording: state.isRecording,
+              }),
+          ),
 
-        // Recording indicator (when recording and not paused)
-        Show(
-          () => state.isRecording() && !state.isPaused(),
-          () =>
-            RecordingIndicator({
-              isRecording: state.isRecording,
-            }),
-        ),
+          // Show inactive recording when paused
+          Show(
+            () => state.audioSupported() && state.isPaused(),
+            () =>
+              RecordingIndicator({
+                isRecording: () => false,
+              }),
+          ),
+        ]),
 
-        // Show inactive recording when paused
-        Show(
-          () => state.audioSupported() && state.isPaused(),
-          () =>
-            RecordingIndicator({
-              isRecording: () => false,
-            }),
-        ),
+        // Right side: Abandon button
+        div({ class: "coding-footer__right" }, [
+          ConfirmButton({
+            label: "Abandon Session",
+            confirmLabel: "Confirm Abandon?",
+            variant: "danger",
+            action: "abandon-session",
+            onConfirm: handleAbandon,
+          }),
+        ]),
       ]),
-    ]),
-
-    // Footer with abandon option
-    div({ class: "screen-footer" }, [
-      ConfirmButton({
-        label: "Abandon Session",
-        confirmLabel: "Confirm Abandon?",
-        variant: "danger",
-        action: "abandon-session",
-        onConfirm: handleAbandon,
-      }),
-    ]),
-  ]);
+    ],
+  );
 }

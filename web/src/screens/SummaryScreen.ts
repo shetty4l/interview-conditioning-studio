@@ -1,11 +1,15 @@
 /**
  * SummaryScreen Component
  *
- * Session summary with stats and continue button.
+ * Session summary with:
+ * - Header showing frozen timer (time remaining when submitted)
+ * - Metrics row at top (Time spent, Nudges, Problem title)
+ * - Collapsible sections: Problem, Invariants, Solution
+ * - Continue to Reflection button
  */
 
-import { div, h1, h2, span, useActions, useStore } from "../framework";
-import { Button, PhaseHeader } from "../components";
+import { div, h1, span, Show, useActions, useStore } from "../framework";
+import { Button, CollapsibleSection, PhaseHeader } from "../components";
 import { AppStore } from "../store";
 import { formatTime } from "../components/Timer";
 
@@ -21,49 +25,93 @@ export function SummaryScreen(): HTMLElement {
     await actions.continuePastSummary();
   };
 
-  // Calculate session stats
-  const getTotalTime = () => {
-    const prep = state.prepDurationMs();
-    const coding = state.codingDurationMs();
-    return prep + coding;
+  // Calculate actual time spent from session timestamps
+  const getActualTimeSpent = () => {
+    const session = state.session();
+    if (!session) return 0;
+
+    const sessionState = session.getState();
+    const now = Date.now();
+
+    // Prep time: from session start to coding start
+    const prepTime = sessionState.prepTimeUsed ?? 0;
+
+    // Coding time: from coding start to now (we're on summary screen)
+    // If codingStartedAt exists, calculate time spent coding
+    let codingTime = 0;
+    if (sessionState.codingStartedAt) {
+      codingTime = now - sessionState.codingStartedAt;
+    }
+
+    return prepTime + codingTime;
   };
 
   return div({ class: "screen summary-screen", id: "summary-screen" }, [
-    // Header (no timer in summary)
+    // Header with frozen timer (shows time remaining when submitted)
     PhaseHeader({
       phase: "summary",
-      remainingMs: 0,
+      remainingMs: state.remainingMs,
     }),
 
     // Main content
-    div({ class: "screen-content summary-content" }, [
+    div({ class: "summary-content" }, [
       h1({}, ["Session Complete"]),
 
-      // Stats grid
-      div({ class: "stats-grid" }, [
-        // Total Time
-        div({ class: "stat-card" }, [
-          span({ class: "stat-label" }, ["Total Time"]),
-          span({ class: "stat-value" }, [() => formatTime(getTotalTime())]),
+      // Metrics row
+      div({ class: "summary-metrics" }, [
+        // Actual Time Spent
+        div({ class: "summary-metric" }, [
+          span({ class: "summary-metric__value" }, [() => formatTime(getActualTimeSpent())]),
+          span({ class: "summary-metric__label" }, ["Time Spent"]),
         ]),
 
         // Nudges Used
-        div({ class: "stat-card" }, [
-          span({ class: "stat-label" }, ["Nudges Used"]),
-          span({ class: "stat-value" }, [() => `${state.nudgesUsed()} / ${state.nudgesAllowed()}`]),
+        div({ class: "summary-metric" }, [
+          span({ class: "summary-metric__value" }, [
+            () => `${state.nudgesUsed()}/${state.nudgesAllowed()}`,
+          ]),
+          span({ class: "summary-metric__label" }, ["Nudges"]),
         ]),
 
         // Problem
-        div({ class: "stat-card stat-card--wide" }, [
-          span({ class: "stat-label" }, ["Problem"]),
-          span({ class: "stat-value" }, [() => state.problem()?.title || "Unknown"]),
+        div({ class: "summary-metric summary-metric--wide" }, [
+          span({ class: "summary-metric__value summary-metric__value--text" }, [
+            () => state.problem()?.title || "Unknown",
+          ]),
+          span({ class: "summary-metric__label" }, ["Problem"]),
         ]),
       ]),
 
-      // Code preview
-      div({ class: "code-preview" }, [
-        h2({}, ["Your Solution"]),
-        div({ class: "code-preview__content" }, [() => state.code() || "(No code submitted)"]),
+      // Collapsible sections
+      div({ class: "summary-sections" }, [
+        // Problem Description
+        Show(
+          () => state.problem() !== null,
+          () =>
+            CollapsibleSection({
+              title: "Problem Description",
+              children: div({ class: "problem-description" }, [state.problem()!.description]),
+              defaultCollapsed: true,
+            }),
+        ),
+
+        // Invariants
+        Show(
+          () => state.invariants().length > 0,
+          () =>
+            CollapsibleSection({
+              title: "Your Invariants",
+              children: state.invariants(),
+              defaultCollapsed: false,
+            }),
+        ),
+
+        // Solution
+        CollapsibleSection({
+          title: "Your Solution",
+          children: div({ class: "code-block" }, [() => state.code() || "(No code submitted)"]),
+          defaultCollapsed: false,
+        }),
       ]),
 
       // Continue button

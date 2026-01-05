@@ -208,12 +208,18 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
     // Helper: Sync session state to store
     // ========================================================================
     const syncSessionState = async (): Promise<void> => {
-      const { session, problem } = get();
+      const { session, problem, remainingMs: currentRemainingMs } = get();
       if (!session) return;
 
       const sessionState = session.getState();
       const screen = phaseToScreen(sessionState.phase);
-      const remainingMs = calculateRemainingMs();
+
+      // For timed phases (Prep, Coding, Silent), calculate remaining time
+      // For non-timed phases (Summary, Reflection, Done), preserve the last value
+      const isTimedPhase = [Phase.Prep, Phase.Coding, Phase.Silent].includes(
+        sessionState.phase as Phase,
+      );
+      const remainingMs = isTimedPhase ? calculateRemainingMs() : currentRemainingMs;
 
       set({
         screen,

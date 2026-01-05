@@ -117,8 +117,8 @@ test.describe("Tablet Viewport (768px)", () => {
     // Wait for prep screen to render (PREP badge in header)
     await expect(page.getByText("PREP", { exact: true })).toBeVisible();
 
-    // Problem title should be visible (h2 element)
-    const problemTitle = page.getByRole("heading", { level: 2 });
+    // Problem title should be visible (in collapsible section)
+    const problemTitle = page.locator(".collapsible__title").filter({ hasText: "Problem:" });
     await expect(problemTitle).toBeVisible();
 
     // Invariants input should be visible
@@ -146,8 +146,8 @@ test.describe("Desktop Viewport (1200px)", () => {
     if (box) {
       // App should be centered (not starting at 0)
       expect(box.x).toBeGreaterThan(0);
-      // App should have max-width applied (900px)
-      expect(box.width).toBeLessThanOrEqual(900);
+      // App should have max-width applied (1100px)
+      expect(box.width).toBeLessThanOrEqual(1100);
     }
   });
 

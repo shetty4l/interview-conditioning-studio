@@ -120,9 +120,9 @@ describe("Session > Preset configurations", () => {
     expectSuccess(session.dispatch("session.started"));
     const state = session.getState();
 
-    // Standard: 5 min prep, 35 min coding, 5 min silent, 3 nudges
+    // Standard: 5 min prep, 25 min coding, 5 min silent, 3 nudges
     expect(state.config.prepDuration).toBe(5 * 60 * 1000);
-    expect(state.config.codingDuration).toBe(35 * 60 * 1000);
+    expect(state.config.codingDuration).toBe(25 * 60 * 1000);
     expect(state.config.silentDuration).toBe(5 * 60 * 1000);
     expect(state.nudgesRemaining).toBe(3);
   });
@@ -133,9 +133,9 @@ describe("Session > Preset configurations", () => {
     expectSuccess(session.dispatch("session.started"));
     const state = session.getState();
 
-    // High Pressure: 3 min prep, 25 min coding, 2 min silent, 1 nudge
+    // High Pressure: 3 min prep, 15 min coding, 2 min silent, 1 nudge
     expect(state.config.prepDuration).toBe(3 * 60 * 1000);
-    expect(state.config.codingDuration).toBe(25 * 60 * 1000);
+    expect(state.config.codingDuration).toBe(15 * 60 * 1000);
     expect(state.config.silentDuration).toBe(2 * 60 * 1000);
     expect(state.nudgesRemaining).toBe(1);
   });
@@ -146,11 +146,24 @@ describe("Session > Preset configurations", () => {
     expectSuccess(session.dispatch("session.started"));
     const state = session.getState();
 
-    // No Assistance: 5 min prep, 35 min coding, 5 min silent, 0 nudges
+    // No Assistance: 5 min prep, 25 min coding, 5 min silent, 0 nudges
     expect(state.config.prepDuration).toBe(5 * 60 * 1000);
-    expect(state.config.codingDuration).toBe(35 * 60 * 1000);
+    expect(state.config.codingDuration).toBe(25 * 60 * 1000);
     expect(state.config.silentDuration).toBe(5 * 60 * 1000);
     expect(state.config.nudgeBudget).toBe(0);
+  });
+
+  it("should use Speed Round preset config", () => {
+    const { session } = createTestSession(Preset.SpeedRound);
+
+    expectSuccess(session.dispatch("session.started"));
+    const state = session.getState();
+
+    // Speed Round: 2 min prep, 10 min coding, 2 min silent, 2 nudges
+    expect(state.config.prepDuration).toBe(2 * 60 * 1000);
+    expect(state.config.codingDuration).toBe(10 * 60 * 1000);
+    expect(state.config.silentDuration).toBe(2 * 60 * 1000);
+    expect(state.nudgesRemaining).toBe(2);
   });
 });
 

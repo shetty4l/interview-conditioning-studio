@@ -20,19 +20,24 @@ const PRESETS: Array<{
   description: string;
 }> = [
   {
+    preset: PresetEnum.SpeedRound,
+    label: "Speed Round",
+    description: "2 min prep, 10 min coding, 2 min silent, 2 nudges",
+  },
+  {
     preset: PresetEnum.Standard,
     label: "Standard",
-    description: "5 min prep, 35 min coding, 5 min silent, 3 nudges",
+    description: "5 min prep, 25 min coding, 5 min silent, 3 nudges",
   },
   {
     preset: PresetEnum.HighPressure,
     label: "High Pressure",
-    description: "3 min prep, 25 min coding, 2 min silent, 1 nudge",
+    description: "3 min prep, 15 min coding, 2 min silent, 1 nudge",
   },
   {
     preset: PresetEnum.NoAssistance,
     label: "No Assistance",
-    description: "5 min prep, 35 min coding, 5 min silent, 0 nudges",
+    description: "5 min prep, 25 min coding, 5 min silent, 0 nudges",
   },
 ];
 

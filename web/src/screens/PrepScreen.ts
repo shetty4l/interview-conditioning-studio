@@ -1,17 +1,22 @@
 /**
  * PrepScreen Component
  *
- * Preparation phase screen where users read the problem and note invariants.
+ * Preparation phase screen with two-column layout:
+ * - Left (~60%): Invariants textarea (primary focus)
+ * - Right (~40%): Problem display
+ *
+ * Header: Phase badge, Timer, Pause, Start Coding
+ * Footer: Abandon Session (right-aligned)
  */
 
 import { div, Show, span, useActions, useStore } from "../framework";
 import {
   Button,
+  CollapsibleSection,
   ConfirmButton,
   InvariantsInput,
   PauseButton,
   PhaseHeader,
-  ProblemCard,
 } from "../components";
 import { AppStore } from "../store";
 
@@ -81,30 +86,42 @@ export function PrepScreen(): HTMLElement {
         ]),
     ),
 
-    // Main content
-    div({ class: "screen-content" }, [
-      // Problem display
-      Show(
-        () => state.problem() !== null,
-        () => ProblemCard({ problem: state.problem()! }),
-      ),
+    // Two-column main content
+    div({ class: "prep-layout" }, [
+      // Left column: Invariants textarea (primary focus)
+      div({ class: "prep-layout__main" }, [
+        InvariantsInput({
+          value: state.invariants,
+          onChange: handleInvariantsChange,
+        }),
+      ]),
 
-      // Invariants input
-      InvariantsInput({
-        value: state.invariants,
-        onChange: handleInvariantsChange,
-      }),
+      // Right column: Problem display
+      div({ class: "prep-layout__sidebar" }, [
+        Show(
+          () => state.problem() !== null,
+          () =>
+            CollapsibleSection({
+              title: `Problem: ${state.problem()!.title}`,
+              children: div({ class: "problem-description" }, [state.problem()!.description]),
+              defaultCollapsed: false,
+            }),
+        ),
+      ]),
     ]),
 
-    // Footer with abandon option
-    div({ class: "screen-footer" }, [
-      ConfirmButton({
-        label: "Abandon Session",
-        confirmLabel: "Confirm Abandon?",
-        variant: "danger",
-        action: "abandon-session",
-        onConfirm: handleAbandon,
-      }),
+    // Footer with abandon option (right-aligned)
+    div({ class: "prep-footer" }, [
+      div({ class: "prep-footer__spacer" }, []),
+      div({ class: "prep-footer__right" }, [
+        ConfirmButton({
+          label: "Abandon Session",
+          confirmLabel: "Confirm Abandon?",
+          variant: "danger",
+          action: "abandon-session",
+          onConfirm: handleAbandon,
+        }),
+      ]),
     ]),
   ]);
 }
