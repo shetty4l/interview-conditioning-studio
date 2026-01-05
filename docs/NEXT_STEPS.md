@@ -8,8 +8,8 @@ Work planned in priority order:
 2. **Phase 1: Reactive Framework** - Build minimal reactive UI framework ✅ DONE (131 tests)
 3. **Phase 2: Fresh UI + Neobrutalism** - Delete old UI, write fresh reactive components with neobrutalism design ✅ DONE
 4. **Phase 3: Dashboard + UI Polish** - Dashboard, simplified routing, pause/resume ✅ ~90% DONE
-5. **Phase 3.1: Audio Recording Bug** - Fix reactive feedback loop causing UI flicker 🔴 BLOCKING
-6. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization
+5. **Phase 3.1: Audio Recording Bug** - Fix reactive feedback loop causing UI flicker ✅ DONE
+6. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization 🔜 NEXT
 7. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests
 
 ## Key Design Decisions
@@ -329,11 +329,11 @@ See sections 3.9 in git history for full edge case tables. Key decisions:
 
 ---
 
-## Phase 3.1: Fix Audio Recording Feedback Loop 🔴 BLOCKING
+## Phase 3.1: Fix Audio Recording Feedback Loop ✅ DONE
 
 **Goal**: Fix the reactive feedback loop causing CodingScreen to flicker when audio recording is active
 
-**Status**: Diagnosed, ready to implement
+**Status**: Complete - Fixed by moving audio lifecycle from component to store.
 
 ### Problem Summary
 
@@ -393,17 +393,17 @@ Move audio lifecycle from component lifecycle (CodingScreen) to store-managed ph
 
 ### Checkpoint
 
-- [ ] Remove audio lifecycle from CodingScreen.ts
-- [ ] Add `startRecording()` to `startCoding()` action
-- [ ] Add `stopRecording()` to `submitSolution()` action
-- [ ] Add `stopRecording()` to `handlePhaseExpiry()` for Silent→Summary
-- [ ] Add `stopRecording()` to `abandonSession()` action
-- [ ] Add recording resume to `_loadSession()` for Coding/Silent phases
-- [ ] Add guard in `audio.ts` onstop handler
-- [ ] Manual test: REC indicator stable, textarea usable
-- [ ] E2E tests pass: `bun run test:e2e`
-- [ ] Full CI passes: `bun run ci`
-- [ ] Commit: `fix(web): move audio lifecycle to store, prevent feedback loop`
+- [x] Remove audio lifecycle from CodingScreen.ts
+- [x] Add `startRecording()` to `startCoding()` action
+- [x] Add `stopRecording()` to `submitSolution()` action
+- [x] Add `stopRecording()` to `handlePhaseExpiry()` for Silent→Summary
+- [x] Add `stopRecording()` to `abandonSession()` action
+- [x] Add recording resume to `_loadSession()` for Coding/Silent phases
+- [x] Add guard in `audio.ts` onstop handler
+- [x] Manual test: REC indicator stable, textarea usable
+- [x] E2E tests pass: `bun run test:e2e`
+- [x] Full CI passes: `bun run ci`
+- [x] Commit: `fix(web): move audio lifecycle to store, prevent feedback loop`
 
 ---
 
@@ -470,8 +470,8 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 | Phase 1 (Framework)               | ~4-6 hours  | ✅ Done      |
 | Phase 2 (Fresh UI + Neobrutalism) | ~8-13 hours | ✅ Done      |
 | Phase 3 (Dashboard + UI Polish)   | ~15 hours   | ✅ ~90% Done |
-| Phase 3.1 (Audio Bug Fix)         | ~2 hours    | 🔴 Blocking  |
-| Phase 4 (Mic Check)               | ~2-3 hours  | Pending      |
+| Phase 3.1 (Audio Bug Fix)         | ~2 hours    | ✅ Done      |
+| Phase 4 (Mic Check)               | ~2-3 hours  | 🔜 Next      |
 | Phase 5 (Core Engine)             | ~2-3 hours  | Pending      |
 
 **Total Remaining: ~6-8 hours** (Phase 3.1 + remaining Phase 3 polish + Phase 4 + Phase 5)
