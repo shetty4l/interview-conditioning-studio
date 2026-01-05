@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # Resolve paths relative to script location
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-${(%):-%N}}"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 TOOLS_DIR="$PROJECT_DIR/tools"
 BUN_DIR="$TOOLS_DIR/bun"
@@ -89,7 +90,8 @@ if [[ -n "${IDS_ACTIVE:-}" ]]; then
 fi
 
 # Resolve paths relative to script location
-_IDS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-${(%):-%N}}"
+_IDS_SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 _IDS_PROJECT_DIR="$(dirname "$_IDS_SCRIPT_DIR")"
 _IDS_BUN_DIR="$_IDS_PROJECT_DIR/tools/bun"
 
