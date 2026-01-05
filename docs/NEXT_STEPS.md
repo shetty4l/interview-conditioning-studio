@@ -37,6 +37,15 @@ Work planned in priority order:
 | Abandon behavior       | **Soft delete** (not hard)      | Future analytics; consistent with completed       |
 | Global nav             | Clickable title + back link     | Easy return to Dashboard from anywhere            |
 
+## Preset Timing
+
+| Preset        | Prep  | Coding | Silent | Nudges |
+| ------------- | ----- | ------ | ------ | ------ |
+| Speed Round   | 2 min | 10 min | 2 min  | 2      |
+| Standard      | 5 min | 25 min | 5 min  | 3      |
+| High Pressure | 3 min | 15 min | 2 min  | 1      |
+| No Assistance | 5 min | 25 min | 5 min  | 0      |
+
 ## Two-Click Inline Pattern (Replaces Modals)
 
 For destructive actions like "Discard session":
@@ -108,7 +117,7 @@ web/src/store.ts            # AppStore (12 tests)
 
 **Goal**: Delete all old UI code, write fresh reactive components with neobrutalism styling
 
-**Status**: Complete - All E2E tests passing (85 tests)
+**Status**: Complete
 
 ### 2.1 What Was Done
 
@@ -265,64 +274,48 @@ Full session flow tested and working:
 
 ---
 
-## Phase 3: Dashboard + UI Polish ✅ ~90% DONE
+## Phase 3: Dashboard + UI Polish ✅ DONE
 
 **Goal**: Add dashboard for session management, simplify routing, improve coding screen layout, add pause/resume and auto-recording
 
-**Status**: Most features complete. Blocked by audio recording bug (Phase 3.1).
+**Status**: Complete
 
 ### 3.1 What Was Completed
 
-| Item                                                    | Status                   |
-| ------------------------------------------------------- | ------------------------ |
-| `DashboardScreen.ts`                                    | ✅ Created               |
-| `SessionScreen.ts`                                      | ✅ Created               |
-| `ViewScreen.ts`                                         | ✅ Created (placeholder) |
-| `HomeScreen.ts` (serves as NewSessionScreen)            | ✅ Created               |
-| `AppHeader.ts` component                                | ✅ Created               |
-| `StatsCard.ts` component                                | ✅ Created               |
-| `SessionCard.ts` component                              | ✅ Created               |
-| `PauseButton.ts` component                              | ✅ Created               |
-| `isPaused` state + `pauseSession()`/`resumeFromPause()` | ✅ Implemented           |
-| `softDeleteSession()` + `deletedAt` field               | ✅ Implemented           |
-| `getSessionStats()`                                     | ✅ Implemented           |
-| `dashboard.spec.ts` E2E tests                           | ✅ Passing               |
-| `pause.spec.ts` E2E tests                               | ✅ Passing               |
-| Routes updated in `main.ts`                             | ✅ Done                  |
-| Timer paused styling                                    | ✅ Done                  |
-| Button ghost variant                                    | ✅ Done                  |
+| Item                                                    | Status         |
+| ------------------------------------------------------- | -------------- |
+| `DashboardScreen.ts`                                    | ✅ Created     |
+| `SessionScreen.ts`                                      | ✅ Created     |
+| `ViewScreen.ts`                                         | ✅ Placeholder |
+| `HomeScreen.ts` (serves as NewSessionScreen)            | ✅ Created     |
+| `AppHeader.ts` component                                | ✅ Created     |
+| `StatsCard.ts` component                                | ✅ Created     |
+| `SessionCard.ts` component                              | ✅ Created     |
+| `PauseButton.ts` component                              | ✅ Created     |
+| `CollapsibleSection.ts` component                       | ✅ Created     |
+| `isPaused` state + `pauseSession()`/`resumeFromPause()` | ✅ Implemented |
+| `softDeleteSession()` + `deletedAt` field               | ✅ Implemented |
+| `getSessionStats()`                                     | ✅ Implemented |
+| `dashboard.spec.ts` E2E tests                           | ✅ Passing     |
+| `pause.spec.ts` E2E tests                               | ✅ Passing     |
+| Routes updated in `main.ts`                             | ✅ Done        |
+| Timer paused styling                                    | ✅ Done        |
+| Button ghost variant                                    | ✅ Done        |
+| Two-column layouts (Prep, Coding)                       | ✅ Done        |
+| Summary screen redesign                                 | ✅ Done        |
 
-### 3.2 Remaining Work (After Bug Fix)
-
-| Item                              | Status                      |
-| --------------------------------- | --------------------------- |
-| Fix audio recording feedback loop | 🔴 BLOCKING (see Phase 3.1) |
-| `MicStatusIndicator` component    | ⏳ Not started              |
-| `CollapsibleSection` component    | ⏳ Not started              |
-| Two-column coding layout          | ⏳ Not started              |
-| `ViewScreen` full implementation  | ⏳ Placeholder exists       |
-
-### 3.3 E2E Test Status
-
-```
-106 passed
-11 skipped
-```
-
-### 3.4 Route Structure
+### 3.2 Route Structure
 
 | Route         | Screen          | Description                                       |
 | ------------- | --------------- | ------------------------------------------------- |
 | `/#/`         | DashboardScreen | Session list, stats, "New Session" button         |
 | `/#/new`      | HomeScreen      | Preset selection                                  |
 | `/#/:id`      | SessionScreen   | Active session (renders current phase internally) |
-| `/#/:id/view` | ViewScreen      | Read-only view of completed session               |
+| `/#/:id/view` | ViewScreen      | Read-only view of completed session (TODO)        |
 
 **Key Principle**: Each route must be directly navigable. Phase is state, not route.
 
-### 3.5 Edge Cases Reference
-
-See sections 3.9 in git history for full edge case tables. Key decisions:
+### 3.3 Edge Cases Reference
 
 - Pause: Pauses timer AND recording
 - Abandoned sessions: Soft delete with `deletedAt` timestamp
@@ -553,6 +546,28 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 
 ---
 
+## Phase 6: ViewScreen Implementation
+
+**Goal**: Implement read-only view of completed sessions
+
+**Current State**: Placeholder exists at `web/src/screens/ViewScreen.ts` - currently redirects to dashboard with "coming soon" toast.
+
+### 6.1 Features
+
+- Display completed session data (problem, invariants, code, reflection)
+- Show session metrics (time spent, nudges used)
+- Export button
+- Read-only (no editing)
+- Accessible via `/#/:id/view` route
+
+### 6.2 Checkpoint
+
+- [ ] ViewScreen displays session data
+- [ ] Export functionality works from ViewScreen
+- [ ] Commit: `feat(web): implement ViewScreen for completed sessions`
+
+---
+
 ## Estimated Time
 
 | Phase                             | Estimate    | Status  |
@@ -565,5 +580,13 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 | Phase 3.2 (UX Improvements)       | ~5 hours    | ✅ Done |
 | Phase 4 (Mic Check)               | ~2-3 hours  | 🔜 Next |
 | Phase 5 (Core Engine)             | ~2-3 hours  | Pending |
+| Phase 6 (ViewScreen)              | ~1-2 hours  | Pending |
 
-**Total Remaining: ~4-6 hours** (Phase 4 + Phase 5)
+**Total Remaining: ~5-8 hours** (Phase 4 + Phase 5 + Phase 6)
+
+---
+
+## Current Test Status
+
+- **260 unit tests** passing (42 TODO)
+- **106 E2E tests** passing (11 skipped)

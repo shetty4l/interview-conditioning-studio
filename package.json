@@ -5,7 +5,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "bun run build:js && bun run build:assets",
-    "build:js": "bun build web/src/main.ts --outfile dist/bundle.js --target browser --format esm",
+    "build:js": "bun build web/src/main.ts --outfile dist/bundle.js --target browser --format esm --minify",
     "build:assets": "cp web/index.html dist/ && cp -r web/css dist/",
     "build:watch": "bun build web/src/main.ts --outfile dist/bundle.js --target browser --format esm --watch",
     "typecheck": "tsc --noEmit",
