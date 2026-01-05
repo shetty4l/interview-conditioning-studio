@@ -311,6 +311,7 @@ input[type="radio"] {
   height: 20px;
   accent-color: var(--primary);
   cursor: pointer;
+  outline: none;
 }
 
 /* ============================================================================
@@ -1014,7 +1015,7 @@ input[type="radio"] {
 
 .radio-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: var(--space-sm);
 }
 
@@ -1036,6 +1037,12 @@ input[type="radio"] {
 .radio-label:hover {
   background-color: var(--bg-secondary);
   border-color: var(--primary);
+}
+
+.radio-label:active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--bg);
 }
 
 .radio-label:has(input:checked) {
