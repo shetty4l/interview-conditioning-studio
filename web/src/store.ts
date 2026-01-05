@@ -215,15 +215,6 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
       const screen = phaseToScreen(sessionState.phase);
       const remainingMs = calculateRemainingMs();
 
-      // DEBUG: Log sessionId changes
-      const currentSessionId = get().sessionId;
-      const newSessionId = sessionState.id ?? null;
-      if (currentSessionId !== newSessionId) {
-        console.warn(
-          `[syncSessionState] sessionId changing: ${currentSessionId} -> ${newSessionId}`,
-        );
-      }
-
       set({
         screen,
         sessionId: sessionState.id ?? null,
@@ -262,19 +253,28 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
     // Helper: Handle phase expiry (timer ran out)
     // ========================================================================
     const handlePhaseExpiry = (): void => {
-      const { session, phase } = get();
+      const { session, phase, audioSupported, audioPermissionDenied } = get();
       if (!session) return;
 
       switch (phase) {
         case Phase.Prep:
           // Auto-start coding when prep timer expires
           session.dispatch("coding.started");
+          // Start recording when entering coding phase
+          if (audioSupported && !audioPermissionDenied && audioRecorder) {
+            audioRecorder.start().catch((err) => console.error("Failed to start recording:", err));
+          }
           break;
         case Phase.Coding:
           // Auto-start silent phase when coding timer expires
           session.dispatch("coding.silent_started");
           break;
         case Phase.Silent:
+          // Stop recording before entering summary
+          if (audioRecorder) {
+            audioRecorder.stop().catch((err) => console.error("Failed to stop recording:", err));
+            set({ isRecording: false });
+          }
           // Auto-end silent phase when timer expires
           session.dispatch("silent.ended");
           break;
@@ -416,6 +416,9 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
         const { session, sessionId } = get();
         if (!session) return;
 
+        // Stop recording before abandoning
+        await this.stopRecording();
+
         session.dispatch("session.abandoned");
         stopTimer();
 
@@ -482,7 +485,7 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
       // Phase transitions
       // ----------------------------------------------------------------------
       async startCoding() {
-        const { session } = get();
+        const { session, audioSupported, audioPermissionDenied } = get();
         if (!session) return;
 
         const result = session.dispatch("coding.started");
@@ -493,11 +496,19 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
 
         await syncSessionState();
         startPhaseTimer();
+
+        // Start recording when entering coding phase
+        if (audioSupported && !audioPermissionDenied) {
+          this.startRecording();
+        }
       },
 
       async submitSolution() {
         const { session } = get();
         if (!session) return;
+
+        // Stop recording before transitioning to summary
+        await this.stopRecording();
 
         const result = session.dispatch("coding.solution_submitted");
         if (!result.ok) {
@@ -748,6 +759,7 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
           });
 
           const sessionState = session.getState();
+          const { audioSupported, audioPermissionDenied } = get();
 
           set({
             session,
@@ -766,6 +778,16 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
           });
 
           startPhaseTimer();
+
+          // Resume recording if in Coding or Silent phase
+          if (
+            (sessionState.phase === Phase.Coding || sessionState.phase === Phase.Silent) &&
+            audioSupported &&
+            !audioPermissionDenied
+          ) {
+            this.startRecording();
+          }
+
           return true;
         } catch (error) {
           console.error("Failed to load session:", error);

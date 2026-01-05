@@ -164,9 +164,12 @@ export function createAudioRecorder(
       };
 
       // Handle recording stop
+      // Guard: only notify if state actually changed to prevent feedback loops
       mediaRecorder.onstop = () => {
-        state.isRecording = false;
-        notifyStateChange();
+        if (state.isRecording) {
+          state.isRecording = false;
+          notifyStateChange();
+        }
       };
 
       // Handle errors

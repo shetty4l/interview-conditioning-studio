@@ -5,7 +5,7 @@
  * Also handles SILENT phase (shows banner, disables nudges).
  */
 
-import { div, onCleanup, onMount, Show, span, useActions, useStore, watch } from "../framework";
+import { div, Show, span, useActions, useStore } from "../framework";
 import {
   Button,
   CodeEditor,
@@ -27,7 +27,6 @@ export function CodingScreen(): HTMLElement {
   const actions = useActions(AppStore);
 
   const isSilentPhase = () => state.phase() === PhaseEnum.Silent;
-  const isCodingPhase = () => state.phase() === PhaseEnum.Coding;
 
   const handleCodeChange = (value: string) => {
     actions.updateCode(value);
@@ -56,54 +55,10 @@ export function CodingScreen(): HTMLElement {
   // Determine current phase name for header
   const currentPhase = () => (isSilentPhase() ? "silent" : "coding");
 
-  // Auto-start recording when entering coding phase (if audio supported and not paused)
-  onMount(() => {
-    if (
-      isCodingPhase() &&
-      state.audioSupported() &&
-      !state.audioPermissionDenied() &&
-      !state.isPaused()
-    ) {
-      actions.startRecording();
-    }
-  });
-
-  // Watch for pause/resume to control recording
-  // The watch function runs whenever isPaused changes
-  let lastPausedState: boolean | null = null;
-  watch(() => {
-    const isPaused = state.isPaused();
-
-    // Skip on initial run or if not in coding phase
-    if (lastPausedState === null) {
-      lastPausedState = isPaused;
-      return;
-    }
-
-    if (!isCodingPhase() || !state.audioSupported() || state.audioPermissionDenied()) {
-      lastPausedState = isPaused;
-      return;
-    }
-
-    // Only react to changes
-    if (isPaused !== lastPausedState) {
-      lastPausedState = isPaused;
-      if (isPaused) {
-        // Stop recording when paused (saves segment)
-        actions.stopRecording();
-      } else {
-        // Resume recording when unpaused
-        actions.startRecording();
-      }
-    }
-  });
-
-  // Stop recording on cleanup
-  onCleanup(() => {
-    if (state.isRecording()) {
-      actions.stopRecording();
-    }
-  });
+  // Note: Audio recording lifecycle is managed by the store
+  // - startRecording() called in startCoding() and _loadSession()
+  // - stopRecording() called in submitSolution(), handlePhaseExpiry(), abandonSession()
+  // - pauseSession()/resumeFromPause() handle pause/resume recording
 
   return div({ class: "screen coding-screen", id: "coding-screen" }, [
     // Header with timer and pause button
