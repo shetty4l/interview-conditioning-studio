@@ -692,6 +692,7 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
 
         try {
           await storage.softDeleteSession(sessionId);
+          await this._checkIncompleteSession();
         } catch (error) {
           console.error("Failed to soft delete session:", error);
         }

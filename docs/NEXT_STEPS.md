@@ -9,8 +9,9 @@ Work planned in priority order:
 3. **Phase 2: Fresh UI + Neobrutalism** - Delete old UI, write fresh reactive components with neobrutalism design ✅ DONE
 4. **Phase 3: Dashboard + UI Polish** - Dashboard, simplified routing, pause/resume ✅ ~90% DONE
 5. **Phase 3.1: Audio Recording Bug** - Fix reactive feedback loop causing UI flicker ✅ DONE
-6. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization 🔜 NEXT
-7. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests
+6. **Phase 3.2: UX Improvements** - Two-column layouts, better button placement, summary redesign 🔜 NEXT
+7. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization
+8. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests
 
 ## Key Design Decisions
 
@@ -407,6 +408,98 @@ Move audio lifecycle from component lifecycle (CodingScreen) to store-managed ph
 
 ---
 
+## Phase 3.2: UX Improvements 🔜 NEXT
+
+**Goal**: Improve Prep, Coding, and Summary screen layouts for better UX
+
+**Status**: Planned, ready to implement in chunks
+
+### 3.2.1 Issues Identified
+
+| Screen  | Issue                                                                 |
+| ------- | --------------------------------------------------------------------- |
+| Coding  | Single-column layout cramped; problem/invariants compete with editor  |
+| Coding  | Button placement confusing (REC, Nudge, Submit, Pause, Abandon)       |
+| Prep    | Similar button placement issues                                       |
+| Summary | Card pattern doesn't fit heavy content (metrics, problem, invariants) |
+| Timer   | Shows 00:00 on submit instead of actual time remaining                |
+
+### 3.2.2 Proposed Layouts
+
+**Coding Screen (Two-Column):**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [CODING] 28:15        [⏸ Pause] [Submit Solution]                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                    │                                │
+│                                    │  ▼ Problem: Two Sum            │
+│      CODE EDITOR                   │    Given an array of...        │
+│      (~60% width)                  ├────────────────────────────────│
+│                                    │  ▼ Your Invariants             │
+│                                    │    - Array not sorted          │
+│                                    ├────────────────────────────────│
+│                                    │  [Nudge (2/3)]                 │
+├─────────────────────────────────────────────────────────────────────┤
+│  [🔴 REC]                                         [Abandon Session] │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Prep Screen (Two-Column):**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [PREP] 04:32                      [⏸ Pause] [Start Coding →]       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                    │                                │
+│      INVARIANTS TEXTAREA           │  Problem: Two Sum              │
+│      (primary focus, ~60%)         │  Given an array of integers... │
+│                                    │                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                   [Abandon Session] │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Summary Screen (Sections, not cards):**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [SUMMARY]                                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐                             │
+│  │  28:15  │  │   2/3   │  │ Two Sum │                             │
+│  │  TIME   │  │ NUDGES  │  │ PROBLEM │                             │
+│  └─────────┘  └─────────┘  └─────────┘                             │
+│                                                                     │
+│  ▼ Problem Description                                              │
+│  ▼ Your Invariants                                                  │
+│  ▼ Your Solution                                                    │
+│                                                                     │
+│                    [Continue to Reflection]                         │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.2.3 Implementation Chunks
+
+| Chunk | Scope                              | Estimate |
+| ----- | ---------------------------------- | -------- |
+| 1     | `CollapsibleSection` component     | ~30 min  |
+| 2     | Coding screen two-column + footer  | ~1.5 hrs |
+| 3     | Prep screen layout update          | ~45 min  |
+| 4     | Summary screen sections layout     | ~1 hr    |
+| 5     | Timer behavior on submit           | ~15 min  |
+| 6     | Polish & E2E review                | ~30 min  |
+| **Total** |                              | **~5 hrs** |
+
+### 3.2.4 Checkpoint
+
+- [ ] Chunk 1: `CollapsibleSection` component
+- [ ] Chunk 2: Coding screen two-column layout
+- [ ] Chunk 3: Prep screen layout update
+- [ ] Chunk 4: Summary screen sections layout
+- [ ] Chunk 5: Timer shows actual time remaining on submit
+- [ ] Chunk 6: E2E tests pass, responsive breakpoints work
+- [ ] Commit after each chunk for incremental review
+
+---
+
 ## Phase 4: Pre-Session Mic Check
 
 **Goal**: Add microphone check before starting a session
@@ -471,7 +564,8 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 | Phase 2 (Fresh UI + Neobrutalism) | ~8-13 hours | ✅ Done      |
 | Phase 3 (Dashboard + UI Polish)   | ~15 hours   | ✅ ~90% Done |
 | Phase 3.1 (Audio Bug Fix)         | ~2 hours    | ✅ Done      |
-| Phase 4 (Mic Check)               | ~2-3 hours  | 🔜 Next      |
+| Phase 3.2 (UX Improvements)       | ~5 hours    | 🔜 Next      |
+| Phase 4 (Mic Check)               | ~2-3 hours  | Pending      |
 | Phase 5 (Core Engine)             | ~2-3 hours  | Pending      |
 
-**Total Remaining: ~6-8 hours** (Phase 3.1 + remaining Phase 3 polish + Phase 4 + Phase 5)
+**Total Remaining: ~10-11 hours** (Phase 3.2 + Phase 4 + Phase 5)
