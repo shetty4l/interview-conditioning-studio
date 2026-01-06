@@ -18,6 +18,7 @@ import { createStorage, type Storage } from "./storage";
 import { type AudioRecorder, createAudioRecorder, isAudioSupported } from "./audio";
 import { getRandomProblem, type Problem } from "./problems";
 import { exportSession } from "./export";
+import { showToast } from "./components";
 import type { ReflectionFormData, ScreenName, StoredSession } from "./types";
 
 // ============================================================================
@@ -259,34 +260,41 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
     // Helper: Handle phase expiry (timer ran out)
     // ========================================================================
     const handlePhaseExpiry = (): void => {
-      const { session, phase, audioSupported, audioPermissionDenied } = get();
-      if (!session) return;
+      const { session, phase, isPaused, audioSupported, audioPermissionDenied } = get();
+      if (!session || isPaused) return;
 
       switch (phase) {
         case Phase.Prep:
           // Auto-start coding when prep timer expires
+          showToast("Prep time's up! Moving to coding...", "warning");
           session.dispatch("coding.started");
           // Start recording when entering coding phase
           if (audioSupported && !audioPermissionDenied && audioRecorder) {
             audioRecorder.start().catch((err) => console.error("Failed to start recording:", err));
           }
+          syncSessionState();
+          startPhaseTimer();
           break;
         case Phase.Coding:
           // Auto-start silent phase when coding timer expires
+          showToast("Coding time's up! Entering silent phase...", "warning");
           session.dispatch("coding.silent_started");
+          syncSessionState();
+          startPhaseTimer();
           break;
         case Phase.Silent:
           // Stop recording before entering summary
+          showToast("Silent phase complete! Review your session...", "warning");
           if (audioRecorder) {
             audioRecorder.stop().catch((err) => console.error("Failed to stop recording:", err));
             set({ isRecording: false });
           }
           // Auto-end silent phase when timer expires
           session.dispatch("silent.ended");
+          syncSessionState();
+          // No startPhaseTimer() - Summary is not timed
           break;
       }
-
-      syncSessionState();
     };
 
     // ========================================================================

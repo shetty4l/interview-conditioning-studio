@@ -10,7 +10,7 @@ import { div, For, signal } from "../framework";
 // Types
 // ============================================================================
 
-export type ToastType = "success" | "error" | "info";
+export type ToastType = "success" | "error" | "info" | "warning";
 
 export interface ToastMessage {
   id: number;

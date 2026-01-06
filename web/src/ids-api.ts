@@ -52,6 +52,9 @@ export interface IDSAPI {
   continuePastSummary: () => Promise<void>;
   submitReflection: (responses: ReflectionFormData) => Promise<void>;
 
+  // Test helpers
+  forcePhaseExpiry: () => void;
+
   // Storage access
   storage: {
     clearAll: () => Promise<void>;
@@ -109,6 +112,9 @@ export function setupIDSAPI(): void {
     submitSolution: () => actions.submitSolution(),
     continuePastSummary: () => actions.continuePastSummary(),
     submitReflection: (responses) => actions.submitReflection(responses),
+
+    // Test helpers
+    forcePhaseExpiry: () => actions._handlePhaseExpiry(),
 
     // Storage (with lazy init)
     storage: {
