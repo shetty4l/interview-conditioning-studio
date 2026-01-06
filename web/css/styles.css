@@ -1304,6 +1304,11 @@ input[type="radio"] {
   box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--primary);
 }
 
+.toast--warning {
+  border-color: var(--warning);
+  box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--warning);
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(100%);

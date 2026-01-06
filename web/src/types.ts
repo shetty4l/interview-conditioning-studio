@@ -123,7 +123,7 @@ export interface Screen {
 // Toast
 // ============================================================================
 
-export type ToastType = "info" | "error" | "success";
+export type ToastType = "info" | "error" | "success" | "warning";
 
 export interface ToastConfig {
   message: string;

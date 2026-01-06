@@ -36,6 +36,7 @@ export interface AppState {
   isRecording: boolean;
   audioSupported: boolean;
   audioPermissionDenied: boolean;
+  remainingMs: number;
 }
 
 export interface ReflectionFormData {
@@ -116,6 +117,7 @@ export async function getAppState(page: Page): Promise<AppState> {
       isRecording: state.isRecording,
       audioSupported: state.audioSupported,
       audioPermissionDenied: state.audioPermissionDenied,
+      remainingMs: state.remainingMs,
     };
   });
 }
@@ -440,4 +442,17 @@ export async function expectUrlToBe(page: Page, pattern: RegExp | string): Promi
  */
 export async function expectAtDashboard(page: Page): Promise<void> {
   expect(page.url()).toMatch(/\/#?\/?$/);
+}
+
+// ============================================================================
+// Timer Helpers
+// ============================================================================
+
+/**
+ * Force the current phase timer to expire.
+ * Triggers the phase expiry handler, causing auto-transition to next phase.
+ * Used for testing timer expiry behavior without waiting for real time.
+ */
+export async function forcePhaseExpiry(page: Page): Promise<void> {
+  await page.evaluate(() => window.IDS.forcePhaseExpiry());
 }
