@@ -109,7 +109,7 @@ body {
 }
 
 #app {
-  max-width: 1100px;
+  max-width: min(90vw, 1600px);
   margin: 0 auto;
   padding: var(--space-lg);
   min-height: 100vh;

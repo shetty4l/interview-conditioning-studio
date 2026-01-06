@@ -44,6 +44,21 @@ export function InvariantsInput(props: InvariantsInputProps): HTMLElement {
             const target = e.target as HTMLTextAreaElement;
             onChange(target.value);
           },
+          onKeyDown: (e: KeyboardEvent) => {
+            // Handle Tab key - insert 2 spaces instead of tab character
+            if (e.key === "Tab") {
+              e.preventDefault();
+              const target = e.target as HTMLTextAreaElement;
+              const start = target.selectionStart;
+              const end = target.selectionEnd;
+              const currentValue = target.value;
+              const newValue =
+                currentValue.substring(0, start) + "  " + currentValue.substring(end);
+              target.value = newValue;
+              target.selectionStart = target.selectionEnd = start + 2;
+              onChange(newValue);
+            }
+          },
         },
         [],
       ),
