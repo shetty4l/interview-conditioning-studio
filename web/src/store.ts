@@ -344,7 +344,7 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
 
       async startSession() {
         const { selectedPreset } = get();
-        const problem = getRandomProblem();
+        const problem = await getRandomProblem();
 
         // Reset audio recorder for new session (prevents stale sessionId)
         if (audioRecorder) {
