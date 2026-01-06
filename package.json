@@ -17,7 +17,8 @@
     "format:check": "oxfmt --check .",
     "serve": "bun scripts/serve.ts",
     "dev": "bun run build && bun run serve",
-    "ci": "bun run clean && bun run build && bun run typecheck && bun run format && bun run lint && bun run test && bun run test:e2e"
+    "preflight": "bun run build && bun run format && bun run typecheck && bun run lint && bun run test",
+    "ci": "bun run clean && bun run build && bun run format:check && bun run typecheck && bun run lint && bun run test && bun run test:e2e"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.0.11",
