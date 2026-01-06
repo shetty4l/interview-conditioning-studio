@@ -6,6 +6,27 @@
  * Tracks total paused time for accurate timing across pause/resume cycles.
  */
 
+// ============================================================================
+// Clock Interface (for testability)
+// ============================================================================
+
+export interface Clock {
+  now(): number;
+  setInterval(fn: () => void, ms: number): ReturnType<typeof setInterval>;
+  clearInterval(id: ReturnType<typeof setInterval>): void;
+}
+
+/** Default clock using real browser/Node APIs */
+const realClock: Clock = {
+  now: () => Date.now(),
+  setInterval: (fn, ms) => setInterval(fn, ms),
+  clearInterval: (id) => clearInterval(id),
+};
+
+// ============================================================================
+// Types
+// ============================================================================
+
 export interface TimerCallbacks {
   onTick: (remainingMs: number) => void;
   onExpire: () => void;
@@ -32,7 +53,7 @@ export interface Timer {
   resetTotalPausedMs(): void;
 }
 
-export function createTimer(callbacks: TimerCallbacks): Timer {
+export function createTimer(callbacks: TimerCallbacks, clock: Clock = realClock): Timer {
   let intervalId: ReturnType<typeof setInterval> | null = null;
   let remainingMs = 0;
   let running = false;
@@ -61,12 +82,12 @@ export function createTimer(callbacks: TimerCallbacks): Timer {
     // Immediately call onTick with initial value
     callbacks.onTick(remainingMs);
 
-    intervalId = setInterval(tick, 1000);
+    intervalId = clock.setInterval(tick, 1000);
   };
 
   const stop = () => {
     if (intervalId !== null) {
-      clearInterval(intervalId);
+      clock.clearInterval(intervalId);
       intervalId = null;
     }
     remainingMs = 0;
@@ -80,11 +101,11 @@ export function createTimer(callbacks: TimerCallbacks): Timer {
     if (!running || paused) return;
 
     if (intervalId !== null) {
-      clearInterval(intervalId);
+      clock.clearInterval(intervalId);
       intervalId = null;
     }
     paused = true;
-    pausedAt = Date.now();
+    pausedAt = clock.now();
   };
 
   const resume = () => {
@@ -92,12 +113,12 @@ export function createTimer(callbacks: TimerCallbacks): Timer {
 
     // Calculate how long we were paused and add to total
     if (pausedAt !== null) {
-      totalPausedMs += Date.now() - pausedAt;
+      totalPausedMs += clock.now() - pausedAt;
       pausedAt = null;
     }
 
     paused = false;
-    intervalId = setInterval(tick, 1000);
+    intervalId = clock.setInterval(tick, 1000);
   };
 
   const getRemaining = () => remainingMs;
@@ -109,7 +130,7 @@ export function createTimer(callbacks: TimerCallbacks): Timer {
   const getTotalPausedMs = () => {
     // If currently paused, include the current pause duration
     if (paused && pausedAt !== null) {
-      return totalPausedMs + (Date.now() - pausedAt);
+      return totalPausedMs + (clock.now() - pausedAt);
     }
     return totalPausedMs;
   };

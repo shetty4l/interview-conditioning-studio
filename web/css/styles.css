@@ -113,6 +113,12 @@ body {
   margin: 0 auto;
   padding: var(--space-lg);
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#app .router {
+  display: contents;
 }
 
 /* ============================================================================
@@ -355,24 +361,24 @@ input[type="radio"] {
 .home-screen {
   display: flex;
   flex-direction: column;
-  align-items: center;
+}
+
+.home-header {
   text-align: center;
-  padding-top: var(--space-2xl);
+  margin-bottom: var(--space-xl);
 }
 
-.preset-selector {
-  width: 100%;
-  max-width: 600px;
-  margin-bottom: var(--space-2xl);
+.preset-section {
+  margin-bottom: var(--space-xl);
 }
 
-.preset-selector h2 {
+.preset-section h2 {
   margin-bottom: var(--space-lg);
 }
 
 .preset-cards {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-md);
 }
 
@@ -443,8 +449,6 @@ input[type="radio"] {
   justify-content: space-between;
   gap: var(--space-md);
   box-shadow: var(--shadow-size) var(--shadow-size) 0 0 var(--primary);
-  width: 100%;
-  max-width: 600px;
 }
 
 .resume-banner__text {
@@ -573,7 +577,8 @@ input[type="radio"] {
 .prep-screen {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 6rem);
+  flex: 1;
+  min-height: 0; /* Allow shrinking in flex container */
 }
 
 .problem-section {
@@ -687,13 +692,25 @@ input[type="radio"] {
 }
 
 /* ============================================================================
+   Session Screen (container for Prep, Coding, Summary, etc.)
+   ============================================================================ */
+
+.session-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ============================================================================
    Coding Screen
    ============================================================================ */
 
 .coding-screen {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 6rem);
+  flex: 1;
+  min-height: 0; /* Allow shrinking in flex container */
 }
 
 .coding-screen--silent {
@@ -929,8 +946,7 @@ input[type="radio"] {
    ============================================================================ */
 
 .summary-screen {
-  max-width: 800px;
-  margin: 0 auto;
+  flex: 1;
 }
 
 .summary-screen h1 {
@@ -1094,8 +1110,7 @@ input[type="radio"] {
    ============================================================================ */
 
 .reflection-screen {
-  max-width: 600px;
-  margin: 0 auto;
+  flex: 1;
 }
 
 .reflection-intro {
@@ -1234,6 +1249,7 @@ input[type="radio"] {
   align-items: center;
   text-align: center;
   padding-top: var(--space-2xl);
+  flex: 1;
 }
 
 .done-content {
@@ -1898,6 +1914,11 @@ input[type="radio"] {
 
   .resume-banner__text {
     text-align: center;
+  }
+
+  /* Home screen: stack preset cards on mobile */
+  .preset-cards {
+    grid-template-columns: 1fr;
   }
 
   .summary-stats {
