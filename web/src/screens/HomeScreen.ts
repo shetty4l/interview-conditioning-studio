@@ -6,7 +6,7 @@
  */
 
 import { div, h1, h2, onMount, p, Show, span, useActions, useRouter, useStore } from "../framework";
-import { Button, ConfirmButton, PresetCard, showToast } from "../components";
+import { AppHeader, Button, ConfirmButton, PresetCard, showToast } from "../components";
 import { AppStore, PresetEnum } from "../store";
 import { preloadProblems } from "../problems";
 import type { Preset } from "../../../core/src/index";
@@ -85,6 +85,8 @@ export function HomeScreen(): HTMLElement {
   };
 
   return div({ class: "screen home-screen", id: "home-screen" }, [
+    AppHeader(),
+
     // Resume Banner
     Show(
       () => state.incompleteSession() !== null,

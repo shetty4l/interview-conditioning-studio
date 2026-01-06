@@ -90,29 +90,38 @@ async function buildExportEntries(session: StoredSession): Promise<TarEntry[]> {
   // Extract code and invariants from session state
   const { code, invariants } = extractSessionData(session.events);
 
-  // 1. code.txt
+  // Get audio info for README
+  const audioBlob = await getAudioBlob(session.id);
+  const audioMimeType = await getAudioMimeType(session.id);
+  const hasAudio = audioBlob !== null;
+
+  // 1. README.md (for LLM analysis)
+  const readme = buildReadme(session, code, invariants, hasAudio, audioMimeType);
+  entries.push({
+    name: "README.md",
+    content: stringToUint8Array(readme),
+  });
+
+  // 2. code.txt
   entries.push({
     name: "code.txt",
     content: stringToUint8Array(code || ""),
   });
 
-  // 2. invariants.txt
+  // 3. invariants.txt
   entries.push({
     name: "invariants.txt",
     content: stringToUint8Array(invariants || ""),
   });
 
-  // 3. session.json (metadata + events + reflection)
-  const audioBlob = await getAudioBlob(session.id);
-  const audioMimeType = await getAudioMimeType(session.id);
-
-  const exportData = buildExportData(session, audioBlob !== null, audioMimeType);
+  // 4. session.json (metadata + events + reflection)
+  const exportData = buildExportData(session, hasAudio, audioMimeType);
   entries.push({
     name: "session.json",
     content: stringToUint8Array(JSON.stringify(exportData, null, 2)),
   });
 
-  // 4. audio file (if recorded)
+  // 5. audio file (if recorded)
   if (audioBlob && audioMimeType) {
     const audioExtension = getFileExtension(audioMimeType);
     const audioData = await blobToUint8Array(audioBlob);
@@ -142,6 +151,104 @@ function extractSessionData(events: Event[]): { code: string; invariants: string
   }
 
   return { code, invariants };
+}
+
+/**
+ * Build README.md content for LLM analysis.
+ */
+function buildReadme(
+  session: StoredSession,
+  code: string,
+  invariants: string,
+  hasAudio: boolean,
+  audioMimeType: string | null,
+): string {
+  const createdDate = new Date(session.createdAt).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Find reflection responses
+  const reflectionEvent = session.events.find((e) => e.type === "reflection.submitted");
+  let reflectionSection = "";
+
+  if (reflectionEvent && reflectionEvent.data && "responses" in reflectionEvent.data) {
+    const responses = (reflectionEvent.data as { responses: ReflectionData }).responses;
+    reflectionSection = `
+## Self-Reflection
+
+**Did you have a clear approach before coding?**
+${responses.clearApproach}
+
+**Did you experience any prolonged stalls?**
+${responses.prolongedStall}
+
+**Did you recover from stalls effectively?**
+${responses.recoveredFromStall}
+
+**How did you handle time pressure?**
+${responses.timePressure}
+
+**Would you change your approach?**
+${responses.wouldChangeApproach}
+`;
+  }
+
+  // Audio section
+  let audioSection = "";
+  if (hasAudio) {
+    const audioExtension = audioMimeType ? getFileExtension(audioMimeType) : "webm";
+    audioSection = `
+## Audio Recording
+
+An audio recording of the session is included (\`audio.${audioExtension}\`).
+
+**To transcribe for LLM analysis:**
+- Use OpenAI Whisper: \`whisper audio.${audioExtension} --model base\`
+- Or upload to a transcription service (AssemblyAI, Deepgram, etc.)
+- Most services accept ${audioExtension} format natively
+`;
+  }
+
+  return `# Interview Practice Session: ${session.problem.title}
+
+**Date:** ${createdDate}
+**Difficulty:** ${session.problem.difficulty}
+**Patterns:** ${session.problem.patterns.join(", ")}
+**Preset:** ${session.preset}
+
+## Problem Description
+
+${session.problem.description}
+
+## My Approach / Invariants
+
+${invariants || "_No invariants were written during the prep phase._"}
+
+## My Code
+
+\`\`\`python
+${code || "# No code was written"}
+\`\`\`
+${reflectionSection}${audioSection}
+---
+
+## How to Get Feedback
+
+Paste this document to an AI assistant (Claude, ChatGPT, etc.) and ask:
+
+1. **Code Review:** "Review my code for correctness and edge cases. What bugs or issues do you see?"
+
+2. **Complexity Analysis:** "Analyze the time and space complexity of my solution. Is it optimal?"
+
+3. **Improvements:** "How could I improve this solution? What alternative approaches exist?"
+
+4. **Interview Readiness:** "How would this solution be received in a real interview? What follow-up questions might an interviewer ask?"
+
+5. **Learning Points:** "Based on my approach and reflection, what should I focus on improving for future practice sessions?"
+`;
 }
 
 /**

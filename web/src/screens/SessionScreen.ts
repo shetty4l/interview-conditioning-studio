@@ -6,7 +6,7 @@
  */
 
 import { useRoute, useRouter, useStore, Show, Switch, div, onMount } from "../framework";
-import { showToast } from "../components";
+import { AppHeader, showToast } from "../components";
 import { AppStore } from "../store";
 import { createStorage } from "../storage";
 import { PrepScreen } from "./PrepScreen";
@@ -60,21 +60,24 @@ export function SessionScreen(): HTMLElement {
   // Reactive rendering based on store state
   const sessionIdMatches = () => state.sessionId() === sessionId;
 
-  return Show(
-    sessionIdMatches,
-    () =>
-      Switch(
-        state.screen,
-        [
-          { match: "prep", render: PrepScreen },
-          { match: "coding", render: CodingScreen },
-          { match: "silent", render: CodingScreen },
-          { match: "summary", render: SummaryScreen },
-          { match: "reflection", render: ReflectionScreen },
-          { match: "done", render: DoneScreen },
-        ],
-        () => div({ class: "error" }, ["Unknown screen state"]),
-      ),
-    () => div({ class: "loading" }, ["Loading session..."]),
-  );
+  return div({ class: "screen session-screen" }, [
+    AppHeader(),
+    Show(
+      sessionIdMatches,
+      () =>
+        Switch(
+          state.screen,
+          [
+            { match: "prep", render: PrepScreen },
+            { match: "coding", render: CodingScreen },
+            { match: "silent", render: CodingScreen },
+            { match: "summary", render: SummaryScreen },
+            { match: "reflection", render: ReflectionScreen },
+            { match: "done", render: DoneScreen },
+          ],
+          () => div({ class: "error" }, ["Unknown screen state"]),
+        ),
+      () => div({ class: "loading" }, ["Loading session..."]),
+    ),
+  ]);
 }

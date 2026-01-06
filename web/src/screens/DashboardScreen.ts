@@ -67,7 +67,7 @@ export function DashboardScreen(): HTMLElement {
   };
 
   return div({ class: "screen dashboard-screen" }, [
-    AppHeader({ showBackLink: false }),
+    AppHeader(),
 
     div({ class: "dashboard" }, [
       // Header with title and New Session button
