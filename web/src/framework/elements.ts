@@ -186,7 +186,8 @@ export function Show(
   whenTrue: () => Node,
   whenFalse?: () => Node,
 ): HTMLElement {
-  const container = document.createElement("span");
+  // Use div instead of span to allow block-level children (valid HTML)
+  const container = document.createElement("div");
   container.style.display = "contents";
 
   let currentContent: Node | null = null;
@@ -239,7 +240,8 @@ export function For<T>(
   items: () => T[],
   render: (item: T, index: () => number) => Node,
 ): HTMLElement {
-  const container = document.createElement("span");
+  // Use div instead of span to allow block-level children (valid HTML)
+  const container = document.createElement("div");
   container.style.display = "contents";
 
   let currentNodes: Node[] = [];
@@ -303,7 +305,8 @@ export function Switch<T>(
   cases: SwitchCase<T>[],
   fallback?: () => Node,
 ): HTMLElement {
-  const container = document.createElement("span");
+  // Use div instead of span to allow block-level children (valid HTML)
+  const container = document.createElement("div");
   container.style.display = "contents";
 
   let currentContent: Node | null = null;

@@ -5,6 +5,7 @@
  */
 
 import { useRouter, div, onMount } from "../framework";
+import { AppHeader } from "../components";
 
 // ============================================================================
 // Component
@@ -21,7 +22,8 @@ export function NotFoundScreen(): HTMLElement {
     return () => clearTimeout(timeout);
   });
 
-  return div({ class: "not-found-screen" }, [
+  return div({ class: "screen not-found-screen" }, [
+    AppHeader(),
     div({ class: "not-found-content" }, [
       div({ class: "not-found-title" }, ["Page Not Found"]),
       div({ class: "not-found-message" }, ["Redirecting to dashboard..."]),

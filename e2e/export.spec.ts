@@ -427,7 +427,7 @@ test.describe("Export Contents Verification", () => {
     expect(session.reflection.wouldChangeApproach).toBe("yes");
   });
 
-  test("export contains exactly 3 files when no audio", async ({ page }) => {
+  test("export contains exactly 4 files when no audio", async ({ page }) => {
     await completeSession(page);
 
     // Export and check file list
@@ -437,7 +437,7 @@ test.describe("Export Contents Verification", () => {
     const files = extractExport((await download.path())!);
 
     const fileNames = Object.keys(files).sort();
-    expect(fileNames).toEqual(["code.txt", "invariants.txt", "session.json"]);
+    expect(fileNames).toEqual(["README.md", "code.txt", "invariants.txt", "session.json"]);
   });
 
   test("empty code exports as empty string", async ({ page }) => {
@@ -516,9 +516,9 @@ test.describe("Export - Phase 3 Edge Cases", () => {
     const download = await downloadPromise;
     const files = extractExport((await download.path())!);
 
-    // Should have exactly 3 files, no audio
+    // Should have exactly 4 files, no audio
     const fileNames = Object.keys(files).sort();
-    expect(fileNames).toEqual(["code.txt", "invariants.txt", "session.json"]);
+    expect(fileNames).toEqual(["README.md", "code.txt", "invariants.txt", "session.json"]);
 
     // Specifically verify no audio file exists
     expect(files["audio.webm"]).toBeUndefined();

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { AppStore, PresetEnum } from "../../web/src/store";
+import { AppStore, PresetEnum } from "../../../web/src/store";
 
 /**
  * AppStore Unit Tests

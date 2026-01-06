@@ -5,15 +5,15 @@
  */
 
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
-import { signal } from "../../web/src/framework/reactive";
-import { div, span } from "../../web/src/framework/elements";
+import { signal } from "../../../web/src/framework/reactive";
+import { div, span } from "../../../web/src/framework/elements";
 import {
   mount,
   onMount,
   onCleanup,
   createContext,
   useContext,
-} from "../../web/src/framework/component";
+} from "../../../web/src/framework/component";
 
 // Helper to create a container for DOM tests
 let container: HTMLElement;

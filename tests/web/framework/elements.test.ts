@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
-import { signal } from "../../web/src/framework/reactive";
+import { signal } from "../../../web/src/framework/reactive";
 import {
   h,
   div,
@@ -25,7 +25,7 @@ import {
   For,
   Switch,
   text,
-} from "../../web/src/framework/elements";
+} from "../../../web/src/framework/elements";
 
 // Helper to create a container for DOM tests
 let container: HTMLElement;
