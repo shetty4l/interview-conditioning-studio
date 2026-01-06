@@ -11,7 +11,7 @@
  * Also handles SILENT phase (shows banner, disables nudges).
  */
 
-import { div, Show, span, useActions, useStore } from "../framework";
+import { div, Show, span, useActions, useRouter, useStore } from "../framework";
 import {
   Button,
   CodeEditor,
@@ -31,6 +31,7 @@ import { AppStore, PhaseEnum } from "../store";
 export function CodingScreen(): HTMLElement {
   const state = useStore(AppStore);
   const actions = useActions(AppStore);
+  const router = useRouter();
 
   const isSilentPhase = () => state.phase() === PhaseEnum.Silent;
 
@@ -48,6 +49,7 @@ export function CodingScreen(): HTMLElement {
 
   const handleAbandon = async () => {
     await actions.abandonSession();
+    router.navigate("/");
   };
 
   const handlePause = () => {
