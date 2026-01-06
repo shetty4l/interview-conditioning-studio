@@ -29,9 +29,7 @@ export function AppHeader(): HTMLElement {
         return true;
       }
 
-      return window.confirm(
-        "Leave session? Your progress is saved, but the timer will stop.",
-      );
+      return window.confirm("Leave session? Your progress is saved, but the timer will stop.");
     }
 
     return true;

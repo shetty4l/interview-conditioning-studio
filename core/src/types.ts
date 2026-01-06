@@ -19,7 +19,7 @@ export enum Phase {
 }
 
 export enum Preset {
-  SpeedRound = "speed-round",
+  SpeedRound = "speed_round",
   Standard = "standard",
   HighPressure = "high_pressure",
   NoAssistance = "no_assistance",

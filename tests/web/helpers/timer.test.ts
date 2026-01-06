@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createTimer, type Timer } from "../../web/src/helpers/timer";
+import { createTimer, type Timer } from "../../../web/src/helpers/timer";
 
 describe("createTimer", () => {
   let timer: Timer;

@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, mock } from "bun:test";
-import { signal, derived, watch, batch } from "../../web/src/framework/reactive";
+import { signal, derived, watch, batch } from "../../../web/src/framework/reactive";
 
 describe("signal", () => {
   test("returns tuple with getter and setter", () => {

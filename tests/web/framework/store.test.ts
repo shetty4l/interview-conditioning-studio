@@ -5,8 +5,8 @@
  */
 
 import { describe, test, expect } from "bun:test";
-import { createStore, useStore, useActions } from "../../web/src/framework/store";
-import { watch } from "../../web/src/framework/reactive";
+import { createStore, useStore, useActions } from "../../../web/src/framework/store";
+import { watch } from "../../../web/src/framework/reactive";
 
 describe("createStore", () => {
   test("initializes with state", () => {

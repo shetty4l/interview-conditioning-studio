@@ -5,9 +5,22 @@
  * Displays problem info, code, invariants, audio playback, and export option.
  */
 
-import { useRoute, useRouter, div, h1, h2, p, span, pre, onMount, signal, button } from "../framework";
+import {
+  useRoute,
+  useRouter,
+  div,
+  h1,
+  h2,
+  p,
+  span,
+  pre,
+  onMount,
+  signal,
+  button,
+  Show,
+} from "../framework";
 import { AppHeader, Button, showToast } from "../components";
-import { getSession, getAudioBlob, getAudioMimeType } from "../storage";
+import { getSession, getAudioBlob } from "../storage";
 import { exportSession } from "../export";
 import type { StoredSession } from "../types";
 
@@ -27,14 +40,8 @@ function formatDate(timestamp: number): string {
   });
 }
 
-function getSessionStatus(session: StoredSession): "completed" | "abandoned" | "in_progress" {
-  const hasReflection = session.events.some((e) => e.type === "reflection.submitted");
-  if (hasReflection) return "completed";
-
-  const hasAbandon = session.events.some((e) => e.type === "session.abandoned");
-  if (hasAbandon) return "abandoned";
-
-  return "in_progress";
+function isSessionCompleted(session: StoredSession): boolean {
+  return session.events.some((e) => e.type === "reflection.submitted");
 }
 
 function extractSessionData(session: StoredSession): { code: string; invariants: string } {
@@ -99,9 +106,9 @@ export function ViewScreen(): HTMLElement {
         return;
       }
 
-      // Check if session is in progress (should use SessionScreen instead)
-      const status = getSessionStatus(loadedSession);
-      if (status === "in_progress") {
+      // Check if session is completed (if not, redirect to SessionScreen)
+      // Note: Abandoned sessions are hard-deleted, so only completed or in-progress sessions exist
+      if (!isSessionCompleted(loadedSession)) {
         router.navigate(`/${sessionId}`);
         return;
       }
@@ -159,74 +166,54 @@ export function ViewScreen(): HTMLElement {
     router.navigate("/");
   };
 
-  // Loading state
-  if (loading()) {
-    return div({ class: "screen view-screen" }, [
-      AppHeader(),
-      div({ class: "loading" }, ["Loading session..."]),
-    ]);
-  }
+  // Helper to render session content
+  const renderSessionContent = (currentSession: StoredSession) => {
+    const { code, invariants } = extractSessionData(currentSession);
 
-  const currentSession = session();
-  if (!currentSession) {
-    return div({ class: "screen view-screen" }, [
-      AppHeader(),
-      div({ class: "error" }, ["Session not found"]),
-    ]);
-  }
-
-  const { code, invariants } = extractSessionData(currentSession);
-  const status = getSessionStatus(currentSession);
-
-  return div({ class: "screen view-screen" }, [
-    AppHeader(),
-
-    // Header
-    div({ class: "view-screen__header" }, [
-      h1({ class: "view-screen__title" }, [currentSession.problem.title]),
-      div({ class: "view-screen__meta" }, [
-        span(
-          { class: `badge ${getDifficultyClass(currentSession.problem.difficulty)}` },
-          [currentSession.problem.difficulty],
-        ),
-        span({ class: "view-screen__patterns" }, [
-          currentSession.problem.patterns.join(", "),
-        ]),
-        span({ class: "view-screen__date" }, [formatDate(currentSession.createdAt)]),
-        span({ class: `badge badge--${status === "completed" ? "success" : "muted"}` }, [
-          status === "completed" ? "Completed" : "Abandoned",
+    return div({ class: "view-screen__content" }, [
+      // Header
+      div({ class: "view-screen__header" }, [
+        h1({ class: "view-screen__title" }, [currentSession.problem.title]),
+        div({ class: "view-screen__meta" }, [
+          span({ class: `badge ${getDifficultyClass(currentSession.problem.difficulty)}` }, [
+            currentSession.problem.difficulty,
+          ]),
+          span({ class: "view-screen__patterns" }, [currentSession.problem.patterns.join(", ")]),
+          span({ class: "view-screen__date" }, [formatDate(currentSession.createdAt)]),
+          span({ class: "badge badge--success" }, ["Completed"]),
         ]),
       ]),
-    ]),
 
-    // Problem Description
-    div({ class: "view-screen__section" }, [
-      h2({}, ["Problem"]),
-      p({ class: "view-screen__description" }, [currentSession.problem.description]),
-    ]),
+      // Problem Description
+      div({ class: "view-screen__section" }, [
+        h2({}, ["Problem"]),
+        p({ class: "view-screen__description" }, [currentSession.problem.description]),
+      ]),
 
-    // Code
-    div({ class: "view-screen__section" }, [
-      h2({}, ["Code"]),
-      code
-        ? pre({ class: "view-screen__code" }, [code])
-        : p({ class: "view-screen__empty" }, ["No code written"]),
-    ]),
+      // Code
+      div({ class: "view-screen__section" }, [
+        h2({}, ["Code"]),
+        code
+          ? pre({ class: "view-screen__code" }, [code])
+          : p({ class: "view-screen__empty" }, ["No code written"]),
+      ]),
 
-    // Invariants
-    div({ class: "view-screen__section" }, [
-      h2({}, ["Invariants"]),
-      invariants
-        ? pre({ class: "view-screen__invariants" }, [invariants])
-        : p({ class: "view-screen__empty" }, ["No invariants written"]),
-    ]),
+      // Invariants
+      div({ class: "view-screen__section" }, [
+        h2({}, ["Invariants"]),
+        invariants
+          ? pre({ class: "view-screen__invariants" }, [invariants])
+          : p({ class: "view-screen__empty" }, ["No invariants written"]),
+      ]),
 
-    // Audio
-    hasAudio()
-      ? div({ class: "view-screen__section" }, [
+      // Audio
+      Show(hasAudio, () =>
+        div({ class: "view-screen__section" }, [
           h2({}, ["Audio Recording"]),
-          audioUrl()
-            ? div({ class: "view-screen__audio" }, [
+          Show(
+            () => audioUrl() !== null,
+            () =>
+              div({ class: "view-screen__audio" }, [
                 (() => {
                   const audio = document.createElement("audio");
                   audio.controls = true;
@@ -234,8 +221,9 @@ export function ViewScreen(): HTMLElement {
                   audio.className = "view-screen__audio-player";
                   return audio;
                 })(),
-              ])
-            : div({ class: "view-screen__audio-load" }, [
+              ]),
+            () =>
+              div({ class: "view-screen__audio-load" }, [
                 button(
                   {
                     class: "btn btn--secondary",
@@ -245,21 +233,38 @@ export function ViewScreen(): HTMLElement {
                   [audioLoading() ? "Loading..." : "Load Audio"],
                 ),
               ]),
-        ])
-      : null,
+          ),
+        ]),
+      ),
 
-    // Actions
-    div({ class: "view-screen__actions" }, [
-      Button({
-        label: "Export Session",
-        variant: "primary",
-        onClick: handleExport,
-      }),
-      Button({
-        label: "Back to Dashboard",
-        variant: "secondary",
-        onClick: handleBackToDashboard,
-      }),
-    ]),
-  ].filter(Boolean) as HTMLElement[]);
+      // Actions
+      div({ class: "view-screen__actions" }, [
+        Button({
+          label: "Export Session",
+          variant: "primary",
+          onClick: handleExport,
+        }),
+        Button({
+          label: "Back to Dashboard",
+          variant: "secondary",
+          onClick: handleBackToDashboard,
+        }),
+      ]),
+    ]);
+  };
+
+  // Use Show for reactive conditional rendering
+  return div({ class: "screen view-screen" }, [
+    AppHeader(),
+    Show(
+      loading,
+      () => div({ class: "loading" }, ["Loading session..."]),
+      () =>
+        Show(
+          () => session() !== null,
+          () => renderSessionContent(session()!),
+          () => div({ class: "error" }, ["Session not found"]),
+        ),
+    ),
+  ]);
 }

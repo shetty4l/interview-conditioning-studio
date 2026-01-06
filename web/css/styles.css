@@ -1537,10 +1537,6 @@ input[type="radio"] {
   color: var(--success);
 }
 
-.session-card__status--abandoned {
-  color: var(--danger);
-}
-
 .session-card__status--in_progress {
   color: var(--warning);
 }

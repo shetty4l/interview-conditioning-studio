@@ -33,28 +33,21 @@ function formatDate(timestamp: number): string {
   });
 }
 
-function getSessionStatus(session: StoredSession): "in_progress" | "completed" | "abandoned" {
+function getSessionStatus(session: StoredSession): "in_progress" | "completed" {
   // Check if session has reflection.submitted event (completed)
   const hasReflection = session.events.some((e) => e.type === "reflection.submitted");
   if (hasReflection) return "completed";
 
-  // Check if session was abandoned
-  const hasAbandon = session.events.some((e) => e.type === "session.abandoned");
-  if (hasAbandon) return "abandoned";
-
+  // Note: Abandoned sessions are hard-deleted and never reach the dashboard
   return "in_progress";
 }
 
-function getStatusLabel(status: string): string {
+function getStatusLabel(status: "in_progress" | "completed"): string {
   switch (status) {
     case "completed":
       return "Completed";
-    case "abandoned":
-      return "Abandoned";
     case "in_progress":
       return "In Progress";
-    default:
-      return status;
   }
 }
 
@@ -96,8 +89,8 @@ export function SessionCard(props: SessionCardProps): HTMLElement {
           ]
         : []),
 
-      // View (only for completed/abandoned)
-      ...(!isInProgress && onView
+      // View (only for completed)
+      ...(isCompleted && onView
         ? [
             button(
               {

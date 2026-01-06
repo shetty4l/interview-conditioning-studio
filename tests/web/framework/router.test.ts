@@ -13,9 +13,9 @@ import {
   _resetRouterContext,
   type RouteConfig,
   type RouterInstance,
-} from "../../web/src/framework/router";
-import { mount } from "../../web/src/framework/component";
-import { div, span } from "../../web/src/framework/elements";
+} from "../../../web/src/framework/router";
+import { mount } from "../../../web/src/framework/component";
+import { div, span } from "../../../web/src/framework/elements";
 
 describe("Router", () => {
   let container: HTMLElement;

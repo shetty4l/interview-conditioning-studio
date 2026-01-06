@@ -155,8 +155,9 @@ function extractSessionData(events: Event[]): { code: string; invariants: string
 
 /**
  * Build README.md content for LLM analysis.
+ * Exported for testing.
  */
-function buildReadme(
+export function buildReadme(
   session: StoredSession,
   code: string,
   invariants: string,
