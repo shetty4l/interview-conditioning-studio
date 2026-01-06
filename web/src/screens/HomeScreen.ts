@@ -5,9 +5,10 @@
  * Shows resume banner if there's an incomplete session.
  */
 
-import { div, h1, h2, p, Show, span, useActions, useRouter, useStore } from "../framework";
+import { div, h1, h2, onMount, p, Show, span, useActions, useRouter, useStore } from "../framework";
 import { Button, ConfirmButton, PresetCard, showToast } from "../components";
 import { AppStore, PresetEnum } from "../store";
+import { preloadProblems } from "../problems";
 import type { Preset } from "../../../core/src/index";
 
 // ============================================================================
@@ -49,6 +50,11 @@ export function HomeScreen(): HTMLElement {
   const state = useStore(AppStore);
   const actions = useActions(AppStore);
   const router = useRouter();
+
+  // Preload problems in background while user selects preset
+  onMount(() => {
+    preloadProblems();
+  });
 
   const handleSelectPreset = (preset: Preset) => {
     actions.selectPreset(preset);
