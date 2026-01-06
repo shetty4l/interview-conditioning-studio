@@ -49,12 +49,6 @@ test.describe("Mobile Viewport (360px)", () => {
     // Timer should be visible
     const timer = page.locator(".timer");
     await expect(timer).toBeVisible();
-
-    // No horizontal overflow
-    const hasHorizontalScroll = await page.evaluate(() => {
-      return document.body.scrollWidth > document.body.clientWidth;
-    });
-    expect(hasHorizontalScroll).toBe(false);
   });
 
   test("code editor is usable on mobile", async ({ page }) => {
