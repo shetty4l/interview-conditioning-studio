@@ -2,6 +2,12 @@
 
 > Local-first interview practice tool with enforced constraints, time pressure, and no pass/fail judgment.
 
+## Try It
+
+**[Launch Interview Conditioning Studio](https://interview-conditioning-studio.pages.dev)**
+
+No installation required — runs entirely in your browser.
+
 ## What is this?
 
 Interview Conditioning Studio (ICS) helps engineers build interview-relevant behaviors through deliberate practice. Unlike LeetCode-style tools, ICS focuses on _conditioning_ — time management, problem framing, articulating reasoning, and recovering from stuck points — not correctness evaluation.
@@ -44,7 +50,9 @@ The goal is not to get the answer right — it's to build comfort with interview
 - A correctness checker
 - An AI interviewer or tutor
 
-## Quick Start
+## Quick Start (Local Development)
+
+Or just [use the hosted version](https://interview-conditioning-studio.pages.dev).
 
 ```bash
 ./scripts/bootstrap.sh
