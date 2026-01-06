@@ -9,7 +9,7 @@
  * Footer: Abandon Session (right-aligned)
  */
 
-import { div, Show, span, useActions, useStore } from "../framework";
+import { div, Show, span, useActions, useRouter, useStore } from "../framework";
 import {
   Button,
   CollapsibleSection,
@@ -27,6 +27,7 @@ import { AppStore } from "../store";
 export function PrepScreen(): HTMLElement {
   const state = useStore(AppStore);
   const actions = useActions(AppStore);
+  const router = useRouter();
 
   const handleInvariantsChange = (value: string) => {
     actions.updateInvariants(value);
@@ -38,6 +39,7 @@ export function PrepScreen(): HTMLElement {
 
   const handleAbandon = async () => {
     await actions.abandonSession();
+    router.navigate("/");
   };
 
   const handlePause = () => {
