@@ -1415,12 +1415,14 @@ input[type="radio"] {
 }
 
 .app-header__left {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: var(--space-lg);
 }
 
-.app-header__nav-link {
+.app-header__nav-link,
+.app-header__nav-link:visited {
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.875rem;
@@ -1433,6 +1435,19 @@ input[type="radio"] {
 .app-header__nav-link:hover {
   color: var(--primary);
   background-color: var(--bg-secondary);
+}
+
+.app-header__nav-link--active,
+.app-header__nav-link--active:visited {
+  color: var(--text);
+  border-bottom: 2px solid var(--primary);
+  border-radius: 0;
+  padding-bottom: calc(var(--space-xs) - 2px);
+}
+
+.app-header__nav-link--active:hover {
+  color: var(--text);
+  background-color: transparent;
 }
 
 .app-header__title {
@@ -1448,9 +1463,27 @@ input[type="radio"] {
 }
 
 .app-header__right {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-sm);
+}
+
+.app-header__github,
+.app-header__github:visited {
+  color: var(--text-muted);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  padding: var(--space-xs);
+  border-radius: var(--radius);
+  transition: color var(--transition-fast);
+}
+
+.app-header__github:hover {
+  color: var(--primary);
+  background-color: var(--bg-secondary);
 }
 
 /* ============================================================================
