@@ -242,4 +242,47 @@ test.describe("Pause/Resume", () => {
     const state = await getAppState(page);
     expect(state.invariants).toBe("Edited while paused");
   });
+
+  // Audio preservation across pause/resume
+  // This tests the fix for: audio.ts start() should NOT delete existing audio.
+  //
+  // Background: The bug was that start() called deleteAudio() which wiped
+  // all previously recorded chunks when recording restarted after pause/resume.
+  //
+  // We can't easily test the full flow because MediaRecorder isn't available
+  // in the test environment. Instead, we verify the storage behavior:
+  // - Existing audio should persist unless explicitly deleted
+  // - The deleteAudio function works (so we know our test setup is valid)
+  test("audio storage should not be cleared by unrelated operations", async ({ page }) => {
+    await goToNewSession(page);
+    const sessionId = await startSession(page);
+    await goToCoding(page);
+
+    // Mock audio chunk (simulates recording that happened)
+    await page.evaluate(async (id) => {
+      const fakeChunk = new Blob(["fake audio data"], { type: "audio/webm" });
+      await window.IDS.storage.saveAudioChunk(id, fakeChunk, "audio/webm");
+    }, sessionId);
+
+    // Verify audio exists
+    const beforeOps = await page.evaluate(() => window.IDS.storage.getStats());
+    expect(beforeOps.audioCount).toBe(1);
+
+    // Perform various operations that should NOT delete audio:
+    // - Pause/resume
+    await pauseSession(page);
+    await resumeSession(page);
+
+    // Audio should still exist
+    const afterResume = await page.evaluate(() => window.IDS.storage.getStats());
+    expect(afterResume.audioCount).toBe(1);
+
+    // Verify deleteAudio actually works (to confirm test setup is valid)
+    await page.evaluate(async (id) => {
+      await window.IDS.storage.deleteAudio(id);
+    }, sessionId);
+
+    const afterDelete = await page.evaluate(() => window.IDS.storage.getStats());
+    expect(afterDelete.audioCount).toBe(0);
+  });
 });

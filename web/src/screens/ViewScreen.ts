@@ -2,7 +2,10 @@
  * ViewScreen Component
  *
  * Read-only view of a completed session.
- * Displays problem info, code, invariants, audio playback, and export option.
+ * Displays problem info, code, and invariants.
+ *
+ * Note: Audio is NOT available here - it's deleted when leaving DoneScreen
+ * to save storage space. Export is available but excludes audio.
  */
 
 import {
@@ -16,11 +19,10 @@ import {
   pre,
   onMount,
   signal,
-  button,
   Show,
 } from "../framework";
 import { AppHeader, Button, showToast } from "../components";
-import { getSession, getAudioBlob } from "../storage";
+import { getSession } from "../storage";
 import { exportSession } from "../export";
 import type { StoredSession } from "../types";
 
@@ -85,9 +87,6 @@ export function ViewScreen(): HTMLElement {
   // Local state
   const [session, setSession] = signal<StoredSession | null>(null);
   const [loading, setLoading] = signal(true);
-  const [audioUrl, setAudioUrl] = signal<string | null>(null);
-  const [audioLoading, setAudioLoading] = signal(false);
-  const [hasAudio, setHasAudio] = signal(false);
 
   // Handle missing session ID
   if (!sessionId) {
@@ -114,56 +113,22 @@ export function ViewScreen(): HTMLElement {
       }
 
       setSession(loadedSession);
-
-      // Check if audio exists (don't load yet)
-      const audioBlob = await getAudioBlob(sessionId);
-      setHasAudio(audioBlob !== null);
-
       setLoading(false);
     })();
-
-    // Cleanup audio URL on unmount
-    return () => {
-      const url = audioUrl();
-      if (url) {
-        URL.revokeObjectURL(url);
-      }
-    };
   });
 
-  const handleLoadAudio = async () => {
-    if (audioLoading() || audioUrl()) return;
-
-    setAudioLoading(true);
-    try {
-      const blob = await getAudioBlob(sessionId);
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-      }
-    } catch (error) {
-      console.error("Failed to load audio:", error);
-      showToast("Failed to load audio", "error");
-    } finally {
-      setAudioLoading(false);
-    }
+  const handleBackToDashboard = () => {
+    router.navigate("/");
   };
 
-  const handleExport = async () => {
-    const currentSession = session();
-    if (!currentSession) return;
-
+  const handleExport = async (currentSession: StoredSession) => {
     try {
-      await exportSession(currentSession);
-      showToast("Session exported", "success");
+      // Export without audio - it was deleted when leaving DoneScreen
+      await exportSession(currentSession, { includeAudio: false });
     } catch (error) {
       console.error("Failed to export session:", error);
       showToast("Failed to export session", "error");
     }
-  };
-
-  const handleBackToDashboard = () => {
-    router.navigate("/");
   };
 
   // Helper to render session content
@@ -206,47 +171,16 @@ export function ViewScreen(): HTMLElement {
           : p({ class: "view-screen__empty" }, ["No invariants written"]),
       ]),
 
-      // Audio
-      Show(hasAudio, () =>
-        div({ class: "view-screen__section" }, [
-          h2({}, ["Audio Recording"]),
-          Show(
-            () => audioUrl() !== null,
-            () =>
-              div({ class: "view-screen__audio" }, [
-                (() => {
-                  const audio = document.createElement("audio");
-                  audio.controls = true;
-                  audio.src = audioUrl() || "";
-                  audio.className = "view-screen__audio-player";
-                  return audio;
-                })(),
-              ]),
-            () =>
-              div({ class: "view-screen__audio-load" }, [
-                button(
-                  {
-                    class: "btn btn--secondary",
-                    onClick: handleLoadAudio,
-                    disabled: audioLoading,
-                  },
-                  [audioLoading() ? "Loading..." : "Load Audio"],
-                ),
-              ]),
-          ),
-        ]),
-      ),
-
       // Actions
       div({ class: "view-screen__actions" }, [
         Button({
           label: "Export Session",
-          variant: "primary",
-          onClick: handleExport,
+          variant: "secondary",
+          onClick: () => handleExport(currentSession),
         }),
         Button({
           label: "Back to Dashboard",
-          variant: "secondary",
+          variant: "primary",
           onClick: handleBackToDashboard,
         }),
       ]),

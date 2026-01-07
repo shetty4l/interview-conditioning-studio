@@ -336,6 +336,10 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
         storage = createStorage();
         await storage.init();
 
+        // Clean up orphaned audio from previous sessions
+        // This frees up storage space for completed/abandoned sessions
+        await storage.cleanupOrphanedAudio();
+
         // Check audio support
         set({ audioSupported: isAudioSupported() });
 

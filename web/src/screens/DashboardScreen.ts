@@ -51,7 +51,8 @@ export function DashboardScreen(): HTMLElement {
 
   const handleExportSession = async (session: StoredSession) => {
     try {
-      await exportSessionFn(session);
+      // Export without audio - it was deleted when leaving DoneScreen
+      await exportSessionFn(session, { includeAudio: false });
     } catch (error) {
       console.error("Failed to export session:", error);
     }

@@ -1,5 +1,12 @@
 import { test, expect } from "playwright/test";
-import { clearStorage, goToNewSession, startSession, goToCoding } from "./_helpers";
+import {
+  clearStorage,
+  goToNewSession,
+  startSession,
+  goToCoding,
+  completeFullSession,
+  waitForScreen,
+} from "./_helpers";
 
 /**
  * Audio Recording E2E Tests
@@ -179,5 +186,85 @@ test.describe("Audio - Phase 3 Edge Cases", () => {
         page.locator('.mic-status-indicator[data-state="unsupported"], .mic-status--unsupported'),
       ).toBeVisible();
     }
+  });
+});
+
+// ============================================================================
+// Audio Cleanup Tests
+// ============================================================================
+
+test.describe("Audio Cleanup", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => window.IDS?.getAppState);
+    await clearStorage(page);
+  });
+
+  // Test: Startup should clean up orphaned audio from completed sessions
+  test("should clean up orphaned audio on app startup", async ({ page }) => {
+    // Complete a session
+    await goToNewSession(page);
+    const sessionId = await completeFullSession(page);
+
+    // Mock audio for the completed session (simulates audio that wasn't cleaned up)
+    await page.evaluate(async (id) => {
+      const fakeChunk = new Blob(["fake audio data"], { type: "audio/webm" });
+      await window.IDS.storage.saveAudioChunk(id, fakeChunk, "audio/webm");
+    }, sessionId);
+
+    // Verify audio exists before reload
+    const beforeReload = await page.evaluate(() => window.IDS.storage.getStats());
+    expect(beforeReload.audioCount).toBe(1);
+
+    // Reload page (triggers init() which should clean up orphaned audio)
+    await page.reload();
+    await page.waitForFunction(() => window.IDS?.getAppState);
+
+    // Audio should be cleaned up because session is completed (not in-progress)
+    const afterReload = await page.evaluate(() => window.IDS.storage.getStats());
+    expect(afterReload.audioCount).toBe(0);
+  });
+
+  // Test: DoneScreen navigation should delete audio
+  test("should delete audio when navigating away from done screen", async ({ page }) => {
+    // Start a session
+    await goToNewSession(page);
+    const sessionId = await startSession(page);
+
+    // Mock audio during the session
+    await page.evaluate(async (id) => {
+      const fakeChunk = new Blob(["fake audio data"], { type: "audio/webm" });
+      await window.IDS.storage.saveAudioChunk(id, fakeChunk, "audio/webm");
+    }, sessionId);
+
+    // Complete the session to reach DoneScreen
+    await goToCoding(page);
+    await page.click('button:has-text("Submit Solution")');
+    await waitForScreen(page, "summary");
+    await page.click('button:has-text("Continue to Reflection")');
+    await waitForScreen(page, "reflection");
+
+    // Fill reflection
+    await page.click('input[name="clearApproach"][value="yes"]');
+    await page.click('input[name="prolongedStall"][value="no"]');
+    await page.click('input[name="recoveredFromStall"][value="n/a"]');
+    await page.click('input[name="timePressure"][value="comfortable"]');
+    await page.click('input[name="wouldChangeApproach"][value="no"]');
+    await page.click('button:has-text("Submit Reflection")');
+    await waitForScreen(page, "done");
+
+    // Verify audio still exists on DoneScreen
+    const onDoneScreen = await page.evaluate(() => window.IDS.storage.getStats());
+    expect(onDoneScreen.audioCount).toBe(1);
+
+    // Navigate away (click "Start New Session")
+    await page.click('button:has-text("Start New Session")');
+
+    // Wait for navigation to complete
+    await page.waitForFunction(() => window.location.hash.includes("/new"));
+
+    // Audio should be deleted
+    const afterNav = await page.evaluate(() => window.IDS.storage.getStats());
+    expect(afterNav.audioCount).toBe(0);
   });
 });

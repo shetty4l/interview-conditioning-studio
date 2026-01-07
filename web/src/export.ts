@@ -15,6 +15,17 @@ import { getFileExtension } from "./audio";
 // Types
 // ============================================================================
 
+export interface ExportOptions {
+  /**
+   * Whether to include audio in the export.
+   * Default: true
+   *
+   * Set to false when exporting from ViewScreen or Dashboard,
+   * where audio has already been deleted after leaving DoneScreen.
+   */
+  includeAudio?: boolean;
+}
+
 export interface ExportMetadata {
   /** Export format version */
   version: number;
@@ -63,10 +74,19 @@ interface ReflectionData {
 
 /**
  * Export a session as a .tar.gz file and trigger download.
+ *
+ * @param session - The session to export
+ * @param options - Export options
+ * @param options.includeAudio - Whether to include audio (default: true)
  */
-export async function exportSession(session: StoredSession): Promise<void> {
+export async function exportSession(
+  session: StoredSession,
+  options: ExportOptions = {},
+): Promise<void> {
+  const { includeAudio = true } = options;
+
   // Build the archive entries
-  const entries = await buildExportEntries(session);
+  const entries = await buildExportEntries(session, includeAudio);
 
   // Create TAR archive
   const tarData = createTarArchive(entries);
@@ -84,16 +104,25 @@ export async function exportSession(session: StoredSession): Promise<void> {
 /**
  * Build the list of files to include in the export.
  */
-async function buildExportEntries(session: StoredSession): Promise<TarEntry[]> {
+async function buildExportEntries(
+  session: StoredSession,
+  includeAudio: boolean,
+): Promise<TarEntry[]> {
   const entries: TarEntry[] = [];
 
   // Extract code and invariants from session state
   const { code, invariants } = extractSessionData(session.events);
 
-  // Get audio info for README
-  const audioBlob = await getAudioBlob(session.id);
-  const audioMimeType = await getAudioMimeType(session.id);
-  const hasAudio = audioBlob !== null;
+  // Get audio info (only if including audio)
+  let audioBlob: Blob | null = null;
+  let audioMimeType: string | null = null;
+  let hasAudio = false;
+
+  if (includeAudio) {
+    audioBlob = await getAudioBlob(session.id);
+    audioMimeType = await getAudioMimeType(session.id);
+    hasAudio = audioBlob !== null;
+  }
 
   // 1. README.md (for LLM analysis)
   const readme = buildReadme(session, code, invariants, hasAudio, audioMimeType);

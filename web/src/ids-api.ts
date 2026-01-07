@@ -43,6 +43,10 @@ export interface IDSAPI {
   abandonSession: () => Promise<void>;
   resetApp: () => void;
 
+  // Audio
+  startRecording: () => Promise<void>;
+  stopRecording: () => Promise<void>;
+
   // Content updates
   updateInvariants: (text: string) => Promise<void>;
   startCoding: () => Promise<void>;
@@ -63,6 +67,8 @@ export interface IDSAPI {
     getIncompleteSession: () => Promise<unknown>;
     getAllSessions: () => Promise<unknown[]>;
     softDeleteSession: (id: string) => Promise<void>;
+    saveAudioChunk: (sessionId: string, chunk: Blob, mimeType: string) => Promise<void>;
+    deleteAudio: (sessionId: string) => Promise<void>;
   };
 
   // Router helpers (simplified)
@@ -104,6 +110,10 @@ export function setupIDSAPI(): void {
     abandonSession: () => actions.abandonSession(),
     resetApp: () => actions.resetApp(),
 
+    // Audio
+    startRecording: () => actions.startRecording(),
+    stopRecording: () => actions.stopRecording(),
+
     // Content updates
     updateInvariants: (text) => actions.updateInvariants(text),
     startCoding: () => actions.startCoding(),
@@ -141,6 +151,14 @@ export function setupIDSAPI(): void {
       softDeleteSession: async (id) => {
         await ensureStorage();
         await storage.softDeleteSession(id);
+      },
+      saveAudioChunk: async (sessionId, chunk, mimeType) => {
+        await ensureStorage();
+        await storage.saveAudioChunk(sessionId, chunk, mimeType);
+      },
+      deleteAudio: async (sessionId) => {
+        await ensureStorage();
+        await storage.deleteAudio(sessionId);
       },
     },
 

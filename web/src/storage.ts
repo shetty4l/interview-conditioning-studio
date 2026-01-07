@@ -46,6 +46,8 @@ export interface Storage {
   getAudioBlob(sessionId: string): Promise<Blob | null>;
   getAudioMimeType(sessionId: string): Promise<string | null>;
   deleteAudio(sessionId: string): Promise<void>;
+  /** Clean up orphaned audio from sessions that are not in-progress */
+  cleanupOrphanedAudio(): Promise<void>;
 
   // Utility
   getStats(): Promise<{ sessionCount: number; audioCount: number }>;
@@ -348,6 +350,53 @@ export function createStorage(): Storage {
     return { sessionCount, audioCount };
   };
 
+  /**
+   * Clean up orphaned audio from sessions that are not in-progress.
+   * This is called on app startup to free up storage space.
+   *
+   * Audio is considered orphaned if:
+   * - The session is completed (has session.completed or session.abandoned event)
+   * - The session no longer exists
+   *
+   * Audio for ALL in-progress sessions is preserved (handles edge case of
+   * multiple incomplete sessions from crashes, multiple tabs, etc.).
+   */
+  const cleanupOrphanedAudio = async (): Promise<void> => {
+    const database = getDb();
+
+    // Get ALL sessions and find which ones are in-progress
+    const allSessions = await getAllSessions();
+    const inProgressIds = new Set<string>();
+
+    for (const session of allSessions) {
+      const lastEvent = session.events[session.events.length - 1];
+      if (lastEvent) {
+        const status = lastEvent.type;
+        // Session is in-progress if it hasn't reached completed or abandoned
+        if (status !== "session.completed" && status !== "session.abandoned") {
+          inProgressIds.add(session.id);
+        }
+      }
+    }
+
+    // Get all audio session IDs
+    const audioSessionIds = await new Promise<string[]>((resolve, reject) => {
+      const transaction = database.transaction(STORES.AUDIO, "readonly");
+      const store = transaction.objectStore(STORES.AUDIO);
+      const request = store.getAllKeys();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result as string[]);
+    });
+
+    // Delete audio for sessions that are not in-progress
+    for (const sessionId of audioSessionIds) {
+      if (!inProgressIds.has(sessionId)) {
+        await deleteAudio(sessionId);
+      }
+    }
+  };
+
   // Create and cache instance
   instance = {
     init,
@@ -364,6 +413,7 @@ export function createStorage(): Storage {
     getAudioMimeType,
     deleteAudio,
     getStats,
+    cleanupOrphanedAudio,
   };
 
   return instance;
@@ -392,4 +442,5 @@ export const saveAudioChunk = (sessionId: string, chunk: Blob, mimeType: string)
 export const getAudioBlob = (sessionId: string) => _storage.getAudioBlob(sessionId);
 export const getAudioMimeType = (sessionId: string) => _storage.getAudioMimeType(sessionId);
 export const deleteAudio = (sessionId: string) => _storage.deleteAudio(sessionId);
+export const cleanupOrphanedAudio = () => _storage.cleanupOrphanedAudio();
 export const getStorageStats = () => _storage.getStats();
