@@ -5,7 +5,7 @@
  * Supports cross-browser audio format detection (webm/opus for Chrome/Firefox, mp4 for Safari).
  */
 
-import { deleteAudio, saveAudioChunk } from "./storage";
+import { saveAudioChunk } from "./storage";
 
 // ============================================================================
 // Types
@@ -142,9 +142,6 @@ export function createAudioRecorder(
           autoGainControl: true,
         },
       });
-
-      // Clear any previous recording for this session
-      await deleteAudio(sessionId);
 
       // Create MediaRecorder
       mediaRecorder = new MediaRecorder(mediaStream, {
