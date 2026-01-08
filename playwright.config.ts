@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: "./e2e",
   // Each test gets its own browser context with isolated IndexedDB
   fullyParallel: true,
-  workers: process.env.CI ? 4 : undefined, // undefined = half of CPU cores
+  workers: "50%",
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "html",
