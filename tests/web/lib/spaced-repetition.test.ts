@@ -5,12 +5,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import {
-  createSM2Scheduler,
-  deriveRating,
-  type Rating,
-  type SchedulerCard,
-} from "../../../web/src/lib/spaced-repetition";
+import { createSM2Scheduler, deriveRating } from "../../../web/src/lib/spaced-repetition";
 import type { ReflectionResponses } from "../../../core/src/types";
 
 // ============================================================================
