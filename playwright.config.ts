@@ -2,9 +2,9 @@ import { defineConfig } from "playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  // Run tests serially to avoid IndexedDB conflicts
-  fullyParallel: false,
-  workers: 1,
+  // Each test gets its own browser context with isolated IndexedDB
+  fullyParallel: true,
+  workers: process.env.CI ? 4 : undefined, // undefined = half of CPU cores
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "html",
