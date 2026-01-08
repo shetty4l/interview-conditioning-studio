@@ -7,19 +7,24 @@
  * Uses factory pattern with internal singleton for consistency with other modules.
  */
 
-import type { StoredAudio, StoredSession } from "./types";
+import type { ProblemProgress, StoredAudio, StoredSession } from "./types";
+import { createSM2Scheduler, deriveRating } from "./lib/spaced-repetition";
+import type { ReflectionResponses } from "../../core/src/types";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const DB_NAME = "interview-conditioning-studio";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
   SESSIONS: "sessions",
   AUDIO: "audio",
+  PROBLEM_PROGRESS: "problem_progress",
 } as const;
+
+const MIGRATION_KEY = "ics-progress-migration-v1";
 
 // ============================================================================
 // Types
@@ -48,6 +53,13 @@ export interface Storage {
   deleteAudio(sessionId: string): Promise<void>;
   /** Clean up orphaned audio from sessions that are not in-progress */
   cleanupOrphanedAudio(): Promise<void>;
+
+  // Problem progress operations (spaced repetition)
+  saveProblemProgress(progress: ProblemProgress): Promise<void>;
+  getProblemProgress(problemId: string): Promise<ProblemProgress | null>;
+  getAllProblemProgress(): Promise<ProblemProgress[]>;
+  /** Migrate existing sessions to problem progress (one-time, idempotent) */
+  migrateSessionsToProgress(): Promise<void>;
 
   // Utility
   getStats(): Promise<{ sessionCount: number; audioCount: number }>;
@@ -109,6 +121,13 @@ export function createStorage(): Storage {
         if (!database.objectStoreNames.contains(STORES.AUDIO)) {
           database.createObjectStore(STORES.AUDIO, {
             keyPath: "sessionId",
+          });
+        }
+
+        // Create problem progress store (v2)
+        if (!database.objectStoreNames.contains(STORES.PROBLEM_PROGRESS)) {
+          database.createObjectStore(STORES.PROBLEM_PROGRESS, {
+            keyPath: "problemId",
           });
         }
       };
@@ -350,6 +369,119 @@ export function createStorage(): Storage {
     return { sessionCount, audioCount };
   };
 
+  // ============================================================================
+  // Problem Progress Operations (Spaced Repetition)
+  // ============================================================================
+
+  const saveProblemProgress = async (progress: ProblemProgress): Promise<void> => {
+    const database = getDb();
+
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(STORES.PROBLEM_PROGRESS, "readwrite");
+      const store = transaction.objectStore(STORES.PROBLEM_PROGRESS);
+      const request = store.put(progress);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  };
+
+  const getProblemProgress = async (problemId: string): Promise<ProblemProgress | null> => {
+    const database = getDb();
+
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(STORES.PROBLEM_PROGRESS, "readonly");
+      const store = transaction.objectStore(STORES.PROBLEM_PROGRESS);
+      const request = store.get(problemId);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result ?? null);
+    });
+  };
+
+  const getAllProblemProgress = async (): Promise<ProblemProgress[]> => {
+    const database = getDb();
+
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(STORES.PROBLEM_PROGRESS, "readonly");
+      const store = transaction.objectStore(STORES.PROBLEM_PROGRESS);
+      const request = store.getAll();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result ?? []);
+    });
+  };
+
+  /**
+   * Migrate existing sessions to problem progress.
+   * Replays session history through the scheduler to build accurate state.
+   * Idempotent - safe to call multiple times.
+   */
+  const migrateSessionsToProgress = async (): Promise<void> => {
+    // Check if migration already completed
+    if (localStorage.getItem(MIGRATION_KEY) === "done") {
+      return;
+    }
+
+    const sessions = await getAllSessions();
+    if (sessions.length === 0) {
+      localStorage.setItem(MIGRATION_KEY, "done");
+      return;
+    }
+
+    const scheduler = createSM2Scheduler();
+
+    // Group sessions by problem ID
+    const sessionsByProblem = new Map<string, StoredSession[]>();
+    for (const session of sessions) {
+      const problemId = session.problem.id;
+      const existing = sessionsByProblem.get(problemId) ?? [];
+      existing.push(session);
+      sessionsByProblem.set(problemId, existing);
+    }
+
+    // Process each problem
+    for (const [problemId, problemSessions] of sessionsByProblem) {
+      // Sort chronologically
+      const sorted = problemSessions.sort((a, b) => a.createdAt - b.createdAt);
+
+      // Find completed sessions (with reflection.submitted)
+      const completedSessions = sorted.filter((s) =>
+        s.events.some((e) => e.type === "reflection.submitted"),
+      );
+
+      if (completedSessions.length === 0) {
+        continue; // No completed sessions for this problem
+      }
+
+      // Replay through scheduler
+      let card = scheduler.createCard();
+      let lastAttempt = 0;
+
+      for (const session of completedSessions) {
+        // Find reflection event to derive rating
+        const reflectionEvent = session.events.find((e) => e.type === "reflection.submitted");
+        if (!reflectionEvent) continue;
+
+        const responses = (reflectionEvent.data as { responses: ReflectionResponses }).responses;
+        const rating = deriveRating(responses);
+
+        card = scheduler.schedule(card, rating, new Date(session.createdAt));
+        lastAttempt = session.createdAt;
+      }
+
+      // Save progress
+      await saveProblemProgress({
+        problemId,
+        card,
+        attempts: completedSessions.length,
+        lastAttempt,
+      });
+    }
+
+    localStorage.setItem(MIGRATION_KEY, "done");
+  };
+
   /**
    * Clean up orphaned audio from sessions that are not in-progress.
    * This is called on app startup to free up storage space.
@@ -414,6 +546,10 @@ export function createStorage(): Storage {
     deleteAudio,
     getStats,
     cleanupOrphanedAudio,
+    saveProblemProgress,
+    getProblemProgress,
+    getAllProblemProgress,
+    migrateSessionsToProgress,
   };
 
   return instance;
@@ -444,3 +580,8 @@ export const getAudioMimeType = (sessionId: string) => _storage.getAudioMimeType
 export const deleteAudio = (sessionId: string) => _storage.deleteAudio(sessionId);
 export const cleanupOrphanedAudio = () => _storage.cleanupOrphanedAudio();
 export const getStorageStats = () => _storage.getStats();
+export const saveProblemProgress = (progress: ProblemProgress) =>
+  _storage.saveProblemProgress(progress);
+export const getProblemProgress = (problemId: string) => _storage.getProblemProgress(problemId);
+export const getAllProblemProgress = () => _storage.getAllProblemProgress();
+export const migrateSessionsToProgress = () => _storage.migrateSessionsToProgress();

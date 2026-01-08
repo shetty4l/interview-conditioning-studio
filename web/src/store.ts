@@ -14,12 +14,13 @@ import {
   type Session,
 } from "../../core/src/index";
 import { createTimer, type Timer } from "./helpers/timer";
-import { createStorage, type Storage } from "./storage";
+import { createStorage, type Storage, saveProblemProgress, getProblemProgress } from "./storage";
 import { type AudioRecorder, createAudioRecorder, isAudioSupported } from "./audio";
-import { getRandomProblem, type Problem } from "./problems";
+import { getNextProblem, type Problem } from "./problems";
 import { exportSession } from "./export";
 import { showToast } from "./components";
 import type { ReflectionFormData, ScreenName, StoredSession } from "./types";
+import { createSM2Scheduler, deriveRating } from "./lib/spaced-repetition";
 
 // ============================================================================
 // Types
@@ -336,6 +337,9 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
         storage = createStorage();
         await storage.init();
 
+        // Migrate existing sessions to problem progress (one-time)
+        await storage.migrateSessionsToProgress();
+
         // Clean up orphaned audio from previous sessions
         // This frees up storage space for completed/abandoned sessions
         await storage.cleanupOrphanedAudio();
@@ -356,7 +360,7 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
 
       async startSession() {
         const { selectedPreset } = get();
-        const problem = await getRandomProblem();
+        const problem = await getNextProblem();
 
         // Reset audio recorder for new session (prevents stale sessionId)
         if (audioRecorder) {
@@ -558,13 +562,30 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
       },
 
       async submitReflection(responses: ReflectionFormData) {
-        const { session } = get();
+        const { session, problem } = get();
         if (!session) return;
 
         const result = session.dispatch("reflection.submitted", { responses });
         if (!result.ok) {
           console.error("Failed to submit reflection:", result.error);
           return;
+        }
+
+        // Record progress for spaced repetition
+        if (problem) {
+          const scheduler = createSM2Scheduler();
+          const rating = deriveRating(responses);
+          const existingProgress = await getProblemProgress(problem.id);
+
+          const card = existingProgress?.card ?? scheduler.createCard();
+          const newCard = scheduler.schedule(card, rating);
+
+          await saveProblemProgress({
+            problemId: problem.id,
+            card: newCard,
+            attempts: (existingProgress?.attempts ?? 0) + 1,
+            lastAttempt: Date.now(),
+          });
         }
 
         await syncSessionState();

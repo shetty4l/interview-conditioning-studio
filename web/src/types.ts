@@ -6,6 +6,7 @@
 
 import type { Event, Phase, Preset, Session, SessionState } from "../../core/src/index";
 import type { Problem } from "./problems";
+import type { SchedulerCard } from "./lib/spaced-repetition";
 
 // ============================================================================
 // App State
@@ -236,4 +237,21 @@ export interface StoredAudio {
   sessionId: string;
   chunks: Blob[];
   mimeType: string;
+}
+
+// ============================================================================
+// Spaced Repetition Progress
+// ============================================================================
+
+/**
+ * Tracks learning progress for a single problem.
+ * Used by the spaced repetition scheduler to determine review timing.
+ */
+export interface ProblemProgress {
+  problemId: string;
+  card: SchedulerCard;
+  /** Total number of completed attempts */
+  attempts: number;
+  /** Timestamp of last attempt */
+  lastAttempt: number;
 }
