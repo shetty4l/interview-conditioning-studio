@@ -156,13 +156,16 @@ export function createStorage(): Storage {
       const transaction = database.transaction(STORES.SESSIONS, "readwrite");
       const store = transaction.objectStore(STORES.SESSIONS);
 
-      const request = store.put({
+      store.put({
         ...session,
         updatedAt: Date.now(),
       });
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      // Wait for transaction commit, not just request success.
+      // This ensures data is persisted before the Promise resolves,
+      // preventing race conditions when reading immediately after write.
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
     });
   };
 

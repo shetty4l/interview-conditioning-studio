@@ -8,7 +8,6 @@
 import { useRoute, useRouter, useStore, Show, Switch, div, onMount } from "../framework";
 import { AppHeader, showToast } from "../components";
 import { AppStore } from "../store";
-import { createStorage } from "../storage";
 import { PrepScreen } from "./PrepScreen";
 import { CodingScreen } from "./CodingScreen";
 import { SummaryScreen } from "./SummaryScreen";
@@ -31,28 +30,15 @@ export function SessionScreen(): HTMLElement {
     return div({ class: "loading" }, ["Redirecting..."]);
   }
 
-  // Load session on mount if needed, or verify it still exists
+  // Load session on mount - always go through _loadSession() to ensure
+  // consistent storage access (fixes race condition with soft-deleted sessions)
   onMount(() => {
     (async () => {
-      const currentSessionId = state.sessionId();
-
-      if (currentSessionId !== sessionId) {
-        // Session ID is different, try to load from storage
-        const loaded = await AppStore.getActions()._loadSession(sessionId);
-        if (!loaded) {
-          showToast("Session not found", "error");
-          router.navigate("/");
-        }
-      } else {
-        // Session ID matches, but verify it still exists in storage
-        // (could have been soft-deleted while in memory)
-        const storage = createStorage();
-        await storage.init();
-        const exists = await storage.getSession(sessionId);
-        if (!exists) {
-          showToast("Session not found", "error");
-          router.navigate("/");
-        }
+      const loaded = await AppStore.getActions()._loadSession(sessionId);
+      if (!loaded) {
+        showToast("Session not found", "error");
+        AppStore.getActions().resetApp();
+        router.navigate("/");
       }
     })();
   });

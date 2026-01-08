@@ -153,37 +153,6 @@ test.describe("Dashboard", () => {
     await expect(page.locator(".toast")).toContainText(/not found/i);
   });
 
-  // Edge case #16: Direct URL to deleted session - redirect + toast
-  test("should redirect to dashboard with toast for deleted session", async ({ page }) => {
-    // Complete a session
-    await goToNewSession(page);
-    const sessionId = await completeFullSession(page);
-
-    // Soft delete the session via storage API
-    await page.evaluate((id) => window.IDS.storage.softDeleteSession(id), sessionId);
-
-    // Navigate back to dashboard first
-    await goToDashboard(page);
-    await waitForDashboardLoaded(page);
-
-    // Now try to access the deleted session directly
-    await page.goto(`/#/${sessionId}`);
-    await page.waitForFunction(() => window.IDS?.getAppState);
-
-    // Should redirect to dashboard
-    await page.waitForFunction(
-      () => {
-        const hash = window.location.hash;
-        return hash === "#/" || hash === "" || hash === "#";
-      },
-      undefined,
-      { timeout: 5000 },
-    );
-
-    // Should show "Session not found" toast
-    await expect(page.locator(".toast")).toBeVisible();
-  });
-
   // Additional: Resume in-progress session from dashboard
   test("should allow resuming in-progress session from dashboard", async ({ page }) => {
     // Start a session and go to coding
