@@ -26,3 +26,4 @@ export { AppHeader, type AppHeaderProps } from "./AppHeader";
 export { StatsCard, type StatsCardProps } from "./StatsCard";
 export { SessionCard, type SessionCardProps } from "./SessionCard";
 export { CollapsibleSection, type CollapsibleSectionProps } from "./CollapsibleSection";
+export { MicCheck, type MicCheckProps, type MicCheckState } from "./MicCheck";
