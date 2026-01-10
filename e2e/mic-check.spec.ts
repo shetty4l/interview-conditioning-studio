@@ -379,7 +379,8 @@ test.describe("Session Start with Mic Check", () => {
       });
 
       // This is informational - test passes regardless
-      console.log("audioPermissionDenied:", hasDeniedState);
+      // audioPermissionDenied state is tracked but we don't assert on it
+      void hasDeniedState;
     } finally {
       await context.close();
     }
