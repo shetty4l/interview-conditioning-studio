@@ -16,23 +16,26 @@ See [Product Principles](docs/PRINCIPLES.md) for core design invariants.
 
 ## Features
 
-- **Timed sessions**: Multiple presets (Standard, High Pressure, No Assistance)
+- **Dashboard**: View session history, stats, and resume incomplete sessions
+- **Timed sessions**: Multiple presets (Speed Round, Standard, High Pressure, No Assistance)
+- **Pre-session mic check**: Verify your microphone works before starting
 - **Enforced invariants**: Write down your assumptions before coding
 - **Limited nudges**: Budget depends on preset — use them wisely
-- **Silent phase**: Final minutes with no assistance — practice concluding without external help
+- **Silent phase**: Final minutes with no assistance
+- **Pause/resume**: Handle interruptions without losing progress
 - **Mandatory reflection**: Self-assess after each session
 - **Audio recording**: Capture your verbal reasoning for self-review
 - **Session export**: Download a bundle for LLM-assisted analysis (see [Export Details](docs/USAGE.md))
-- **Historical tracking**: See deltas vs your last session
 - **100% client-side**: Your data never leaves your browser
 
 ## How It Works
 
-1. **Choose a preset** — Standard, High Pressure, or No Assistance
-2. **Run a constrained session** — Prep → Coding → Silent phases with enforced time limits
-3. **Complete mandatory reflection** — 5 quick self-assessment prompts (~60 seconds)
-4. **Review behavioral signals** — See objective metrics and comparison to your last session
-5. **Export for deeper analysis** — Download a bundle for LLM-assisted review or self-study
+1. **Dashboard** — View past sessions and stats, or start a new session
+2. **Choose a preset** — Speed Round, Standard, High Pressure, or No Assistance
+3. **Mic check** — Verify your microphone is working (optional)
+4. **Run a constrained session** — Prep → Coding → Silent phases with enforced time limits
+5. **Complete mandatory reflection** — 5 quick self-assessment prompts
+6. **Review and export** — View your session or download for LLM-assisted review
 
 The goal is not to get the answer right — it's to build comfort with interview pressure through repeated exposure.
 
@@ -57,7 +60,7 @@ Or just [use the hosted version](https://interview-conditioning-studio.pages.dev
 ```bash
 ./scripts/bootstrap.sh
 source scripts/activate
-bun run dev
+bun run serve
 ```
 
 Open http://localhost:8000
@@ -65,12 +68,14 @@ Open http://localhost:8000
 ## Development
 
 ```bash
-bun run build        # Build core engine
-bun run build:watch  # Build with watch mode
+bun run build        # Build for production
+bun run serve        # Start dev server at localhost:8000
 bun run typecheck    # Type check
-bun run test         # Run tests
-bun run serve        # Start dev server
-bun run dev          # Build + serve
+bun run lint         # Lint with oxlint
+bun run format       # Format with oxfmt
+bun run test         # Run unit tests
+bun run test:e2e     # Run Playwright E2E tests
+bun run preflight    # Run all checks (build + format + typecheck + lint + test)
 ```
 
 ## License

@@ -98,6 +98,7 @@ export interface AppStoreActions {
   // Audio
   startRecording(): Promise<void>;
   stopRecording(): Promise<void>;
+  setAudioPermissionDenied(denied: boolean): void;
 
   // Export
   exportSession(): Promise<void>;
@@ -657,6 +658,10 @@ export const AppStore = createStore<AppStoreState, AppStoreActions>({
         }
 
         set({ isRecording: false });
+      },
+
+      setAudioPermissionDenied(denied: boolean) {
+        set({ audioPermissionDenied: denied });
       },
 
       // ----------------------------------------------------------------------

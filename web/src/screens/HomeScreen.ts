@@ -3,10 +3,31 @@
  *
  * Landing screen for selecting presets and starting sessions.
  * Shows resume banner if there's an incomplete session.
+ * Includes mic check if audio is supported.
  */
 
-import { div, h1, h2, onMount, p, Show, span, useActions, useRouter, useStore } from "../framework";
-import { AppHeader, Button, ConfirmButton, PresetCard, showToast } from "../components";
+import {
+  div,
+  h1,
+  h2,
+  onMount,
+  p,
+  Show,
+  signal,
+  span,
+  useActions,
+  useRouter,
+  useStore,
+} from "../framework";
+import {
+  AppHeader,
+  Button,
+  ConfirmButton,
+  MicCheck,
+  PresetCard,
+  showToast,
+  type MicCheckState,
+} from "../components";
 import { AppStore, PresetEnum } from "../store";
 import { preloadProblems } from "../problems";
 import type { Preset } from "../../../core/src/index";
@@ -51,6 +72,9 @@ export function HomeScreen(): HTMLElement {
   const actions = useActions(AppStore);
   const router = useRouter();
 
+  // Track mic check state for enabling/disabling start button
+  const [micCheckState, setMicCheckState] = signal<MicCheckState | null>(null);
+
   // Preload problems in background while user selects preset
   onMount(() => {
     preloadProblems();
@@ -58,6 +82,26 @@ export function HomeScreen(): HTMLElement {
 
   const handleSelectPreset = (preset: Preset) => {
     actions.selectPreset(preset);
+  };
+
+  const handleMicCheckStateChange = (newState: MicCheckState) => {
+    setMicCheckState(newState);
+    // If mic access was denied, update store so session knows not to record
+    if (newState === "denied" || newState === "error") {
+      actions.setAudioPermissionDenied(true);
+    }
+  };
+
+  // Start button should be disabled while mic check is loading
+  const isStartDisabled = () => {
+    const audioSupported = state.audioSupported();
+    const currentMicState = micCheckState();
+
+    // If audio not supported, no mic check needed - can start immediately
+    if (!audioSupported) return false;
+
+    // If mic check hasn't completed, disable start
+    return currentMicState === null || currentMicState === "loading";
   };
 
   const handleStartSession = async () => {
@@ -144,14 +188,24 @@ export function HomeScreen(): HTMLElement {
       ),
     ]),
 
-    // Start Button
+    // Mic Check + Start Button
     div({ class: "start-section" }, [
+      // Show mic check only if audio is supported
+      Show(
+        () => state.audioSupported(),
+        () =>
+          MicCheck({
+            onStateChange: handleMicCheckStateChange,
+          }),
+      ),
+
       Button({
         label: "Start Session",
         variant: "primary",
         size: "large",
         action: "start-session",
         className: "start-button",
+        disabled: isStartDisabled,
         onClick: handleStartSession,
       }),
     ]),

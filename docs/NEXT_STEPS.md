@@ -10,8 +10,9 @@ Work planned in priority order:
 4. **Phase 3: Dashboard + UI Polish** - Dashboard, simplified routing, pause/resume ✅ DONE
 5. **Phase 3.1: Audio Recording Bug** - Fix reactive feedback loop causing UI flicker ✅ DONE
 6. **Phase 3.2: UX Improvements** - Two-column layouts, better button placement, summary redesign ✅ DONE
-7. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization 🔜 NEXT
-8. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests
+7. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization ✅ DONE
+8. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests 🔜 NEXT
+9. **Phase 6: ViewScreen** - Read-only view of completed sessions
 
 ## Key Design Decisions
 
@@ -491,33 +492,56 @@ Move audio lifecycle from component lifecycle (CodingScreen) to store-managed ph
 
 ---
 
-## Phase 4: Pre-Session Mic Check
+## Phase 4: Pre-Session Mic Check ✅ DONE
 
 **Goal**: Add microphone check before starting a session
 
-### 4.1 Flow
+**Status**: Complete
 
-1. User clicks "Start Session"
-2. If `audioSupported`, show mic check inline (not modal)
-3. Requests microphone permission
-4. Shows real-time audio level visualization
-5. User confirms mic works → session starts with recording
-6. Or user clicks "Continue Without Recording" → session starts without audio
+### 4.1 What Was Built
 
-### 4.2 Why It Will Work Now
+| File                                       | Description                                                            |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| `web/src/helpers/audio-analyzer.ts`        | Audio level detection factory using Web Audio API                      |
+| `web/src/components/MicCheck.ts`           | Mic check component with states: loading, active, quiet, denied, error |
+| `tests/web/helpers/audio-analyzer.test.ts` | 11 unit tests with mocked browser APIs                                 |
+| `e2e/mic-check.spec.ts`                    | 11 E2E tests covering all mic check scenarios                          |
 
-With the reactive framework:
+### 4.2 How It Works
 
-- `onMount` cleanup prevents audio analyzer leaks
-- State changes don't destroy/recreate the entire DOM
-- Event handlers survive re-renders
-- `signal` updates audio level meter smoothly
+1. User navigates to "New Session" screen
+2. If `audioSupported`, MicCheck component appears above Start button
+3. Component requests microphone permission
+4. Shows real-time audio level visualization (10 bars)
+5. States:
+   - **Loading**: Requesting permission, Start button disabled
+   - **Active**: Mic working, bars animate with audio level
+   - **Quiet**: No audio detected for 2s, shows warning
+   - **Denied**: Permission blocked, can still proceed without audio
+   - **Error**: Other errors, can still proceed without audio
+6. Start button enabled once mic check completes (any state except loading)
 
-### 4.3 Checkpoint
+### 4.3 Design Decisions
 
-- [ ] Mic check inline component implemented
-- [ ] Audio level visualization works
-- [ ] Commit: `feat(web): add pre-session mic check`
+| Decision        | Choice                             | Rationale                       |
+| --------------- | ---------------------------------- | ------------------------------- |
+| Location        | Above Start button, inline         | No modal, keeps flow simple     |
+| Blocking        | Only blocks during loading         | User can proceed even if denied |
+| Bar count       | 10 bars, flex to fill width        | Responsive to container size    |
+| Quiet threshold | 0.05 (5%)                          | Low enough to detect speech     |
+| Quiet timeout   | 2 seconds                          | Long enough to not be annoying  |
+| Styling         | Compact, smaller than Start button | Doesn't overshadow main action  |
+
+### 4.4 Checkpoint
+
+- [x] Audio analyzer helper implemented
+- [x] MicCheck component with all states
+- [x] HomeScreen integration
+- [x] Store action for permission denied
+- [x] Unit tests (11 passing)
+- [x] E2E tests (11 passing)
+- [x] Compact styling
+- [x] Commit: `feat(web): add pre-session mic check with audio level visualization`
 
 ---
 
@@ -578,15 +602,15 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 | Phase 3 (Dashboard + UI Polish)   | ~15 hours   | ✅ Done |
 | Phase 3.1 (Audio Bug Fix)         | ~2 hours    | ✅ Done |
 | Phase 3.2 (UX Improvements)       | ~5 hours    | ✅ Done |
-| Phase 4 (Mic Check)               | ~2-3 hours  | 🔜 Next |
-| Phase 5 (Core Engine)             | ~2-3 hours  | Pending |
+| Phase 4 (Mic Check)               | ~2-3 hours  | ✅ Done |
+| Phase 5 (Core Engine)             | ~2-3 hours  | 🔜 Next |
 | Phase 6 (ViewScreen)              | ~1-2 hours  | Pending |
 
-**Total Remaining: ~5-8 hours** (Phase 4 + Phase 5 + Phase 6)
+**Total Remaining: ~3-5 hours** (Phase 5 + Phase 6)
 
 ---
 
 ## Current Test Status
 
-- **260 unit tests** passing (42 TODO)
-- **106 E2E tests** passing (11 skipped)
+- **306 unit tests** passing (42 TODO)
+- **136 E2E tests** passing (11 skipped)

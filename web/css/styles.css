@@ -434,6 +434,7 @@ input[type="radio"] {
   margin-top: var(--space-lg);
   display: flex;
   justify-content: center;
+  flex-direction: column;
 }
 
 /* Resume Banner */
@@ -1868,6 +1869,114 @@ input[type="radio"] {
 
 .collapsible--compact .collapsible__title {
   font-size: 0.875rem;
+}
+
+/* ============================================================================
+   Mic Check Component
+   ============================================================================ */
+
+.mic-check {
+  display: flex;
+  background: var(--bg-secondary);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  gap: var(--space-md);
+}
+
+.mic-check__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+}
+
+.mic-check__icon {
+  font-size: 1rem;
+}
+
+.mic-check__title {
+  font-weight: var(--font-weight-bold);
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.mic-check__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: center;
+  gap: var(--space-md);
+  flex: 1;
+}
+
+.mic-check__message {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* Audio Level Bars */
+.mic-check__bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 32px;
+  width: 100%;
+  padding: var(--space-xs);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+  flex: 5;
+}
+
+.mic-check__bar {
+  flex: 1;
+  min-height: 4px;
+  height: 0%;
+  background: var(--phase-coding);
+  border-radius: 2px;
+  transition: height 0.05s ease-out;
+}
+
+/* Status Messages */
+.mic-check__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.mic-check__status--success {
+  color: var(--success);
+}
+
+.mic-check__status--warning {
+  color: var(--warning);
+}
+
+.mic-check__status--error {
+  color: var(--danger);
+}
+
+.mic-check__status-icon {
+  font-size: 1rem;
+}
+
+.mic-check__hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* Denied/Error state styling */
+.mic-check__content--loading,
+.mic-check__content--error {
+  flex: 8;
+  align-items: flex-start;
+  font-size: 0.75rem;
+  padding: var(--space-xs);
 }
 
 /* ============================================================================
