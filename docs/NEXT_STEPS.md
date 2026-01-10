@@ -547,9 +547,35 @@ Move audio lifecycle from component lifecycle (CodingScreen) to store-managed ph
 
 ## Phase 5: Core Engine - Missing Metrics + Tests
 
-**Goal**: Implement the missing behavioral signals and complete all 42 todo tests
+**Goal**: Implement the missing behavioral signals and complete all TODO tests
 
-### 5.1 New Metrics
+**Status**: Pass 1 complete (35 of 42 TODOs done), Pass 2 pending
+
+### 5.1 Pass 1: Test Implementation ✅ DONE
+
+Implemented 32 tests without requiring core engine changes:
+
+| Category                          | Tests |
+| --------------------------------- | ----- |
+| Recovery - restore from events    | 2     |
+| Recovery - abandonment            | 1     |
+| Recovery - state after recovery   | 3     |
+| PREP - invariants handling        | 4     |
+| PREP - nudge restrictions         | 2     |
+| CODING - code snapshot            | 1     |
+| CODING - timer behavior           | 2     |
+| SILENT - code changes             | 1     |
+| SILENT - nudge rejection          | 1     |
+| SILENT - timer behavior           | 2     |
+| REFLECTION - response capture     | 4     |
+| REFLECTION - mandatory completion | 2     |
+| REFLECTION - response validation  | 8     |
+
+Also removed 3 duplicate TODO tests.
+
+### 5.2 Pass 2: New Metrics (Pending)
+
+Requires adding new fields to core engine state:
 
 ```typescript
 codeChanges: number;           // Total code change events
@@ -558,14 +584,18 @@ codeChangedInSilent: boolean;  // Whether any code changed in SILENT
 nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 ```
 
-### 5.2 Test Categories
+Remaining 7 TODO tests:
 
-- `recovery.test.ts` (~9 todos): Restore from events, abandonment
-- `phases.test.ts` (~33 todos): Phase-specific behaviors
+- CODING > Code changes (2 tests)
+- CODING > Nudge timing classification (3 tests)
+- SILENT > Code changes tracking (2 tests)
 
 ### 5.3 Checkpoint
 
-- [ ] All 42 TODO tests pass
+- [x] Pass 1: Implement tests for existing functionality (32 tests)
+- [x] Pass 1: Remove duplicate TODOs (3 removed)
+- [ ] Pass 2: Add new metrics to core state
+- [ ] Pass 2: Implement remaining 7 tests
 - [ ] Commit: `feat(core): add behavioral metrics (code changes, nudge timing)`
 
 ---
@@ -623,5 +653,5 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 
 ## Current Test Status
 
-- **306 unit tests** passing (42 TODO)
+- **338 unit tests** passing (7 TODO)
 - **136 E2E tests** passing (11 skipped)

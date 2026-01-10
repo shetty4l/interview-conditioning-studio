@@ -24,10 +24,48 @@ import {
 
 describe("Phases > PREP", () => {
   describe("Invariants handling", () => {
-    it.todo("should persist invariants across multiple changes");
-    it.todo("should use last invariants value when multiple changes occur");
-    it.todo("should allow empty invariants");
-    it.todo("should allow whitespace-only invariants");
+    it("should persist invariants across multiple changes", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("prep.invariants_changed", { invariants: "first" }));
+      expectSuccess(session.dispatch("prep.invariants_changed", { invariants: "second" }));
+      expectSuccess(session.dispatch("prep.invariants_changed", { invariants: "third" }));
+
+      expect(session.getState().invariants).toBe("third");
+    });
+
+    it("should use last invariants value when multiple changes occur", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("prep.invariants_changed", { invariants: "initial" }));
+      expectSuccess(session.dispatch("prep.invariants_changed", { invariants: "updated" }));
+
+      expect(session.getState().invariants).toBe("updated");
+
+      // Value persists after transitioning to coding
+      expectSuccess(session.dispatch("coding.started"));
+      expect(session.getState().invariants).toBe("updated");
+    });
+
+    it("should allow empty invariants", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("prep.invariants_changed", { invariants: "" }));
+
+      expect(session.getState().invariants).toBe("");
+    });
+
+    it("should allow whitespace-only invariants", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("prep.invariants_changed", { invariants: "   \n\t  " }));
+
+      expect(session.getState().invariants).toBe("   \n\t  ");
+    });
   });
 
   describe("Timer behavior", () => {
@@ -64,8 +102,19 @@ describe("Phases > PREP", () => {
   });
 
   describe("Nudges in PREP", () => {
-    it.todo("should not allow nudges in PREP phase");
-    it.todo("should have nudgesAllowed=false in PREP phase");
+    it("should not allow nudges in PREP phase", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectError(session.dispatch("nudge.requested"), "INVALID_PHASE");
+    });
+
+    it("should have nudgesAllowed=false in PREP phase", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expect(session.getState().nudgesAllowed).toBe(false);
+    });
   });
 });
 
@@ -75,9 +124,20 @@ describe("Phases > PREP", () => {
 
 describe("Phases > CODING", () => {
   describe("Code changes", () => {
-    it.todo("should track code changes");
-    it.todo("should count total code changes");
-    it.todo("should preserve latest code snapshot");
+    it.todo("should track code changes"); // Pass 2: needs codeChanges metric
+    it.todo("should count total code changes"); // Pass 2: needs codeChanges metric
+
+    it("should preserve latest code snapshot", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+      expectSuccess(session.dispatch("coding.code_changed", { code: "v1" }));
+      expectSuccess(session.dispatch("coding.code_changed", { code: "v2" }));
+      expectSuccess(session.dispatch("coding.code_changed", { code: "final version" }));
+
+      expect(session.getState().code).toBe("final version");
+    });
   });
 
   describe("Early submission", () => {
@@ -227,8 +287,31 @@ describe("Phases > CODING", () => {
   });
 
   describe("Timer behavior", () => {
-    it.todo("should track coding time");
-    it.todo("should transition to SILENT when timer expires");
+    it("should track coding time", () => {
+      const { session, clock } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+
+      const codingStartedAt = session.getState().codingStartedAt;
+      expect(codingStartedAt).not.toBeNull();
+
+      clock.advance(10 * 60 * 1000); // 10 minutes
+
+      // codingStartedAt should remain unchanged
+      expect(session.getState().codingStartedAt).toBe(codingStartedAt);
+    });
+
+    it("should transition to SILENT when coding.silent_started dispatched", () => {
+      const { session } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+      expect(session.getState().phase).toBe(Phase.Coding);
+
+      expectSuccess(session.dispatch("coding.silent_started"));
+      expect(session.getState().phase).toBe(Phase.Silent);
+    });
   });
 });
 
@@ -238,9 +321,17 @@ describe("Phases > CODING", () => {
 
 describe("Phases > SILENT", () => {
   describe("Code changes in SILENT", () => {
-    it.todo("should allow code changes in SILENT phase");
-    it.todo("should track codeChangesInSilent metric");
-    it.todo("should set codeChangedInSilent flag when code changes");
+    it("should allow code changes in SILENT phase", () => {
+      const { session } = createTestSession();
+
+      advanceToSilent(session);
+      expectSuccess(session.dispatch("coding.code_changed", { code: "silent code" }));
+
+      expect(session.getState().code).toBe("silent code");
+    });
+
+    it.todo("should track codeChangesInSilent metric"); // Pass 2: needs codeChangesInSilent metric
+    it.todo("should set codeChangedInSilent flag when code changes"); // Pass 2: needs codeChangedInSilent metric
   });
 
   describe("Nudges disabled", () => {
@@ -252,12 +343,41 @@ describe("Phases > SILENT", () => {
       expect(session.getState().nudgesAllowed).toBe(false);
     });
 
-    it.todo("should reject nudge requests in SILENT phase");
+    it("should reject nudge requests in SILENT phase", () => {
+      const { session } = createTestSession();
+
+      advanceToSilent(session);
+      expectError(session.dispatch("nudge.requested"), "INVALID_PHASE");
+    });
   });
 
   describe("Timer behavior", () => {
-    it.todo("should track silent time");
-    it.todo("should transition to SUMMARY when timer expires");
+    it("should track silent time via silentStartedAt", () => {
+      const { session, clock } = createTestSession();
+
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+      clock.advance(25 * 60 * 1000); // 25 minutes coding
+      expectSuccess(session.dispatch("coding.silent_started"));
+
+      const silentStartedAt = session.getState().silentStartedAt;
+      expect(silentStartedAt).not.toBeNull();
+
+      clock.advance(3 * 60 * 1000); // 3 minutes silent
+
+      // silentStartedAt should remain unchanged
+      expect(session.getState().silentStartedAt).toBe(silentStartedAt);
+    });
+
+    it("should transition to SUMMARY when silent.ended dispatched", () => {
+      const { session } = createTestSession();
+
+      advanceToSilent(session);
+      expect(session.getState().phase).toBe(Phase.Silent);
+
+      expectSuccess(session.dispatch("silent.ended"));
+      expect(session.getState().phase).toBe(Phase.Summary);
+    });
   });
 });
 
@@ -289,24 +409,260 @@ describe("Phases > REFLECTION", () => {
       expect(state.reflection?.responses.timePressure).toBe("overwhelming");
     });
 
-    it.todo("should capture reflection responses in state");
-    it.todo("should transition to DONE after valid reflection");
-    it.todo("should auto-emit session.completed event");
+    it("should capture all reflection responses in state", () => {
+      const { session } = createTestSession();
+
+      advanceToReflection(session);
+      expectSuccess(
+        session.dispatch("reflection.submitted", {
+          responses: {
+            clearApproach: "yes",
+            prolongedStall: "no",
+            recoveredFromStall: "n/a",
+            timePressure: "comfortable",
+            wouldChangeApproach: "no",
+          },
+        }),
+      );
+
+      const state = session.getState();
+      expect(state.reflection).toBeDefined();
+      expect(state.reflection?.responses.clearApproach).toBe("yes");
+      expect(state.reflection?.responses.prolongedStall).toBe("no");
+      expect(state.reflection?.responses.recoveredFromStall).toBe("n/a");
+      expect(state.reflection?.responses.timePressure).toBe("comfortable");
+      expect(state.reflection?.responses.wouldChangeApproach).toBe("no");
+    });
+
+    it("should transition to DONE after valid reflection", () => {
+      const { session } = createTestSession();
+
+      advanceToReflection(session);
+      expect(session.getState().phase).toBe(Phase.Reflection);
+
+      expectSuccess(
+        session.dispatch("reflection.submitted", {
+          responses: {
+            clearApproach: "yes",
+            prolongedStall: "no",
+            recoveredFromStall: "n/a",
+            timePressure: "comfortable",
+            wouldChangeApproach: "no",
+          },
+        }),
+      );
+
+      expect(session.getState().phase).toBe(Phase.Done);
+    });
+
+    it("should auto-emit session.completed event after reflection", () => {
+      const { session } = createTestSession();
+
+      advanceToReflection(session);
+      expectSuccess(
+        session.dispatch("reflection.submitted", {
+          responses: {
+            clearApproach: "yes",
+            prolongedStall: "no",
+            recoveredFromStall: "n/a",
+            timePressure: "comfortable",
+            wouldChangeApproach: "no",
+          },
+        }),
+      );
+
+      const events = session.getEvents();
+      const completedEvent = events.find((e) => e.type === "session.completed");
+      expect(completedEvent).toBeDefined();
+      expect(session.getState().status).toBe("completed");
+    });
   });
 
   describe("Mandatory completion", () => {
-    it.todo("should require reflection before session.completed");
-    it.todo("should not allow skipping reflection");
+    it("should require reflection before session.completed", () => {
+      const { session } = createTestSession();
+
+      advanceToReflection(session);
+
+      // Cannot manually dispatch session.completed - it's auto-emitted
+      expectError(session.dispatch("session.completed"), "INVALID_PHASE");
+    });
+
+    it("should not allow skipping reflection", () => {
+      const { session } = createTestSession();
+
+      // Advance to SUMMARY
+      expectSuccess(session.dispatch("session.started"));
+      expectSuccess(session.dispatch("coding.started"));
+      expectSuccess(session.dispatch("coding.silent_started"));
+      expectSuccess(session.dispatch("silent.ended"));
+
+      expect(session.getState().phase).toBe(Phase.Summary);
+
+      // Cannot skip directly to session.completed
+      expectError(session.dispatch("session.completed"), "INVALID_PHASE");
+    });
   });
 
   describe("Response validation", () => {
-    it.todo("should accept valid clearApproach values: yes, partially, no");
-    it.todo("should accept valid prolongedStall values: yes, no");
-    it.todo("should accept valid recoveredFromStall values: yes, partially, no, n/a");
-    it.todo("should accept valid timePressure values: comfortable, manageable, overwhelming");
-    it.todo("should accept valid wouldChangeApproach values: yes, no");
-    it.todo("should reject invalid response values");
-    it.todo("should reject missing required fields");
-    it.todo("should enforce recoveredFromStall='n/a' only when prolongedStall='no'");
+    it("should accept valid clearApproach values: yes, partially, no", () => {
+      for (const value of ["yes", "partially", "no"] as const) {
+        const { session } = createTestSession();
+        advanceToReflection(session);
+        expectSuccess(
+          session.dispatch("reflection.submitted", {
+            responses: {
+              clearApproach: value,
+              prolongedStall: "no",
+              recoveredFromStall: "n/a",
+              timePressure: "comfortable",
+              wouldChangeApproach: "no",
+            },
+          }),
+        );
+      }
+    });
+
+    it("should accept valid prolongedStall values: yes, no", () => {
+      for (const value of ["yes", "no"] as const) {
+        const { session } = createTestSession();
+        advanceToReflection(session);
+        expectSuccess(
+          session.dispatch("reflection.submitted", {
+            responses: {
+              clearApproach: "yes",
+              prolongedStall: value,
+              recoveredFromStall: value === "no" ? "n/a" : "yes",
+              timePressure: "comfortable",
+              wouldChangeApproach: "no",
+            },
+          }),
+        );
+      }
+    });
+
+    it("should accept valid recoveredFromStall values: yes, partially, no, n/a", () => {
+      // Test yes, partially, no with prolongedStall="yes"
+      for (const value of ["yes", "partially", "no"] as const) {
+        const { session } = createTestSession();
+        advanceToReflection(session);
+        expectSuccess(
+          session.dispatch("reflection.submitted", {
+            responses: {
+              clearApproach: "yes",
+              prolongedStall: "yes",
+              recoveredFromStall: value,
+              timePressure: "comfortable",
+              wouldChangeApproach: "no",
+            },
+          }),
+        );
+      }
+
+      // Test n/a with prolongedStall="no"
+      const { session } = createTestSession();
+      advanceToReflection(session);
+      expectSuccess(
+        session.dispatch("reflection.submitted", {
+          responses: {
+            clearApproach: "yes",
+            prolongedStall: "no",
+            recoveredFromStall: "n/a",
+            timePressure: "comfortable",
+            wouldChangeApproach: "no",
+          },
+        }),
+      );
+    });
+
+    it("should accept valid timePressure values: comfortable, manageable, overwhelming", () => {
+      for (const value of ["comfortable", "manageable", "overwhelming"] as const) {
+        const { session } = createTestSession();
+        advanceToReflection(session);
+        expectSuccess(
+          session.dispatch("reflection.submitted", {
+            responses: {
+              clearApproach: "yes",
+              prolongedStall: "no",
+              recoveredFromStall: "n/a",
+              timePressure: value,
+              wouldChangeApproach: "no",
+            },
+          }),
+        );
+      }
+    });
+
+    it("should accept valid wouldChangeApproach values: yes, no", () => {
+      for (const value of ["yes", "no"] as const) {
+        const { session } = createTestSession();
+        advanceToReflection(session);
+        expectSuccess(
+          session.dispatch("reflection.submitted", {
+            responses: {
+              clearApproach: "yes",
+              prolongedStall: "no",
+              recoveredFromStall: "n/a",
+              timePressure: "comfortable",
+              wouldChangeApproach: value,
+            },
+          }),
+        );
+      }
+    });
+
+    it("should reject invalid response values", () => {
+      const { session } = createTestSession();
+      advanceToReflection(session);
+
+      expectError(
+        session.dispatch("reflection.submitted", {
+          // @ts-expect-error - testing invalid value
+          responses: {
+            clearApproach: "invalid",
+            prolongedStall: "no",
+            recoveredFromStall: "n/a",
+            timePressure: "comfortable",
+            wouldChangeApproach: "no",
+          },
+        }),
+        "VALIDATION_FAILED",
+      );
+    });
+
+    it("should reject missing required fields", () => {
+      const { session } = createTestSession();
+      advanceToReflection(session);
+
+      expectError(
+        session.dispatch("reflection.submitted", {
+          // @ts-expect-error - testing missing fields
+          responses: {
+            clearApproach: "yes",
+            // Missing prolongedStall, recoveredFromStall, etc.
+          },
+        }),
+        "VALIDATION_FAILED",
+      );
+    });
+
+    it("should enforce recoveredFromStall='n/a' only when prolongedStall='no'", () => {
+      const { session } = createTestSession();
+      advanceToReflection(session);
+
+      // n/a with prolongedStall="yes" should fail
+      expectError(
+        session.dispatch("reflection.submitted", {
+          responses: {
+            clearApproach: "yes",
+            prolongedStall: "yes",
+            recoveredFromStall: "n/a", // Invalid when prolongedStall is "yes"
+            timePressure: "comfortable",
+            wouldChangeApproach: "no",
+          },
+        }),
+        "VALIDATION_FAILED",
+      );
+    });
   });
 });

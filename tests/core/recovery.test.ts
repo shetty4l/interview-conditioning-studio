@@ -6,6 +6,7 @@ import {
   expectError,
   advanceToCoding,
   Preset,
+  Phase,
   TEST_PROBLEM,
 } from "../_helpers";
 import { createSession } from "../../core/src/index";
@@ -106,23 +107,183 @@ describe("Recovery > Session abandonment", () => {
 });
 
 // ============================================================================
-// Restore from Events (TODOs)
+// Restore from Events
 // ============================================================================
 
 describe("Recovery > Restore from events", () => {
-  it.todo("should restore session state from event log");
-  it.todo("should derive same state from replayed events");
-  it.todo("should preserve timestamps from original events");
+  it("should restore session state from event log", () => {
+    const clock1 = createMockClock(1000);
+    const session1 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock1.now,
+    });
+
+    expectSuccess(session1.dispatch("session.started"));
+    expectSuccess(session1.dispatch("prep.invariants_changed", { invariants: "two pointers" }));
+    expectSuccess(session1.dispatch("coding.started"));
+    expectSuccess(session1.dispatch("coding.code_changed", { code: "function solve() {}" }));
+    expectSuccess(session1.dispatch("nudge.requested"));
+
+    const events = session1.getEvents();
+
+    // Create new session and restore from events
+    const clock2 = createMockClock(1000);
+    const session2 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock2.now,
+    });
+
+    session2.restore(events);
+
+    const state = session2.getState();
+    expect(state.phase).toBe(Phase.Coding);
+    expect(state.invariants).toBe("two pointers");
+    expect(state.code).toBe("function solve() {}");
+    expect(state.nudgesUsed).toBe(1);
+  });
+
+  it("should preserve timestamps from original events", () => {
+    const clock1 = createMockClock(1000);
+    const session1 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock1.now,
+    });
+
+    expectSuccess(session1.dispatch("session.started"));
+    clock1.advance(5000);
+    expectSuccess(session1.dispatch("coding.started"));
+
+    const originalEvents = session1.getEvents();
+
+    // Create new session and restore
+    const clock2 = createMockClock(99999); // Different clock time
+    const session2 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock2.now,
+    });
+
+    session2.restore(originalEvents);
+
+    const restoredEvents = session2.getEvents();
+    expect(restoredEvents[0].timestamp).toBe(1000); // Original timestamp preserved
+    expect(restoredEvents[1].timestamp).toBe(6000); // Original timestamp preserved
+  });
 });
 
 describe("Recovery > Explicit abandonment", () => {
-  it.todo("should set status to abandoned_explicit when session.abandoned dispatched");
-  it.todo("should reject events after abandonment");
-  it.todo("should allow abandonment from any active phase");
+  it("should allow abandonment from any active phase", () => {
+    // Test abandonment from PREP
+    const { session: session1 } = createTestSession();
+    expectSuccess(session1.dispatch("session.started"));
+    expectSuccess(session1.dispatch("session.abandoned"));
+    expect(session1.getState().status).toBe("abandoned_explicit");
+
+    // Test abandonment from CODING
+    const { session: session2 } = createTestSession();
+    expectSuccess(session2.dispatch("session.started"));
+    expectSuccess(session2.dispatch("coding.started"));
+    expectSuccess(session2.dispatch("session.abandoned"));
+    expect(session2.getState().status).toBe("abandoned_explicit");
+
+    // Test abandonment from SILENT
+    const { session: session3 } = createTestSession();
+    expectSuccess(session3.dispatch("session.started"));
+    expectSuccess(session3.dispatch("coding.started"));
+    expectSuccess(session3.dispatch("coding.silent_started"));
+    expectSuccess(session3.dispatch("session.abandoned"));
+    expect(session3.getState().status).toBe("abandoned_explicit");
+  });
 });
 
 describe("Recovery > State after recovery", () => {
-  it.todo("should restore phase correctly");
-  it.todo("should restore code and invariants");
-  it.todo("should restore nudge count");
+  it("should restore phase correctly", () => {
+    // Create session in SILENT phase
+    const clock1 = createMockClock(1000);
+    const session1 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock1.now,
+    });
+
+    expectSuccess(session1.dispatch("session.started"));
+    expectSuccess(session1.dispatch("coding.started"));
+    expectSuccess(session1.dispatch("coding.silent_started"));
+
+    const events = session1.getEvents();
+
+    // Restore to new session
+    const clock2 = createMockClock(1000);
+    const session2 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock2.now,
+    });
+
+    session2.restore(events);
+    expect(session2.getState().phase).toBe(Phase.Silent);
+  });
+
+  it("should restore code and invariants", () => {
+    const clock1 = createMockClock(1000);
+    const session1 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock1.now,
+    });
+
+    expectSuccess(session1.dispatch("session.started"));
+    expectSuccess(session1.dispatch("prep.invariants_changed", { invariants: "hash map lookup" }));
+    expectSuccess(session1.dispatch("coding.started"));
+    expectSuccess(session1.dispatch("coding.code_changed", { code: "const map = new Map();" }));
+
+    const events = session1.getEvents();
+
+    // Restore to new session
+    const clock2 = createMockClock(1000);
+    const session2 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock2.now,
+    });
+
+    session2.restore(events);
+
+    const state = session2.getState();
+    expect(state.invariants).toBe("hash map lookup");
+    expect(state.code).toBe("const map = new Map();");
+  });
+
+  it("should restore nudge count", () => {
+    const clock1 = createMockClock(1000);
+    const session1 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock1.now,
+    });
+
+    expectSuccess(session1.dispatch("session.started"));
+    expectSuccess(session1.dispatch("coding.started"));
+    expectSuccess(session1.dispatch("nudge.requested"));
+    expectSuccess(session1.dispatch("nudge.requested"));
+
+    const events = session1.getEvents();
+
+    // Restore to new session
+    const clock2 = createMockClock(1000);
+    const session2 = createSession({
+      preset: Preset.Standard,
+      problem: TEST_PROBLEM,
+      clock: clock2.now,
+    });
+
+    session2.restore(events);
+
+    const state = session2.getState();
+    expect(state.nudgesUsed).toBe(2);
+    expect(state.nudgesRemaining).toBe(1); // Standard preset has 3 nudges
+  });
 });
