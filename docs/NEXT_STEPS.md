@@ -12,7 +12,7 @@ Work planned in priority order:
 6. **Phase 3.2: UX Improvements** - Two-column layouts, better button placement, summary redesign ✅ DONE
 7. **Phase 4: Mic Check** - Pre-session microphone check with audio level visualization ✅ DONE
 8. **Phase 5: Core Engine** - Add missing behavioral metrics + complete 42 todo tests 🔜 NEXT
-9. **Phase 6: ViewScreen** - Read-only view of completed sessions
+9. **Phase 6: ViewScreen** - Read-only view of completed sessions ✅ DONE
 
 ## Key Design Decisions
 
@@ -570,25 +570,36 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 
 ---
 
-## Phase 6: ViewScreen Implementation
+## Phase 6: ViewScreen Implementation ✅ DONE
 
 **Goal**: Implement read-only view of completed sessions
 
-**Current State**: Placeholder exists at `web/src/screens/ViewScreen.ts` - currently redirects to dashboard with "coming soon" toast.
+**Status**: Complete
 
-### 6.1 Features
+### 6.1 What Was Built
 
-- Display completed session data (problem, invariants, code, reflection)
-- Show session metrics (time spent, nudges used)
-- Export button
-- Read-only (no editing)
-- Accessible via `/#/:id/view` route
+| File                            | Description                          |
+| ------------------------------- | ------------------------------------ |
+| `web/src/screens/ViewScreen.ts` | Read-only view component (205 lines) |
+| `e2e/view-screen.spec.ts`       | 6 E2E tests covering all scenarios   |
 
-### 6.2 Checkpoint
+### 6.2 Features Implemented
 
-- [ ] ViewScreen displays session data
-- [ ] Export functionality works from ViewScreen
-- [ ] Commit: `feat(web): implement ViewScreen for completed sessions`
+- Displays problem title, difficulty badge, patterns, and completion date
+- Shows code with syntax highlighting (or "No code written" placeholder)
+- Shows invariants (or "No invariants written" placeholder)
+- Export button (exports without audio since it's deleted after DoneScreen)
+- Back to Dashboard button
+- Redirects in-progress sessions to SessionScreen
+- Shows error toast and redirects for non-existent sessions
+- Route: `/#/:id/view`
+
+### 6.3 Checkpoint
+
+- [x] ViewScreen displays session data
+- [x] Export functionality works from ViewScreen
+- [x] Redirects for in-progress/missing sessions
+- [x] E2E tests (6 passing)
 
 ---
 
@@ -604,9 +615,9 @@ nudgeTiming: NudgeTiming[];    // 'early' | 'mid' | 'late'
 | Phase 3.2 (UX Improvements)       | ~5 hours    | ✅ Done |
 | Phase 4 (Mic Check)               | ~2-3 hours  | ✅ Done |
 | Phase 5 (Core Engine)             | ~2-3 hours  | 🔜 Next |
-| Phase 6 (ViewScreen)              | ~1-2 hours  | Pending |
+| Phase 6 (ViewScreen)              | ~1-2 hours  | ✅ Done |
 
-**Total Remaining: ~3-5 hours** (Phase 5 + Phase 6)
+**Total Remaining: ~2-3 hours** (Phase 5 only)
 
 ---
 
